@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aloute-postgres
+    environment:
+      POSTGRES_DB: aloute
+      POSTGRES_USER: aloute
+      POSTGRES_PASSWORD: aloute_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - aloute-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aloute -d aloute"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: aloute-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@aloute.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Bắt email "quên mật khẩu" khi dev: xem tại http://localhost:8025
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: aloute-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  aloute-pgdata:

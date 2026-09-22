@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Bảng tin', ~{::main}, 'home', ~{::aside})}">
+<head><title>Bảng tin</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Bảng tin</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+
+    <section class="note note--taped mb-4" aria-labelledby="hello">
+        <h2 id="hello" class="mb-3" th:text="'Chào ' + ${me.profile.displayName} + '!'">Chào bạn!</h2>
+        <p class="text-soft">Hoàn thiện hồ sơ trước để mọi người nhận ra bạn nhé.</p>
+        <ul class="todo">
+            <li th:classappend="${me.profile.avatarUrl != null} ? 'done'">
+                <span class="tick" aria-hidden="true" th:text="${me.profile.avatarUrl != null} ? '✓' : ''"></span>
+                <span class="label">Thêm ảnh đại diện</span>
+                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.avatarUrl != null}" th:href="@{/settings}">Thêm</a>
+            </li>
+            <li th:classappend="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? 'done'">
+                <span class="tick" aria-hidden="true" th:text="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? '✓' : ''"></span>
+                <span class="label">Viết vài dòng giới thiệu</span>
+                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)}" th:href="@{/settings}">Viết</a>
+            </li>
+        </ul>
+    </section>
+
+    <section class="note note--sky empty" aria-labelledby="empty-title">
+        <svg viewBox="0 0 160 120" role="img" aria-label="Tấm bảng trống với vài chiếc ghim">
+            <rect x="14" y="14" width="132" height="92" rx="10" fill="#FFF8EC" stroke="#16121F" stroke-width="3"/>
+            <rect x="34" y="34" width="44" height="30" rx="4" fill="#FFE45E" stroke="#16121F" stroke-width="3" transform="rotate(-4 56 49)"/>
+            <rect x="88" y="42" width="38" height="36" rx="4" fill="#FF8FB1" stroke="#16121F" stroke-width="3" transform="rotate(5 107 60)"/>
+            <circle cx="56" cy="32" r="5" fill="#7DE0B5" stroke="#16121F" stroke-width="2.5"/>
+            <circle cx="107" cy="40" r="5" fill="#B8A4FF" stroke="#16121F" stroke-width="2.5"/>
+            <path d="M42 88h76" stroke="#16121F" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
+        </svg>
+        <h2 id="empty-title" class="h3">Chưa có bài nào để dán lên đây</h2>
+        <p>Đăng bài, thả tim và bình luận sẽ có ở bản cập nhật tiếp theo. Trong lúc chờ, hãy hoàn thiện hồ sơ của bạn.</p>
+        <a class="btn-al btn-al--pink" th:href="@{/settings}">Chỉnh hồ sơ</a>
+    </section>
+</main>
+
+<aside class="app-rail">
+    <section class="note note--lemon tilt-r" aria-labelledby="role-title">
+        <h2 id="role-title" class="h3 mb-2">Vai trò của bạn</h2>
+        <p class="mb-2"><span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span></p>
+        <p class="mb-0 text-soft" th:switch="${me.primaryRole().name()}">
+            <span th:case="'ADMIN'">Bạn quản lý toàn hệ thống: nhân sự, cấu hình và nhật ký.</span>
+            <span th:case="'MANAGER'">Bạn kiểm duyệt nội dung và hỗ trợ người dùng.</span>
+            <span th:case="'CREATOR'">Bạn có công cụ Creator: thống kê, hẹn giờ đăng, huy hiệu fan.</span>
+            <span th:case="*">Bạn đăng bài, kết bạn và nhắn tin thoải mái.</span>
+        </p>
+    </section>
+</aside>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Tạo tài khoản', ~{::main}, 'none', ~{})}">
+<head><title>Tạo tài khoản</title></head>
+<body>
+<main>
+    <div class="auth-wrap">
+        <section class="note note--taped auth-card" aria-labelledby="t">
+            <h1 id="t">Tạo tài khoản, vô hội!</h1>
+            <p class="lead">Mất chưa tới một phút. Không cần xác minh gì phức tạp.</p>
+
+            <form th:action="@{/register}" th:object="${registerForm}" method="post" novalidate>
+                <div th:replace="~{fragments/ui :: globalErrors}"></div>
+                <div th:replace="~{fragments/forms :: textField('displayName', 'Tên hiển thị', 'text', 'nickname', 'Tên mọi người sẽ thấy, đổi được sau.')}"></div>
+                <div th:replace="~{fragments/forms :: textField('username', 'Username', 'text', 'username', 'Dùng chữ thường, số, dấu chấm hoặc gạch dưới.')}"></div>
+                <div th:replace="~{fragments/forms :: textField('email', 'Email', 'email', 'email', null)}"></div>
+                <div th:replace="~{fragments/forms :: passwordField('password', 'Mật khẩu', 'new-password', 'Ít nhất 8 ký tự, có cả chữ và số.')}"></div>
+                <div th:replace="~{fragments/forms :: passwordField('confirmPassword', 'Nhập lại mật khẩu', 'new-password', null)}"></div>
+                <button type="submit" class="btn-al btn-al--lg btn-al--block">Tạo tài khoản</button>
+            </form>
+
+            <div th:replace="~{fragments/forms :: social}"></div>
+
+            <div class="auth-links">
+                <span>Đã có tài khoản?</span>
+                <a th:href="@{/login}">Đăng nhập</a>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: authSide('Chỗ của bạn đây!', 'Đăng ảnh, nhắn nhóm, khoe clip, làm fan cứng.', 'pink')}"></div>
+    </div>
+</main>
+</body>
+</html>

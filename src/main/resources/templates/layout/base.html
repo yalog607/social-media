@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<!--
+  Khung chung. Dùng ở mỗi trang:
+    <html th:replace="~{layout/base :: layout('Tên trang', ~{::main}, 'home', ~{})}"> ... <main>...</main> ...
+  - active: home | profile | settings | creator | manage | admin | none (để tô sáng menu)
+  - rail:   ~{::aside} để có cột phải (chỉ hiện ≥1200px), ~{} nếu không dùng
+  Đã đăng nhập → khung ứng dụng (topbar + menu + nội dung); chưa đăng nhập → khung công khai.
+-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content, active, rail)">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#FFF8EC">
+    <title th:text="${title} + ' · ALOUTE'">ALOUTE</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/fonts.css}">
+    <link rel="stylesheet" th:href="@{/css/aloute.css}">
+</head>
+<body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}">
+<th:block th:replace="~{fragments/icons :: sprite}"></th:block>
+<a class="skip-link" href="#main">Bỏ qua, tới nội dung chính</a>
+
+<!-- ============ Khung ứng dụng (đã đăng nhập) ============ -->
+<th:block th:if="${me != null}">
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ">aloute</a>
+            <span class="ms-auto"></span>
+            <div class="dropdown">
+                <button class="user-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span th:replace="~{fragments/ui :: avatar(${me.profile}, '')}"></span>
+                    <span class="d-none d-sm-inline" th:text="${me.profile.displayName}">Tên bạn</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end menu-al">
+                    <li><a class="dropdown-item" th:href="@{/me}">Trang cá nhân</a></li>
+                    <li><a class="dropdown-item" th:href="@{/settings}">Cài đặt</a></li>
+                    <li>
+                        <form th:action="@{/logout}" method="post">
+                            <button class="dropdown-item" type="submit">Đăng xuất</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="app">
+        <nav class="side-nav" aria-label="Menu chính">
+            <a class="nav-tab" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}"
+               th:attr="aria-current=${active == 'home'} ? 'page'">
+                <svg aria-hidden="true"><use href="#i-home"/></svg>Trang chủ</a>
+            <a class="nav-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}"
+               th:attr="aria-current=${active == 'profile'} ? 'page'">
+                <svg aria-hidden="true"><use href="#i-user"/></svg>Trang cá nhân</a>
+            <a class="nav-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}"
+               th:attr="aria-current=${active == 'settings'} ? 'page'">
+                <svg aria-hidden="true"><use href="#i-gear"/></svg>Cài đặt</a>
+            <a class="nav-tab" th:if="${caps.contains('CREATOR')}" th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">
+                <svg aria-hidden="true"><use href="#i-star"/></svg>Creator</a>
+            <a class="nav-tab" th:if="${caps.contains('MANAGER')}" th:classappend="${active == 'manage'} ? 'is-active'" th:href="@{/manage}">
+                <svg aria-hidden="true"><use href="#i-shield"/></svg>Kiểm duyệt</a>
+            <a class="nav-tab" th:if="${caps.contains('ADMIN')}" th:classappend="${active == 'admin'} ? 'is-active'" th:href="@{/admin}">
+                <svg aria-hidden="true"><use href="#i-crown"/></svg>Quản trị</a>
+        </nav>
+
+        <div class="app-main" id="main">
+            <div class="alert-al alert-al--ok" role="status" th:if="${notice != null}"><p th:text="${notice}"></p></div>
+            <th:block th:replace="${content}"></th:block>
+        </div>
+
+        <th:block th:replace="${rail}"></th:block>
+    </div>
+
+    <nav class="bottom-tabs" aria-label="Menu chính (điện thoại)">
+        <a class="bottom-tab" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}">
+            <svg aria-hidden="true"><use href="#i-home"/></svg>Trang chủ</a>
+        <a class="bottom-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}">
+            <svg aria-hidden="true"><use href="#i-user"/></svg>Của tôi</a>
+        <a class="bottom-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}">
+            <svg aria-hidden="true"><use href="#i-gear"/></svg>Cài đặt</a>
+        <a class="bottom-tab" th:if="${caps.contains('CREATOR')}" th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">
+            <svg aria-hidden="true"><use href="#i-star"/></svg>Creator</a>
+        <a class="bottom-tab" th:if="${caps.contains('MANAGER')}" th:classappend="${active == 'manage'} ? 'is-active'" th:href="@{/manage}">
+            <svg aria-hidden="true"><use href="#i-shield"/></svg>Duyệt</a>
+        <a class="bottom-tab" th:if="${caps.contains('ADMIN')}" th:classappend="${active == 'admin'} ? 'is-active'" th:href="@{/admin}">
+            <svg aria-hidden="true"><use href="#i-crown"/></svg>Admin</a>
+    </nav>
+</th:block>
+
+<!-- ============ Khung công khai (chưa đăng nhập) ============ -->
+<th:block th:if="${me == null}">
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ">aloute</a>
+            <span class="ms-auto"></span>
+            <a class="btn-al btn-al--ghost btn-al--sm d-none d-sm-inline-flex" th:href="@{/login}">Đăng nhập</a>
+            <a class="btn-al btn-al--pink btn-al--sm" th:href="@{/register}">Tạo tài khoản</a>
+        </div>
+    </header>
+    <div id="main">
+        <div class="container" style="max-width:720px" th:if="${notice != null}">
+            <div class="alert-al alert-al--ok mt-4" role="status"><p th:text="${notice}"></p></div>
+        </div>
+        <th:block th:replace="${content}"></th:block>
+    </div>
+    <footer class="site-footer">aloute · làm bởi sinh viên, cho cả hội</footer>
+</th:block>
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/aloute.js}"></script>
+</body>
+</html>

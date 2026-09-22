@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Đăng nhập', ~{::main}, 'none', ~{})}">
+<head><title>Đăng nhập</title></head>
+<body>
+<main>
+    <div class="auth-wrap">
+        <section class="note note--taped auth-card" aria-labelledby="t">
+            <h1 id="t">Vào lại hội nào!</h1>
+            <p class="lead">Đăng nhập để xem mọi người vừa đăng gì.</p>
+
+            <form th:action="@{/login}" th:object="${loginForm}" method="post" novalidate>
+                <div th:replace="~{fragments/ui :: globalErrors}"></div>
+                <input type="hidden" th:field="*{next}">
+                <div th:replace="~{fragments/forms :: textField('identifier', 'Email hoặc username', 'text', 'username', null)}"></div>
+                <div th:replace="~{fragments/forms :: passwordField('password', 'Mật khẩu', 'current-password', null)}"></div>
+                <button type="submit" class="btn-al btn-al--pink btn-al--lg btn-al--block">Đăng nhập</button>
+            </form>
+
+            <div th:replace="~{fragments/forms :: social}"></div>
+
+            <div class="auth-links">
+                <a th:href="@{/forgot-password}">Quên mật khẩu?</a>
+                <a th:href="@{/register}">Chưa có tài khoản? Tạo mới</a>
+            </div>
+        </section>
+        <div th:replace="~{fragments/ui :: authSide('Nhớ bạn quá trời!', 'Vào lại là có ngay cả hội chờ sẵn.', 'lemon')}"></div>
+    </div>
+</main>
+</body>
+</html>

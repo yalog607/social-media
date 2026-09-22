@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Alô, cả hội đâu rồi?', ~{::main}, 'none', ~{})}">
+<head><title>Trang chủ</title></head>
+<body>
+<main>
+    <section class="hero" aria-labelledby="hero-title">
+        <div>
+            <h1 id="hero-title">Alô, cả hội đâu rồi?</h1>
+            <p class="lead">Đăng ảnh, khoe clip, nhắn nhóm và làm fan cứng của người mình thích. Tất cả ở một chỗ, không cần lịch sự quá.</p>
+            <div class="hero-cta">
+                <a class="btn-al btn-al--pink btn-al--lg" th:href="@{/register}">Tạo tài khoản</a>
+                <a class="btn-al btn-al--white btn-al--lg" th:href="@{/login}">Tôi có tài khoản rồi</a>
+            </div>
+        </div>
+
+        <!-- Mặt bàn sticker: minh họa, không phải nội dung thật -->
+        <div class="desk" aria-hidden="true">
+            <article class="note note--taped d-post">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="avatar" style="--size:40px; background:var(--lavender)">M</span>
+                    <div><strong>mochi.02</strong><div class="text-soft" style="font-size:.85rem">vừa xong</div></div>
+                </div>
+                <div class="mock-img"></div>
+                <p class="mb-2 fw-semibold">Chiều nay ai đi ăn kem không? 🍦</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="sticker sticker--pink" style="--rot:-2deg">❤️ 128</span>
+                    <span class="sticker" style="--rot:2deg">😂 34</span>
+                    <span class="sticker sticker--sky" style="--rot:-1deg">🔥 51</span>
+                </div>
+            </article>
+
+            <div class="note note--mint d-chat">
+                <span class="bubble bubble--in">tối nay học nhóm ở đâu?</span>
+                <span class="bubble bubble--out">quán cũ, 7h nha 📚</span>
+                <span class="bubble bubble--in mb-0">ok, nhớ mang sạc dự phòng</span>
+            </div>
+
+            <span class="sticker sticker--lavender d-badge" style="font-size:1.05rem">Creator ✦</span>
+            <span class="sticker sticker--round sticker--tangerine d-star">✨</span>
+            <span class="sticker sticker--pink d-fan">Fan cứng 💗</span>
+        </div>
+    </section>
+
+    <section class="feature-strip" aria-label="Bạn làm được gì ở ALOUTE">
+        <article class="note note--pink tilt-l">
+            <h3>Bảng tin của riêng bạn</h3>
+            <p>Đăng chữ, ảnh, video. Bạn bè thả tim, bình luận, chia sẻ.</p>
+        </article>
+        <article class="note note--mint tilt-r">
+            <h3>Nhắn tin liền tay</h3>
+            <p>Chat đôi, chat nhóm, gửi file. Tin đến là thấy ngay.</p>
+        </article>
+        <article class="note note--lemon tilt-l">
+            <h3>Có người theo dõi?</h3>
+            <p>Lên Creator để xem thống kê, hẹn giờ đăng và tặng huy hiệu cho fan cứng.</p>
+        </article>
+    </section>
+</main>
+</body>
+</html>

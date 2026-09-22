@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${owner.profile.displayName}, ~{::main}, ${isOwner} ? 'profile' : 'none', ~{})}">
+<head><title>Trang cá nhân</title></head>
+<body>
+<main>
+    <article class="note p-0 overflow-hidden mb-4" style="padding:0">
+        <div class="profile-cover"
+             th:style="${canView and owner.profile.coverUrl != null} ? 'background-image:url(' + ${owner.profile.coverUrl} + ')' : null"></div>
+        <div class="p-4 pt-0">
+            <div class="d-flex flex-wrap align-items-end gap-3" style="margin-top:-56px">
+                <span th:replace="~{fragments/ui :: avatar(${owner.profile}, 'avatar--xl')}"></span>
+                <div class="ms-auto pb-2" th:if="${isOwner}">
+                    <a class="btn-al btn-al--sm" th:href="@{/settings}">Chỉnh sửa hồ sơ</a>
+                </div>
+            </div>
+            <h1 class="h2 mt-3 mb-1" th:text="${owner.profile.displayName}">Tên hiển thị</h1>
+            <p class="text-soft mb-2">@<span th:text="${owner.username}">username</span></p>
+            <p class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                <th:block th:if="${owner.primaryRole().name() != 'USER'}">
+                    <span th:replace="~{fragments/ui :: roleChip(${owner.primaryRole()})}"></span>
+                </th:block>
+                <span class="text-soft">Tham gia từ <span th:text="${joined}">01/2026</span></span>
+            </p>
+            <p class="mb-0" th:if="${canView and owner.profile.bio != null}" th:text="${owner.profile.bio}">Giới thiệu</p>
+        </div>
+    </article>
+
+    <section class="note note--lavender empty" th:unless="${canView}">
+        <h2 class="h3">Trang này ở chế độ riêng tư</h2>
+        <p>Chủ tài khoản chỉ chia sẻ trang cá nhân với một số người.</p>
+    </section>
+
+    <section class="note note--sky empty" th:if="${canView}">
+        <h2 class="h3">Chưa có bài viết nào</h2>
+        <p th:text="${isOwner} ? 'Bài viết bạn đăng sẽ xuất hiện ở đây khi tính năng đăng bài ra mắt.' : 'Bài viết công khai sẽ xuất hiện ở đây.'">...</p>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Profile dev: chạy với `docker compose up -d` (Postgres + MailHog). KHÔNG dùng ở môi trường thật.
+spring:
+  datasource:
+    password: aloute_dev
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      cache:
+        period: 0
+
+aloute:
+  jwt:
+    secret: dev-only-secret-change-me-dev-only-secret-change-me
+  cookie:
+    secure: false
+  seed:
+    password: Aloute@123
+    demo-accounts: true

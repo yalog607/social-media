@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Styleguide', ~{::main}, 'none', ~{})}">
+<head><title>Styleguide</title></head>
+<body>
+<main>
+    <div class="container py-4" style="max-width:1000px">
+        <h1 class="mb-4">Styleguide</h1>
+        <p class="text-soft">Trang này chỉ có khi chạy profile <code>dev</code>. Dùng để duyệt nhanh design system ALOUTE.</p>
+
+        <h2 class="h3 mt-5 mb-3">Màu</h2>
+        <div class="d-flex flex-wrap gap-3">
+            <div th:each="c : ${#strings.arraySplit('paper,white,pink,lemon,lavender,mint,sky,tangerine,ink', ',')}" class="text-center">
+                <div class="avatar" style="--size:72px; border-radius:16px" th:style="'--size:72px; border-radius:16px; background:var(--' + ${c} + ')'"></div>
+                <div class="mt-1 fw-semibold" style="font-size:.85rem" th:text="${c}">pink</div>
+            </div>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Chữ</h2>
+        <div class="note">
+            <h1>Alô, cả hội đâu rồi?</h1>
+            <h2>Tiêu đề cấp 2 tiếng Việt: ắ ằ ẳ ẵ ặ ơ ư đ</h2>
+            <h3>Tiêu đề cấp 3 có dấu: Nguyễn Thị Hương</h3>
+            <p class="mb-1">Đoạn văn nội dung dùng Be Vietnam Pro: Hôm nay trời xinh quá, đi ăn kem không cả nhà ơi?</p>
+            <p class="text-soft mb-0">Chữ phụ, độ tương phản trên nền giấy khoảng 8:1.</p>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Nút</h2>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <button class="btn-al">Mặc định</button>
+            <button class="btn-al btn-al--pink">Hồng</button>
+            <button class="btn-al btn-al--mint">Mint</button>
+            <button class="btn-al btn-al--lavender">Lavender</button>
+            <button class="btn-al btn-al--sky">Trời</button>
+            <button class="btn-al btn-al--ink">Mực</button>
+            <button class="btn-al btn-al--white">Trắng</button>
+            <button class="btn-al btn-al--ghost">Ghost</button>
+            <button class="btn-al btn-al--sm">Nhỏ</button>
+            <button class="btn-al btn-al--lg">Lớn</button>
+            <button class="btn-al" disabled>Tắt</button>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Sticker và chip</h2>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <span class="sticker">mặc định</span>
+            <span class="sticker sticker--pink" style="--rot:4deg">❤️ 128</span>
+            <span class="sticker sticker--mint" style="--rot:-5deg">online</span>
+            <span class="sticker sticker--lavender">bạn thân 💜</span>
+            <span class="sticker sticker--round sticker--tangerine">✨</span>
+            <span class="role-chip">Người dùng</span>
+            <span class="role-chip role-chip--creator">Nhà sáng tạo</span>
+            <span class="role-chip role-chip--manager">Quản lý</span>
+            <span class="role-chip role-chip--admin">Quản trị viên</span>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Giấy note</h2>
+        <div class="row g-4">
+            <div class="col-md-4"><div class="note note--taped"><h3>Có băng dính</h3><p class="mb-0">Note mặc định màu trắng.</p></div></div>
+            <div class="col-md-4"><div class="note note--pink tilt-l"><h3>Nghiêng trái</h3><p class="mb-0">Nền hồng nhạt.</p></div></div>
+            <div class="col-md-4"><div class="note note--lemon tilt-r"><h3>Nghiêng phải</h3><p class="mb-0">Nền vàng chanh nhạt.</p></div></div>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Form</h2>
+        <div class="note" style="max-width:520px">
+            <div class="field"><label for="a">Ô nhập</label><input id="a" class="input-al" placeholder="Gõ gì đó…"></div>
+            <div class="field"><label for="b">Ô bị lỗi</label><input id="b" class="input-al is-invalid" value="abc"><p class="field-error">Thông báo lỗi nói rõ cần sửa gì.</p></div>
+            <div class="alert-al alert-al--ok"><p>Đã lưu!</p></div>
+            <div class="alert-al alert-al--warn"><p>Cảnh báo nhẹ.</p></div>
+            <div class="alert-al alert-al--error"><p>Có lỗi cần xem lại.</p></div>
+            <button class="btn-al btn-al--pink" type="button" onclick="Aloute.toast('Toast thử nghiệm!', 'ok')">Bật toast</button>
+        </div>
+
+        <h2 class="h3 mt-5 mb-3">Avatar</h2>
+        <div class="d-flex gap-3 align-items-end">
+            <span class="avatar">M</span><span class="avatar avatar--lg">M</span><span class="avatar avatar--xl">M</span>
+        </div>
+    </div>
+</main>
+</body>
+</html>

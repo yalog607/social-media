@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: aloute
+  autoconfigure:
+    # Xác thực do JwtAuthFilter đảm nhận; tắt tài khoản "user" + mật khẩu ngẫu nhiên mặc định của Spring Boot
+    exclude: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/aloute}
+    username: ${DB_USER:aloute}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 25MB
+      max-request-size: 30MB
+  thymeleaf:
+    cache: true
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
+
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+aloute:
+  base-url: ${ALOUTE_BASE_URL:http://localhost:8080}
+  jwt:
+    # BẮT BUỘC đặt qua biến môi trường ở môi trường thật (>= 32 ký tự ngẫu nhiên)
+    secret: ${ALOUTE_JWT_SECRET:}
+    access-minutes: 15
+    refresh-days: 7
+  cookie:
+    secure: ${ALOUTE_COOKIE_SECURE:true}
+  seed:
+    # Có mật khẩu thì tạo tài khoản admin (admin@aloute.local). Bật demo-accounts để tạo thêm manager/creator/user mẫu.
+    password: ${ALOUTE_SEED_PASSWORD:}
+    demo-accounts: ${ALOUTE_SEED_DEMO:false}
+  mail:
+    from: ${ALOUTE_MAIL_FROM:no-reply@aloute.local}
+  storage:
+    # local | firebase
+    type: ${ALOUTE_STORAGE:local}
+    local-dir: ${ALOUTE_UPLOAD_DIR:uploads}
+  firebase:
+    # Đường dẫn file service account (ngoài git). Bỏ trống = tắt Firebase.
+    credentials: ${FIREBASE_CREDENTIALS:}
+    storage-bucket: ${FIREBASE_STORAGE_BUCKET:}
+    # Cấu hình web (công khai) cho Firebase JS SDK ở trang đăng nhập
+    web:
+      api-key: ${FIREBASE_WEB_API_KEY:}
+      auth-domain: ${FIREBASE_WEB_AUTH_DOMAIN:}
+      project-id: ${FIREBASE_WEB_PROJECT_ID:}
+  security:
+    login-max-attempts: 5
+    login-window-minutes: 15

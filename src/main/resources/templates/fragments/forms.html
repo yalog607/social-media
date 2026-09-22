@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Ô nhập văn bản. Phải đặt bên trong <form th:object="..."> vì dùng *{...}. -->
+<div th:fragment="textField(field, label, type, autocomplete, hint)" class="field">
+    <label th:for="${field}" th:text="${label}">Nhãn</label>
+    <input class="input-al" th:id="${field}" th:type="${type}" th:field="*{__${field}__}"
+           th:autocomplete="${autocomplete}"
+           th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
+           th:attr="aria-invalid=${#fields.hasErrors(field)} ? 'true', aria-describedby=${#fields.hasErrors(field)} ? ${field} + '-error'">
+    <p class="field-hint" th:if="${hint != null and !#fields.hasErrors(field)}" th:text="${hint}"></p>
+    <p class="field-error" th:id="${field} + '-error'" th:if="${#fields.hasErrors(field)}" th:errors="*{__${field}__}"></p>
+</div>
+
+<!-- Ô mật khẩu có nút Hiện/Ẩn (JS: data-pw-toggle) -->
+<div th:fragment="passwordField(field, label, autocomplete, hint)" class="field">
+    <label th:for="${field}" th:text="${label}">Mật khẩu</label>
+    <div class="pw-wrap">
+        <input class="input-al" th:id="${field}" type="password" th:field="*{__${field}__}"
+               th:autocomplete="${autocomplete}"
+               th:classappend="${#fields.hasErrors(field)} ? 'is-invalid'"
+               th:attr="aria-invalid=${#fields.hasErrors(field)} ? 'true', aria-describedby=${#fields.hasErrors(field)} ? ${field} + '-error'">
+        <button type="button" class="pw-toggle" data-pw-toggle th:attr="aria-controls=${field}" aria-pressed="false">Hiện</button>
+    </div>
+    <p class="field-hint" th:if="${hint != null and !#fields.hasErrors(field)}" th:text="${hint}"></p>
+    <p class="field-error" th:id="${field} + '-error'" th:if="${#fields.hasErrors(field)}" th:errors="*{__${field}__}"></p>
+</div>
+
+<!-- Nút đăng nhập Social qua Firebase. Chưa cấu hình Firebase thì hiện trạng thái tắt, không báo lỗi. -->
+<div th:fragment="social" class="mt-3">
+    <div class="divider-text">hoặc</div>
+    <div class="social-row" th:attr="data-social=${firebaseWeb != null} ? 'on'">
+        <button type="button" class="btn-al btn-al--white" data-provider="google" th:disabled="${firebaseWeb == null}"
+                th:classappend="${firebaseWeb == null} ? 'is-disabled'">Google</button>
+        <button type="button" class="btn-al btn-al--white" data-provider="facebook" th:disabled="${firebaseWeb == null}"
+                th:classappend="${firebaseWeb == null} ? 'is-disabled'">Facebook</button>
+    </div>
+    <p class="social-note" th:if="${firebaseWeb == null}">Đăng nhập Google/Facebook chưa được bật trên máy chủ này.</p>
+    <p class="social-note" id="social-error" role="alert" hidden></p>
+    <th:block th:if="${firebaseWeb != null}">
+        <div id="firebase-config" hidden
+             th:attr="data-api-key=${firebaseWeb.apiKey()}, data-auth-domain=${firebaseWeb.authDomain()}, data-project-id=${firebaseWeb.projectId()}"></div>
+        <script type="module" th:src="@{/js/firebase-login.js}"></script>
+    </th:block>
+</div>
+
+</body>
+</html>

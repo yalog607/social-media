@@ -1,0 +1,21 @@
+spring:
+  thymeleaf:
+    cache: false
+  jpa:
+    show-sql: false
+
+aloute:
+  base-url: http://localhost:8080
+  jwt:
+    secret: test-only-secret-test-only-secret-test-only-secret
+  cookie:
+    secure: false
+  seed:
+    password: ""
+    demo-accounts: false
+  storage:
+    type: local
+    local-dir: target/test-uploads
+  security:
+    login-max-attempts: 3
+    login-window-minutes: 15

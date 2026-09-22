@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Cài đặt', ~{::main}, 'settings', ~{})}">
+<head><title>Cài đặt</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Cài đặt</h1></div>
+
+    <!-- Hồ sơ -->
+    <section class="note note--taped mb-4" aria-labelledby="s-profile">
+        <h2 id="s-profile" class="h3 mb-3">Hồ sơ của bạn</h2>
+        <form th:action="@{/settings/profile}" th:object="${profileForm}" method="post" enctype="multipart/form-data" novalidate>
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span th:replace="~{fragments/ui :: avatar(${me.profile}, 'avatar--lg')}"></span>
+                <div class="field mb-0 flex-grow-1">
+                    <label for="avatar">Ảnh đại diện</label>
+                    <input class="input-al" type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp">
+                    <p class="field-hint">JPG, PNG, GIF hoặc WEBP, tối đa 5 MB.</p>
+                </div>
+            </div>
+            <div class="field">
+                <label for="cover">Ảnh bìa</label>
+                <input class="input-al" type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
+            </div>
+            <div th:replace="~{fragments/forms :: textField('displayName', 'Tên hiển thị', 'text', 'nickname', null)}"></div>
+            <div class="field">
+                <label for="bio">Giới thiệu</label>
+                <textarea class="input-al" id="bio" th:field="*{bio}" maxlength="300" rows="3"
+                          th:classappend="${#fields.hasErrors('bio')} ? 'is-invalid'"></textarea>
+                <p class="field-error" th:if="${#fields.hasErrors('bio')}" th:errors="*{bio}"></p>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Lưu hồ sơ</button>
+        </form>
+    </section>
+
+    <!-- Quyền riêng tư -->
+    <section class="note mb-4" aria-labelledby="s-privacy">
+        <h2 id="s-privacy" class="h3 mb-3">Quyền riêng tư</h2>
+        <form th:action="@{/settings/privacy}" th:object="${privacyForm}" method="post" novalidate>
+            <div class="field">
+                <label for="profileVisibility">Ai xem được trang cá nhân của bạn</label>
+                <select class="input-al" id="profileVisibility" th:field="*{profileVisibility}">
+                    <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.label()}">Công khai</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="defaultPostVisibility">Bài đăng mới mặc định</label>
+                <select class="input-al" id="defaultPostVisibility" th:field="*{defaultPostVisibility}">
+                    <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.label()}">Công khai</option>
+                </select>
+                <p class="field-hint">Áp dụng khi tính năng đăng bài ra mắt.</p>
+            </div>
+            <div class="field">
+                <label for="messagePermission">Ai được nhắn tin cho bạn</label>
+                <select class="input-al" id="messagePermission" th:field="*{messagePermission}">
+                    <option th:each="m : ${messagePermissions}" th:value="${m}" th:text="${m.label()}">Mọi người</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-al btn-al--mint">Lưu quyền riêng tư</button>
+        </form>
+    </section>
+
+    <!-- Mật khẩu -->
+    <section class="note" aria-labelledby="s-password">
+        <h2 id="s-password" class="h3 mb-3" th:text="${hasPassword} ? 'Đổi mật khẩu' : 'Tạo mật khẩu'">Đổi mật khẩu</h2>
+        <p class="text-soft" th:unless="${hasPassword}">Bạn đang đăng nhập bằng Google/Facebook. Tạo mật khẩu để có thêm cách đăng nhập.</p>
+        <form th:action="@{/settings/password}" th:object="${passwordForm}" method="post" novalidate>
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <th:block th:if="${hasPassword}">
+                <div th:replace="~{fragments/forms :: passwordField('currentPassword', 'Mật khẩu hiện tại', 'current-password', null)}"></div>
+            </th:block>
+            <div th:replace="~{fragments/forms :: passwordField('newPassword', 'Mật khẩu mới', 'new-password', 'Ít nhất 8 ký tự, có cả chữ và số.')}"></div>
+            <div th:replace="~{fragments/forms :: passwordField('confirmPassword', 'Nhập lại mật khẩu mới', 'new-password', null)}"></div>
+            <button type="submit" class="btn-al btn-al--sky">Lưu mật khẩu</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

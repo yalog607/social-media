@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Avatar: ảnh nếu có, không thì chữ cái đầu của tên hiển thị. Tên luôn nằm cạnh nên alt để trống. -->
+<span th:fragment="avatar(profile, cls)" class="avatar" th:classappend="${cls}">
+    <img th:if="${profile.avatarUrl != null}" th:src="${profile.avatarUrl}" alt="" loading="lazy">
+    <th:block th:unless="${profile.avatarUrl != null}"
+              th:text="${#strings.toUpperCase(#strings.substring(profile.displayName, 0, 1))}">A</th:block>
+</span>
+
+<!-- Chip vai trò -->
+<span th:fragment="roleChip(role)" class="role-chip"
+      th:classappend="${role.name() == 'USER'} ? '' : 'role-chip--' + ${#strings.toLowerCase(role.name())}"
+      th:text="${role.label()}">Người dùng</span>
+
+<!-- Tấm bảng sticker bên cạnh form xác thực (chỉ trang trí) -->
+<div th:fragment="authSide(headline, sub, tone)" class="auth-side" aria-hidden="true">
+    <div class="note note--taped tilt-r" th:classappend="'note--' + ${tone}"
+         style="position:absolute; top:6%; left:8%; width:min(330px, 80%);">
+        <p class="display mb-2" style="font-size:1.9rem; line-height:1.1" th:text="${headline}">Headline</p>
+        <p class="mb-0 text-soft" th:text="${sub}">Sub</p>
+    </div>
+    <span class="sticker sticker--lavender" style="--rot:7deg; position:absolute; top:2%; right:10%">bạn thân 💜</span>
+    <span class="sticker sticker--round sticker--pink" style="--rot:-10deg; position:absolute; top:46%; left:2%">✨</span>
+    <div class="note tilt-l" style="position:absolute; bottom:4%; right:4%; width:min(250px, 62%);">
+        <span class="bubble bubble--in">alô alô, ai đó không?</span>
+        <span class="bubble bubble--out mb-0">có mình nè 👋</span>
+    </div>
+    <span class="sticker sticker--mint" style="--rot:-5deg; position:absolute; bottom:30%; right:0">online</span>
+</div>
+
+<!-- Lỗi chung của form (không thuộc trường nào) -->
+<div th:fragment="globalErrors" th:if="${#fields.hasGlobalErrors()}" class="alert-al alert-al--error" role="alert">
+    <p th:each="err : ${#fields.globalErrors()}" th:text="${err}">Lỗi</p>
+</div>
+
+</body>
+</html>

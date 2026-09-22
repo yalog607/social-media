@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${areaTitle}, ~{::main}, ${active}, ~{})}">
+<head><title>Khu vực</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1 th:text="${areaTitle}">Khu vực</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <section class="note note--taped">
+        <h2 class="h3 mb-2">Bạn đã vào đúng khu vực</h2>
+        <p th:text="${areaDescription}">Mô tả</p>
+        <p class="text-soft mb-0">Các công cụ ở đây đang được xây, dự kiến ở giai đoạn <span th:text="${phase}">4</span>.</p>
+    </section>
+</main>
+</body>
+</html>
