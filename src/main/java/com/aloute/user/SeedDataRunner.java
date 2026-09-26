@@ -40,7 +40,11 @@ public class SeedDataRunner implements CommandLineRunner {
         if (password == null || password.isBlank()) {
             return;
         }
-        seed(new Seed("admin@aloute.local", "admin", "Quản trị ALOUTE", EnumSet.of(Role.USER, Role.ADMIN)), password);
+        String adminEmail = props.seed().adminEmail();
+        if (adminEmail == null || adminEmail.isBlank()) {
+            adminEmail = "admin@aloute.local";
+        }
+        seed(new Seed(adminEmail.trim(), "admin", "Quản trị ALOUTE", EnumSet.of(Role.USER, Role.ADMIN)), password);
         if (props.seed().demoAccounts()) {
             seed(new Seed("manager@aloute.local", "manager", "Mod Mint", EnumSet.of(Role.USER, Role.MANAGER)), password);
             seed(new Seed("creator@aloute.local", "creator", "Creator Chanh", EnumSet.of(Role.USER, Role.CREATOR)), password);
@@ -62,6 +66,6 @@ public class SeedDataRunner implements CommandLineRunner {
         profile.setDisplayName(seed.displayName());
         user.attachProfile(profile);
         users.save(user);
-        log.info("Đã tạo tài khoản mẫu {} ({})", seed.email(), seed.roles());
+        log.info("Đã tạo tài khoản khởi tạo {} ({})", seed.email(), seed.roles());
     }
 }

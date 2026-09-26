@@ -1,0 +1,37 @@
+# Profile prod: chạy sau Caddy (xem deploy/DEPLOY.md). Bí mật lấy hết từ biến môi trường.
+spring:
+  thymeleaf:
+    cache: true
+  jpa:
+    show-sql: false
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  mail:
+    # Brevo: smtp-relay.brevo.com:587 · Resend: smtp.resend.com:587 (user "resend"). Dùng cổng 587 (STARTTLS).
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 8000
+          writetimeout: 8000
+
+server:
+  shutdown: graceful
+  # Sau Caddy mọi request đến từ container caddy, nên phải lấy IP người dùng thật từ X-Client-IP.
+  # Caddy luôn GHI ĐÈ header này bằng IP đã xác thực (deploy/Caddyfile), client không giả mạo được.
+  # Tomcat chỉ tin header khi kết nối trực tiếp đến từ mạng nội bộ (mặc định gồm dải Docker 172.16/12),
+  # vì vậy KHÔNG được publish cổng của app ra ngoài.
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Client-IP
+      protocol-header: X-Forwarded-Proto
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types: text/html,text/css,application/javascript,application/json,image/svg+xml
+

@@ -1,0 +1,96 @@
+# Production: app + PostgreSQL + Caddy (HTTPS tự động). Hướng dẫn đầy đủ: deploy/DEPLOY.md
+#
+#   cp .env.prod.example .env      # rồi điền giá trị thật
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# CHỈ có Caddy publish cổng (80, 443) ra Internet. app và postgres tuyệt đối không được thêm `ports:`:
+# app tin header X-Client-IP mà Caddy ghi đè, nên nếu lộ cổng của app thì kẻ xấu tự gửi X-Client-IP để né giới hạn đăng nhập.
+
+name: aloute-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aloute
+      POSTGRES_USER: aloute
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Đặt DB_PASSWORD trong file .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aloute -d aloute"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+    mem_limit: 320m
+
+  app:
+    build: .
+    image: aloute:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/aloute
+      DB_USER: aloute
+      DB_PASSWORD: ${DB_PASSWORD}
+      ALOUTE_BASE_URL: ${ALOUTE_BASE_URL:?Đặt ALOUTE_BASE_URL (https://tên-miền-của-bạn) trong file .env}
+      ALOUTE_JWT_SECRET: ${ALOUTE_JWT_SECRET:?Đặt ALOUTE_JWT_SECRET trong file .env (openssl rand -base64 48)}
+      ALOUTE_COOKIE_SECURE: "true"
+      # Chỉ đặt ALOUTE_SEED_PASSWORD ở lần chạy đầu để tạo admin, sau đó xóa khỏi .env
+      ALOUTE_SEED_PASSWORD: ${ALOUTE_SEED_PASSWORD:-}
+      ALOUTE_SEED_ADMIN_EMAIL: ${ALOUTE_SEED_ADMIN_EMAIL:-admin@aloute.local}
+      ALOUTE_SEED_DEMO: "false"
+      MAIL_HOST: ${MAIL_HOST:-localhost}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      ALOUTE_MAIL_FROM: ${ALOUTE_MAIL_FROM:-no-reply@aloute.local}
+      # Firebase chỉ để đăng nhập Google/Facebook. Đường dẫn TRONG container, ví dụ /run/secrets/firebase-adminsdk.json. Để trống = tắt.
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
+      FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
+      FIREBASE_WEB_AUTH_DOMAIN: ${FIREBASE_WEB_AUTH_DOMAIN:-}
+      FIREBASE_WEB_PROJECT_ID: ${FIREBASE_WEB_PROJECT_ID:-}
+    volumes:
+      # Thư mục chứa file service account Firebase (chỉ đọc). Tạo bằng: mkdir -p secrets && chmod 700 secrets
+      - ./secrets:/run/secrets:ro
+      # Ảnh người dùng (avatar, ảnh bìa) lưu trên đĩa VPS. PHẢI là volume để không mất khi tạo lại container;
+      # deploy/backup.sh sao lưu cả thư mục này.
+      - uploads:/app/uploads
+    networks: [backend]
+    mem_limit: 640m
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"      # Let's Encrypt (HTTP-01) và tự chuyển http -> https
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?Đặt DOMAIN (ví dụ aloute.example.com, không có https://) trong file .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Đặt ACME_EMAIL (email nhận thông báo của Let's Encrypt) trong file .env}
+      # Mặc định chỉ tin loopback. Bật proxy Cloudflare (đám mây cam) thì điền dải IP Cloudflare: deploy/cloudflare-ips.sh
+      CADDY_TRUSTED_PROXIES: ${CADDY_TRUSTED_PROXIES:-127.0.0.1/32}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # /data chứa chứng chỉ và khóa: PHẢI giữ lại, nếu mất sẽ xin lại và có thể chạm giới hạn của Let's Encrypt
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [backend]
+    mem_limit: 128m
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:

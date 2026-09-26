@@ -17,8 +17,8 @@ import java.io.UncheckedIOException;
 import java.util.Optional;
 
 /**
- * Khởi tạo Firebase khi có file service account. Không có thì ứng dụng vẫn chạy đầy đủ,
- * chỉ tắt đăng nhập Social (và dùng lưu trữ cục bộ thay vì Firebase Storage).
+ * Khởi tạo Firebase khi có file service account, chỉ để xác thực đăng nhập Social. Không có thì ứng dụng
+ * vẫn chạy đầy đủ, chỉ tắt đăng nhập Google/Facebook.
  */
 @Configuration
 public class FirebaseConfig {
@@ -32,13 +32,10 @@ public class FirebaseConfig {
             return Optional.of(FirebaseApp.getInstance());
         }
         try (InputStream in = new FileInputStream(props.firebase().credentials())) {
-            FirebaseOptions.Builder options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(in));
-            String bucket = props.firebase().storageBucket();
-            if (bucket != null && !bucket.isBlank()) {
-                options.setStorageBucket(bucket);
-            }
-            return Optional.of(FirebaseApp.initializeApp(options.build()));
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(in))
+                    .build();
+            return Optional.of(FirebaseApp.initializeApp(options));
         } catch (IOException e) {
             throw new UncheckedIOException("Không đọc được file Firebase credentials: "
                     + props.firebase().credentials(), e);

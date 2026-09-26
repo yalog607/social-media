@@ -1,0 +1,35 @@
+# Caddy: HTTPS tự động (Let's Encrypt) + reverse proxy tới app.
+# Các biến lấy từ file .env qua docker-compose.prod.yml: DOMAIN, ACME_EMAIL, CADDY_TRUSTED_PROXIES.
+{
+	# Let's Encrypt gửi thư nhắc ở đây nếu gia hạn tự động gặp sự cố
+	email {$ACME_EMAIL}
+
+	servers {
+		# Caddy là ranh giới tin cậy DUY NHẤT giữa Internet và app.
+		# - Mặc định chỉ tin loopback, nghĩa là không ai được tin header IP do client gửi.
+		# - Khi bật proxy Cloudflare (đám mây cam), liệt kê dải IP Cloudflare vào CADDY_TRUSTED_PROXIES
+		#   (deploy/cloudflare-ips.sh). Khi đó Caddy mới đọc IP thật từ CF-Connecting-IP, và chỉ với
+		#   kết nối đến từ đúng những dải đó.
+		trusted_proxies static {$CADDY_TRUSTED_PROXIES:127.0.0.1/32}
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Khớp giới hạn upload của Spring (spring.servlet.multipart.max-request-size = 40MB): 4 ảnh x 8 MB hoặc 1 video 25 MB
+	request_body {
+		max_size 40MB
+	}
+
+	reverse_proxy app:8080 {
+		# Ghi ĐÈ mọi X-Client-IP do client gửi bằng IP đã được Caddy xác thực. App chỉ đọc header này
+		# (application-prod.yml: server.tomcat.remoteip.remote-ip-header).
+		header_up X-Client-IP {client_ip}
+		# X-Forwarded-Proto/-Host/-For do Caddy tự đặt; app dùng X-Forwarded-Proto để biết request là https.
+
+		# Khi app đang khởi động lại, đợi tối đa 5 giây thay vì trả lỗi 502 ngay
+		lb_try_duration 5s
+	}
+}

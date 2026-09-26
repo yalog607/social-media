@@ -8,6 +8,7 @@ import com.aloute.security.JwtAuthFilter;
 import com.aloute.security.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -77,6 +78,8 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_STATIC).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
                         .requestMatchers("/auth/**", "/logout").permitAll()
+                        // Link chia sẻ một bài: khách xem được nếu bài công khai (PostService quyết định, còn lại là 404)
+                        .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/manage/**").hasRole("MANAGER")
                         .requestMatchers("/creator/**").hasRole("CREATOR")

@@ -12,9 +12,9 @@ aloute:
     secure: false
   seed:
     password: ""
+    admin-email: admin@aloute.local
     demo-accounts: false
   storage:
-    type: local
     local-dir: target/test-uploads
   security:
     login-max-attempts: 3

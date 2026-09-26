@@ -20,17 +20,22 @@ public record AlouteProperties(
     public record Cookie(boolean secure) {
     }
 
-    /** {@code demoAccounts}: tạo thêm manager/creator/user mẫu (chỉ dùng khi dev). */
-    public record Seed(String password, boolean demoAccounts) {
+    /**
+     * {@code adminEmail}: email của tài khoản admin khởi tạo (đặt email thật để dùng được "Quên mật khẩu").
+     * {@code demoAccounts}: tạo thêm manager/creator/user mẫu (chỉ dùng khi dev).
+     */
+    public record Seed(String password, String adminEmail, boolean demoAccounts) {
     }
 
     public record Mail(String from) {
     }
 
-    public record Storage(String type, String localDir) {
+    /** Ảnh người dùng lưu trên đĩa của máy chủ tại {@code localDir} (production: gắn Docker volume vào đó). */
+    public record Storage(String localDir) {
     }
 
-    public record Firebase(String credentials, String storageBucket, Web web) {
+    /** Firebase chỉ dùng cho đăng nhập Social (Authentication); không dùng Storage. */
+    public record Firebase(String credentials, Web web) {
 
         public boolean enabled() {
             return credentials != null && !credentials.isBlank();

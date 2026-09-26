@@ -1,0 +1,17 @@
+# Không đưa vào build context: nhỏ hơn, nhanh hơn và quan trọng nhất là không lọt bí mật vào image
+target/
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+uploads/
+secrets/
+.env
+.env.*
+!.env.prod.example
+*.log
+backups/
+docker-compose*.yml
+deploy/
+README.md
