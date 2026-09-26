@@ -1,16 +1,39 @@
 package com.aloute.home;
 
+import com.aloute.feed.FeedService;
+import com.aloute.media.MediaLimits;
+import com.aloute.post.Post;
 import com.aloute.security.AlouteUserPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+
+import java.util.Map;
 
 @Controller
 public class HomeController {
 
-    /** Khách thấy trang giới thiệu; người đã đăng nhập thấy khung bảng tin (nội dung thật ở GĐ2). */
+    private final FeedService feed;
+
+    public HomeController(FeedService feed) {
+        this.feed = feed;
+    }
+
+    /** Khách thấy trang giới thiệu; người đã đăng nhập thấy bảng tin (trang đầu, các trang sau tải bằng /feed). */
     @GetMapping("/")
-    public String home(@AuthenticationPrincipal AlouteUserPrincipal principal) {
-        return principal == null ? "home/landing" : "home/feed";
+    public String home(@AuthenticationPrincipal AlouteUserPrincipal principal, Model model) {
+        if (principal == null) {
+            return "home/landing";
+        }
+        model.addAttribute("page", feed.home(principal.id(), null));
+        model.addAttribute("moreUrl", "/feed");
+        // Cùng con số với MediaLimits/Post để trình duyệt kiểm tra trước khi tải lên
+        model.addAttribute("mediaLimits", Map.of(
+                "maxImages", MediaLimits.MAX_IMAGES,
+                "maxImageMb", MediaLimits.MAX_IMAGE_BYTES / (1024 * 1024),
+                "maxVideoMb", MediaLimits.MAX_VIDEO_BYTES / (1024 * 1024),
+                "maxChars", Post.MAX_CONTENT_LENGTH));
+        return "home/feed";
     }
 }

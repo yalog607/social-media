@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Hộp thoại sửa/xóa dùng chung cho mọi thẻ bài trên trang. feed.js điền action và nội dung khi mở.
+  _csrf và currentPath luôn có trong model; đường dẫn hiện tại được gửi kèm để sau khi xử lý quay lại đúng chỗ.
+-->
+<th:block th:fragment="modals">
+    <div class="modal fade" id="editPostModal" tabindex="-1" aria-labelledby="editPostTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" novalidate>
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="${currentPath}">
+                <h2 class="h4 mb-3" id="editPostTitle">Sửa bài viết</h2>
+                <div class="field">
+                    <label for="editPostContent" class="visually-hidden">Nội dung bài viết</label>
+                    <textarea id="editPostContent" name="content" class="input-al" rows="5" maxlength="2000"></textarea>
+                    <p class="field-hint">Ảnh và video của bài không sửa được, bạn chỉ sửa chữ và quyền xem.</p>
+                </div>
+                <div class="field">
+                    <label for="editPostVisibility">Ai xem được bài này</label>
+                    <select id="editPostVisibility" name="visibility" class="input-al">
+                        <option value="PUBLIC">Công khai</option>
+                        <option value="PRIVATE">Chỉ mình tôi</option>
+                        <option value="FRIENDS" disabled>Bạn bè (sắp có)</option>
+                    </select>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Lưu chỉnh sửa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deletePostModal" tabindex="-1" aria-labelledby="deletePostTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" novalidate>
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="${currentPath}">
+                <h2 class="h4 mb-2" id="deletePostTitle">Xóa bài viết này?</h2>
+                <p class="text-soft">Bài sẽ biến mất khỏi bảng tin và trang cá nhân của bạn.</p>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Giữ lại</button>
+                    <button type="submit" class="btn-al btn-al--ink">Xóa bài</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</th:block>
+
+</body>
+</html>

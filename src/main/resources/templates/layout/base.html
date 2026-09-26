@@ -65,6 +65,7 @@
 
         <div class="app-main" id="main">
             <div class="alert-al alert-al--ok" role="status" th:if="${notice != null}"><p th:text="${notice}"></p></div>
+            <div class="alert-al alert-al--error" role="alert" th:if="${error != null}"><p th:text="${error}"></p></div>
             <th:block th:replace="${content}"></th:block>
         </div>
 
@@ -109,5 +110,6 @@
 <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/aloute.js}"></script>
+<script th:src="@{/js/feed.js}"></script>
 </body>
 </html>

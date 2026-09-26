@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Một trang bài + (nếu còn) nút "Xem thêm". Vừa được nhúng vào trang đầu vừa được /feed trả về riêng làm mảnh HTML.
+  Cần trong model: page (FeedPage), moreUrl (đường dẫn gốc để tải trang kế, thêm ?cursor=...).
+-->
+<th:block th:fragment="list">
+    <th:block th:each="post : ${page.posts}">
+        <th:block th:replace="~{fragments/post :: card(${post})}"></th:block>
+    </th:block>
+    <div class="feed-more" th:if="${page.hasMore()}">
+        <button type="button" class="btn-al btn-al--white" th:attr="data-more-url=@{${moreUrl}(cursor=${page.nextCursor})}">Xem thêm</button>
+    </div>
+</th:block>
+
+</body>
+</html>

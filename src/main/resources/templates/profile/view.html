@@ -31,10 +31,19 @@
         <p>Chủ tài khoản chỉ chia sẻ trang cá nhân với một số người.</p>
     </section>
 
-    <section class="note note--sky empty" th:if="${canView}">
-        <h2 class="h3">Chưa có bài viết nào</h2>
-        <p th:text="${isOwner} ? 'Bài viết bạn đăng sẽ xuất hiện ở đây khi tính năng đăng bài ra mắt.' : 'Bài viết công khai sẽ xuất hiện ở đây.'">...</p>
-    </section>
+    <th:block th:if="${canView}">
+        <div id="feed" class="feed">
+            <th:block th:replace="~{feed/list :: list}"></th:block>
+        </div>
+        <section class="note note--sky empty" th:if="${#lists.isEmpty(page.posts)}">
+            <h2 class="h3">Chưa có bài viết nào</h2>
+            <p th:text="${isOwner} ? 'Bài bạn đăng sẽ xuất hiện ở đây. Về bảng tin để đăng bài đầu tiên nhé.' : 'Bài viết công khai sẽ xuất hiện ở đây.'">...</p>
+        </section>
+    </th:block>
+
+    <th:block th:if="${me != null}">
+        <div th:replace="~{fragments/post-modals :: modals}"></div>
+    </th:block>
 </main>
 </body>
 </html>

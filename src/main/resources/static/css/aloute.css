@@ -433,3 +433,81 @@ body[data-role="admin"] .logo { background: var(--lavender); }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-delay: 0ms !important; transition-duration: .001ms !important; }
 }
+
+/* ---------- 11. Bài đăng và bảng tin ---------- */
+.feed { display: grid; gap: 1.4rem; }
+.feed-more { text-align: center; padding-bottom: .4rem; }
+.back-link { font-weight: 700; }
+
+.post {
+  position: relative;
+  background: var(--white);
+  border: var(--line); border-radius: var(--r-card);
+  box-shadow: var(--sh);
+  padding: 1.1rem 1.2rem 1.25rem;
+}
+.post-head { display: flex; align-items: center; gap: .75rem; margin-bottom: .85rem; }
+.post-avatar { display: inline-flex; text-decoration: none; }
+.post-meta { min-width: 0; }
+.post-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem .45rem; }
+.post-name { font: 800 1.05rem/1.2 var(--font-display); color: var(--ink); text-decoration: none; }
+.post-name:hover { text-decoration: underline; text-decoration-color: var(--pink); }
+.post-sub { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .6rem; font-size: .85rem; color: var(--ink-soft); }
+.post-time { color: var(--ink-soft); text-decoration: none; }
+.post-time:hover { color: var(--ink); text-decoration: underline; }
+.visibility-chip {
+  padding: 0 .55rem; font-size: .75rem; font-weight: 700; color: var(--ink);
+  background: var(--paper-2); border: 2px solid var(--ink); border-radius: var(--r-pill);
+}
+.post-menu-btn {
+  width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+  font: 800 1.2rem/1 var(--font-display); color: var(--ink);
+  background: var(--white); border: var(--line); border-radius: 50%; box-shadow: var(--sh-sm); cursor: pointer;
+}
+.post-menu-btn:hover { background: var(--lemon); }
+
+.post-text { font-size: 1.02rem; overflow-wrap: anywhere; }
+/* Hashtag như nét bút dạ quang trên trang vở */
+.hashtag {
+  font-weight: 700; color: var(--ink); text-decoration: none;
+  background: linear-gradient(transparent 58%, var(--lemon) 58%);
+}
+.hashtag:hover { background: linear-gradient(transparent 0, var(--pink) 0); color: var(--ink); }
+
+.media-grid { display: grid; gap: .5rem; margin-top: .85rem; }
+.media-grid a { display: block; line-height: 0; overflow: hidden; background: var(--paper-2); border: var(--line); border-radius: 12px; }
+.media-grid img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.media-grid--1 a img { height: auto; max-height: 540px; object-fit: contain; background: var(--paper-2); }
+.media-grid--2, .media-grid--4 { grid-template-columns: 1fr 1fr; }
+.media-grid--2 a, .media-grid--4 a { aspect-ratio: 4 / 3; }
+.media-grid--3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; aspect-ratio: 4 / 3; }
+.media-grid--3 a { min-height: 0; }
+.media-grid--3 a:first-child { grid-row: span 2; }
+.post-video {
+  display: block; width: 100%; max-height: 560px; margin-top: .85rem;
+  background: var(--ink); border: var(--line); border-radius: 12px;
+}
+
+/* Ô đăng bài */
+.composer textarea { min-height: 96px; }
+.composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: .8rem; }
+.composer-visibility { width: auto; padding: .4rem 2.2rem .4rem .8rem; font-weight: 700; font-size: .92rem; }
+.composer-count { font-size: .85rem; color: var(--ink-soft); }
+.composer-count.is-near { color: var(--danger); font-weight: 700; }
+.file-pick { position: relative; display: inline-flex; }
+.file-pick label { margin: 0; cursor: pointer; }
+.file-pick:focus-within .btn-al { outline: 3px solid var(--ink); outline-offset: 3px; }
+.previews { display: flex; flex-wrap: wrap; gap: .6rem; }
+.previews:not(:empty) { margin-top: .8rem; }
+.preview { position: relative; width: 92px; height: 92px; overflow: hidden; background: var(--paper-2); border: var(--line); border-radius: 12px; }
+.preview img, .preview video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.preview-remove {
+  position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; padding: 0;
+  font: 800 .9rem/1 var(--font-body); color: var(--ink);
+  background: var(--white); border: 2px solid var(--ink); border-radius: 50%; cursor: pointer;
+}
+.preview-remove:hover { background: var(--pink); }
+
+/* Hộp thoại (Bootstrap modal) theo phong cách giấy note */
+.modal-content.note { padding: 1.3rem; }
+.modal-backdrop.show { opacity: .55; background: var(--ink); }

@@ -42,32 +42,37 @@ mvn verify    # thêm test tích hợp (Testcontainers + PostgreSQL thật), c�
 |---|---|---|
 | `ALOUTE_JWT_SECRET` | Khóa ký JWT | **Bắt buộc** khi không dùng profile dev, ≥ 32 ký tự ngẫu nhiên |
 | `ALOUTE_COOKIE_SECURE` | Cookie chỉ gửi qua HTTPS | Mặc định `true`, profile dev đặt `false` |
-| `ALOUTE_SEED_PASSWORD` | Có giá trị thì tạo tài khoản `admin@aloute.local` | Để trống ở production sau khi đã tạo admin |
+| `ALOUTE_SEED_PASSWORD` | Có giá trị thì tạo tài khoản admin (username `admin`) | Production: ≥ 12 ký tự, **xóa đi sau khi đã tạo admin** |
+| `ALOUTE_SEED_ADMIN_EMAIL` | Email của admin khởi tạo (mặc định `admin@aloute.local`) | Production: dùng email thật để còn "Quên mật khẩu" |
 | `ALOUTE_SEED_DEMO` | Tạo thêm manager/creator/user mẫu | Chỉ dùng khi dev |
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | Kết nối PostgreSQL | |
 | `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`, `ALOUTE_MAIL_FROM` | SMTP gửi mail | |
 | `ALOUTE_BASE_URL` | URL công khai, dùng trong link email | |
-| `ALOUTE_STORAGE` | `local` (mặc định) hoặc `firebase` | |
+| `ALOUTE_UPLOAD_DIR` | Thư mục lưu ảnh người dùng (mặc định `uploads`) | Production: đã gắn Docker volume vào `/app/uploads` |
 
-### Bật đăng nhập Google/Facebook và Firebase Storage
-1. Tạo project Firebase, bật **Authentication** (Google, Facebook) và **Storage**.
+### Bật đăng nhập Google/Facebook (Firebase Authentication)
+Firebase chỉ dùng để xác minh danh tính, miễn phí và không cần thẻ. Ảnh người dùng lưu trên đĩa của máy chủ, không dùng Cloud Storage.
+1. Tạo project Firebase, bật **Authentication** (Google, Facebook).
 2. Tải file service account JSON về một thư mục **ngoài git** (ví dụ `secrets/`, đã nằm trong `.gitignore`).
 3. Đặt biến môi trường:
    - `FIREBASE_CREDENTIALS` = đường dẫn tới file service account
-   - `FIREBASE_STORAGE_BUCKET` = tên bucket
    - `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_AUTH_DOMAIN`, `FIREBASE_WEB_PROJECT_ID` = cấu hình web (công khai) của app
-   - `ALOUTE_STORAGE=firebase` nếu muốn lưu ảnh lên Firebase
 4. Thêm domain đang chạy vào **Authorized domains** trong Firebase Authentication.
 
-Không có các biến này, ứng dụng vẫn chạy đủ chức năng: nút Google/Facebook hiển thị trạng thái tắt và ảnh được lưu vào thư mục `uploads/`.
+Không có các biến này, ứng dụng vẫn chạy đủ chức năng: nút Google/Facebook hiển thị trạng thái tắt. Ảnh luôn được lưu vào thư mục `uploads/` (dev) hoặc Docker volume (production).
+
+## Deploy lên VPS + Caddy
+Docker Compose (app + PostgreSQL + Caddy): Caddy tự xin và gia hạn chứng chỉ Let's Encrypt, chỉ Caddy mở cổng 80/443. Có thể đặt thêm proxy Cloudflare phía trước (tùy chọn). Hướng dẫn từng bước, kiểm tra sau deploy và xử lý sự cố:
+**[deploy/DEPLOY.md](deploy/DEPLOY.md)**. Các file liên quan: `Dockerfile`, `docker-compose.prod.yml`, `deploy/Caddyfile`, `.env.prod.example`, `deploy/backup.sh`,
+`deploy/cloudflare-ips.sh`, `src/main/resources/application-prod.yml`. Profile `prod` từ chối khởi động nếu cấu hình yếu (khóa JWT mẫu, cookie không Secure, tài khoản demo...).
 
 ## Bảo mật (đã áp dụng ở GĐ1)
 - JWT trong cookie **HttpOnly**, SameSite=Lax; refresh token xoay vòng, chỉ lưu hash, phát hiện tái sử dụng.
 - CSRF cho mọi request thay đổi dữ liệu (cookie `XSRF-TOKEN` + header `X-XSRF-TOKEN`).
-- Đăng nhập: giới hạn thử sai theo IP + tài khoản, thông báo lỗi chung, chống dò thời gian.
+- Đăng nhập: giới hạn thử sai theo IP + tài khoản (IP thật do Caddy xác thực rồi truyền qua `X-Client-IP`, không giả mạo được), thông báo lỗi chung, chống dò thời gian.
 - Quên mật khẩu: link dùng một lần, hết hạn sau 30 phút, thu hồi mọi phiên khi đổi mật khẩu.
 - Đăng nhập Social: vô hiệu mật khẩu của tài khoản Local chưa xác minh khi liên kết (chống pre-hijacking).
-- Upload ảnh: kiểm tra chữ ký byte thật, không nhận SVG, giới hạn 5 MB, tên file do server sinh.
+- Upload ảnh: kiểm tra chữ ký byte thật, không nhận SVG, giới hạn 5 MB, tên file do server sinh, cache dài + `nosniff` khi phục vụ.
 - Tài khoản bị khóa mất phiên ngay ở request kế tiếp, không chờ access token hết hạn.
 
 ## Cấu trúc
@@ -76,7 +81,7 @@ src/main/java/com/aloute/
 ├─ auth/      đăng ký, đăng nhập, quên mật khẩu, Social
 ├─ security/  JWT, cookie, refresh token, filter
 ├─ user/      tài khoản, vai trò, hồ sơ, cài đặt
-├─ storage/   lưu ảnh (local | firebase)
+├─ storage/   lưu ảnh lên đĩa (kiểm tra chữ ký byte thật)
 ├─ home/      trang chủ, khu vực theo vai trò
 ├─ common/    mail, tiện ích dùng chung
 └─ config/    Security, MVC, Firebase, thuộc tính cấu hình
@@ -85,7 +90,7 @@ src/main/resources/{db/migration, templates, static}
 
 ## Lộ trình
 1. **Nền tảng** (xong): đăng ký/đăng nhập, Social, phân quyền 4 vai trò, hồ sơ, design system
-2. Bảng tin, đăng bài (text/ảnh/video), like/comment/share, tìm kiếm
+2. Bảng tin, đăng bài (text/ảnh/video), trang chi tiết, sửa/xóa (**2a xong**); like/comment/share (2b); tìm kiếm + hashtag (2c)
 3. Kết bạn/follow/block, chat realtime, thông báo, report
 4. Creator: thống kê, ví Xu/donate, hẹn giờ đăng, huy hiệu fan
 5. Manager và Admin: kiểm duyệt, chế tài, System Logs, thống kê

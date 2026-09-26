@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${'Bài viết của ' + post.author.displayName}, ~{::main}, 'home', ~{})}">
+<head><title>Bài viết</title></head>
+<body>
+<main>
+    <p class="mb-3"><a class="back-link" th:href="@{/}">Về bảng tin</a></p>
+
+    <div id="feed" class="feed">
+        <th:block th:replace="~{fragments/post :: card(${post})}"></th:block>
+    </div>
+
+    <th:block th:if="${me != null}">
+        <div th:replace="~{fragments/post-modals :: modals}"></div>
+    </th:block>
+</main>
+</body>
+</html>

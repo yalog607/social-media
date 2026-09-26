@@ -9,11 +9,13 @@
         <h1 class="h2 mb-3" th:switch="${status}">
             <span th:case="403">Khu vực này chưa mở cho bạn</span>
             <span th:case="404">Trang này đi lạc rồi</span>
+            <span th:case="429">Chậm lại một chút nhé</span>
             <span th:case="*">Máy chủ đang gặp trục trặc</span>
         </h1>
         <p class="mx-auto text-soft" th:switch="${status}">
             <span th:case="403">Tài khoản của bạn chưa có quyền vào trang này. Nếu nghĩ đây là nhầm lẫn, hãy liên hệ đội ngũ hỗ trợ.</span>
-            <span th:case="404">Đường dẫn có thể đã bị đổi hoặc gõ sai. Quay về trang chủ để tiếp tục nhé.</span>
+            <span th:case="404">Đường dẫn có thể đã bị đổi, gõ sai, hoặc bài viết đã bị xóa hay chuyển sang riêng tư. Quay về trang chủ để tiếp tục nhé.</span>
+            <span th:case="429">Bạn đang làm việc này hơi nhanh. Đợi một lát rồi thử lại nhé.</span>
             <span th:case="*">Không phải lỗi của bạn. Thử tải lại trang, nếu vẫn thế thì quay lại sau ít phút.</span>
         </p>
         <a class="btn-al btn-al--pink btn-al--lg mt-3" th:href="@{/}">Về trang chủ</a>

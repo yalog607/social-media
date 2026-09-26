@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Ô đăng bài ở đầu bảng tin. Cần trong model: me, mediaLimits (maxImages, maxImageMb, maxVideoMb, maxChars).
+  Sau khi đăng lỗi, server chuyển hướng về và trả lại composerError, composerContent, composerVisibility.
+-->
+<section th:fragment="composer" class="composer note note--taped mb-4" aria-labelledby="composer-title">
+    <h2 id="composer-title" class="visually-hidden">Đăng bài mới</h2>
+
+    <div class="alert-al alert-al--error" role="alert" th:if="${composerError != null}">
+        <p th:text="${composerError}">Lỗi</p>
+    </div>
+
+    <form th:action="@{/posts}" method="post" enctype="multipart/form-data" data-composer novalidate
+          th:attr="data-max-images=${mediaLimits.maxImages}, data-max-image-mb=${mediaLimits.maxImageMb}, data-max-video-mb=${mediaLimits.maxVideoMb}, data-max-chars=${mediaLimits.maxChars}"
+          th:with="chosen=${composerVisibility != null ? composerVisibility : (me.profile.defaultPostVisibility.name() == 'PUBLIC' ? 'PUBLIC' : 'PRIVATE')}">
+        <div class="field mb-2">
+            <label for="composerText" class="visually-hidden">Nội dung bài viết</label>
+            <textarea id="composerText" name="content" class="input-al" rows="3" maxlength="2000"
+                      placeholder="Hôm nay có gì hot? Thêm #hashtag để mọi người tìm thấy bài của bạn."
+                      th:text="${composerContent}"></textarea>
+        </div>
+
+        <div class="previews" data-previews aria-live="polite"></div>
+        <p class="field-error" data-composer-error role="alert" hidden></p>
+
+        <div class="composer-tools">
+            <span class="file-pick">
+                <input type="file" id="composerImages" name="images" class="visually-hidden" multiple
+                       accept="image/jpeg,image/png,image/gif,image/webp">
+                <label for="composerImages" class="btn-al btn-al--sm btn-al--sky">Thêm ảnh</label>
+            </span>
+            <span class="file-pick">
+                <input type="file" id="composerVideo" name="video" class="visually-hidden"
+                       accept="video/mp4,video/webm">
+                <label for="composerVideo" class="btn-al btn-al--sm btn-al--lavender">Thêm video</label>
+            </span>
+
+            <label for="composerVisibility" class="visually-hidden">Ai xem được bài này</label>
+            <select id="composerVisibility" name="visibility" class="input-al composer-visibility">
+                <option value="PUBLIC" th:selected="${chosen == 'PUBLIC'}">Công khai</option>
+                <option value="PRIVATE" th:selected="${chosen == 'PRIVATE'}">Chỉ mình tôi</option>
+                <option value="FRIENDS" disabled>Bạn bè (sắp có)</option>
+            </select>
+
+            <span class="composer-count ms-auto"><span data-count>0</span>/<span th:text="${mediaLimits.maxChars}">2000</span></span>
+            <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
+        </div>
+
+        <p class="field-hint mt-2 mb-0">
+            Tối đa <span th:text="${mediaLimits.maxImages}">4</span> ảnh (mỗi ảnh
+            <span th:text="${mediaLimits.maxImageMb}">8</span> MB) hoặc 1 video MP4/WEBM
+            (<span th:text="${mediaLimits.maxVideoMb}">25</span> MB). Ảnh được xóa thông tin chụp và vị trí;
+            video được giữ nguyên dữ liệu gốc.
+        </p>
+    </form>
+</section>
+
+</body>
+</html>

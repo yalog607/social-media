@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Thẻ một bài. Tham số: PostView. Toàn bộ dữ liệu đã có sẵn trong PostView nên không gây truy vấn ngầm. -->
+<article th:fragment="card(post)" class="post" th:id="'post-' + ${post.id}">
+    <header class="post-head">
+        <a class="post-avatar" th:href="@{/u/{u}(u=${post.author.username})}" th:attr="aria-label='Trang cá nhân của ' + ${post.author.displayName}">
+            <span th:replace="~{fragments/ui :: avatar(${post.author}, '')}"></span>
+        </a>
+        <div class="post-meta">
+            <div class="post-name-row">
+                <a class="post-name" th:href="@{/u/{u}(u=${post.author.username})}" th:text="${post.author.displayName}">Tên hiển thị</a>
+                <th:block th:if="${post.author.primaryRole.name() != 'USER'}">
+                    <span th:replace="~{fragments/ui :: roleChip(${post.author.primaryRole})}"></span>
+                </th:block>
+            </div>
+            <div class="post-sub">
+                <a class="post-time" th:href="@{/posts/{id}(id=${post.id})}"
+                   th:title="${@timeAgo.full(post.createdAt)}" th:text="${@timeAgo.format(post.createdAt)}">vừa xong</a>
+                <span class="post-edited" th:if="${post.edited}">(đã chỉnh sửa)</span>
+                <span class="visibility-chip" th:if="${post.visibility.name() != 'PUBLIC'}"
+                      th:text="${post.visibility.name() == 'PRIVATE'} ? 'Chỉ mình tôi' : 'Bạn bè'">Chỉ mình tôi</span>
+            </div>
+        </div>
+
+        <div class="dropdown ms-auto" th:if="${post.mine}">
+            <button type="button" class="post-menu-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                    aria-label="Tùy chọn cho bài viết này">&#8943;</button>
+            <ul class="dropdown-menu dropdown-menu-end menu-al">
+                <li>
+                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editPostModal"
+                            th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()}">Sửa bài</button>
+                </li>
+                <li>
+                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deletePostModal"
+                            th:attr="data-post-id=${post.id}">Xóa bài</button>
+                </li>
+            </ul>
+        </div>
+    </header>
+
+    <div class="post-text" th:if="${post.hasText()}" th:utext="${post.contentHtml}"></div>
+
+    <div class="media-grid" th:if="${post.hasMedia() and !post.hasVideo()}"
+         th:classappend="'media-grid--' + ${#lists.size(post.media)}">
+        <a th:each="item : ${post.media}" th:href="${item.url}" target="_blank" rel="noopener">
+            <img th:src="${item.url}" th:alt="'Ảnh trong bài viết của ' + ${post.author.displayName}" loading="lazy">
+        </a>
+    </div>
+
+    <video class="post-video" th:if="${post.hasVideo()}" th:src="${post.media[0].url}"
+           controls preload="metadata" playsinline></video>
+</article>
+
+</body>
+</html>

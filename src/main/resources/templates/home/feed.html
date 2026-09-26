@@ -9,9 +9,13 @@
         <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
     </div>
 
-    <section class="note note--taped mb-4" aria-labelledby="hello">
-        <h2 id="hello" class="mb-3" th:text="'Chào ' + ${me.profile.displayName} + '!'">Chào bạn!</h2>
-        <p class="text-soft">Hoàn thiện hồ sơ trước để mọi người nhận ra bạn nhé.</p>
+    <div th:replace="~{fragments/composer :: composer}"></div>
+
+    <!-- Nhắc hoàn thiện hồ sơ: chỉ hiện khi còn thiếu, biến mất khi xong -->
+    <section class="note note--lemon mb-4" aria-labelledby="hello"
+             th:if="${me.profile.avatarUrl == null or me.profile.bio == null or #strings.isEmpty(me.profile.bio)}">
+        <h2 id="hello" class="h4 mb-2" th:text="'Chào ' + ${me.profile.displayName} + '!'">Chào bạn!</h2>
+        <p class="text-soft mb-2">Hoàn thiện hồ sơ để mọi người nhận ra bạn nhé.</p>
         <ul class="todo">
             <li th:classappend="${me.profile.avatarUrl != null} ? 'done'">
                 <span class="tick" aria-hidden="true" th:text="${me.profile.avatarUrl != null} ? '✓' : ''"></span>
@@ -26,7 +30,11 @@
         </ul>
     </section>
 
-    <section class="note note--sky empty" aria-labelledby="empty-title">
+    <div id="feed" class="feed">
+        <th:block th:replace="~{feed/list :: list}"></th:block>
+    </div>
+
+    <section class="note note--sky empty" aria-labelledby="empty-title" th:if="${#lists.isEmpty(page.posts)}">
         <svg viewBox="0 0 160 120" role="img" aria-label="Tấm bảng trống với vài chiếc ghim">
             <rect x="14" y="14" width="132" height="92" rx="10" fill="#FFF8EC" stroke="#16121F" stroke-width="3"/>
             <rect x="34" y="34" width="44" height="30" rx="4" fill="#FFE45E" stroke="#16121F" stroke-width="3" transform="rotate(-4 56 49)"/>
@@ -36,9 +44,10 @@
             <path d="M42 88h76" stroke="#16121F" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
         </svg>
         <h2 id="empty-title" class="h3">Chưa có bài nào để dán lên đây</h2>
-        <p>Đăng bài, thả tim và bình luận sẽ có ở bản cập nhật tiếp theo. Trong lúc chờ, hãy hoàn thiện hồ sơ của bạn.</p>
-        <a class="btn-al btn-al--pink" th:href="@{/settings}">Chỉnh hồ sơ</a>
+        <p>Hãy là người đăng bài đầu tiên. Bài công khai của mọi người sẽ hiện ở đây.</p>
     </section>
+
+    <div th:replace="~{fragments/post-modals :: modals}"></div>
 </main>
 
 <aside class="app-rail">
