@@ -1,5 +1,6 @@
 package com.aloute.user;
 
+import com.aloute.feed.FeedService;
 import com.aloute.security.AlouteUserPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZoneId;
+import java.util.UUID;
 import java.time.format.DateTimeFormatter;
 
 /** Trang cá nhân: của mình (/me) và của người khác (/u/{username}) theo quyền riêng tư. */
@@ -20,9 +22,11 @@ public class ProfileController {
             DateTimeFormatter.ofPattern("MM/yyyy").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
 
     private final UserRepository users;
+    private final FeedService feed;
 
-    public ProfileController(UserRepository users) {
+    public ProfileController(UserRepository users, FeedService feed) {
         this.users = users;
+        this.feed = feed;
     }
 
     @GetMapping("/me")
@@ -37,14 +41,18 @@ public class ProfileController {
                 .filter(User::isActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        boolean isOwner = viewer != null && viewer.id().equals(owner.getId());
-        // Bạn bè chưa có ở GĐ1 nên "Chỉ bạn bè" tạm thời chỉ chủ hồ sơ xem được; GĐ3 sẽ mở cho bạn bè
-        boolean canView = isOwner || owner.getProfile().getProfileVisibility() == Visibility.PUBLIC;
+        UUID viewerId = viewer == null ? null : viewer.id();
+        boolean isOwner = viewerId != null && viewerId.equals(owner.getId());
+        boolean canView = ProfileVisibilityRules.canView(owner, viewerId);
 
         model.addAttribute("owner", owner);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("canView", canView);
         model.addAttribute("joined", JOINED.format(owner.getCreatedAt()));
+        if (canView) {
+            model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, null));
+            model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
+        }
         return "profile/view";
     }
 }

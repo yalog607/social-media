@@ -20,6 +20,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,7 +70,11 @@ class SettingsIT extends IntegrationTest {
 
         String url = users.findById(user.getId()).orElseThrow().getProfile().getAvatarUrl();
         assertThat(url).startsWith("/uploads/avatars/").endsWith(".png");
-        mvc.perform(get(url)).andExpect(status().isOk());
+        mvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", containsString("max-age=31536000")))
+                .andExpect(header().string("Cache-Control", containsString("immutable")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
         assertThat(Files.exists(Path.of("target/test-uploads/avatars").resolve(url.substring(url.lastIndexOf('/') + 1)))).isTrue();
     }
 

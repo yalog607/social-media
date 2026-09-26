@@ -63,6 +63,13 @@ public class GlobalModelAdvice {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
+    /** Đường dẫn + query của trang hiện tại, để form (sửa/xóa bài...) quay lại đúng chỗ sau khi xử lý. */
+    @ModelAttribute("currentPath")
+    public String currentPath(HttpServletRequest request) {
+        String query = request.getQueryString();
+        return request.getRequestURI() + (query == null ? "" : "?" + query);
+    }
+
     @ModelAttribute("firebaseWeb")
     public AlouteProperties.Firebase.Web firebaseWeb() {
         AlouteProperties.Firebase firebase = props.firebase();
