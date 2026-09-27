@@ -110,16 +110,37 @@
     }
   });
 
+  // Ô "Đang trả lời X": nhắc rõ đang trả lời ai (kiểu Facebook), kèm @Tên chèn sẵn vào nội dung.
+  function showReplyContext(form, parentId, name) {
+    form.dataset.parentId = parentId;
+    const chip = form.querySelector('[data-replying-to]');
+    chip.querySelector('[data-reply-name]').textContent = name;
+    chip.hidden = false;
+    const textarea = form.elements.content;
+    textarea.value = '@' + name + ' ';
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+  }
+
+  function clearReplyContext(form) {
+    delete form.dataset.parentId;
+    form.querySelector('[data-replying-to]').hidden = true;
+    form.elements.content.value = '';
+  }
+
   document.addEventListener('click', function (event) {
     const replyButton = event.target.closest('[data-reply-to]');
     if (!replyButton) return;
     const section = commentSectionOf(replyButton);
     const form = section.querySelector('.comment-form');
     if (!form) return;
-    form.dataset.parentId = replyButton.dataset.parentId;
-    const textarea = form.elements.content;
-    textarea.placeholder = 'Trả lời ' + replyButton.dataset.name + '…';
-    textarea.focus();
+    showReplyContext(form, replyButton.dataset.parentId, replyButton.dataset.name);
+  });
+
+  document.addEventListener('click', function (event) {
+    const cancelButton = event.target.closest('[data-cancel-reply]');
+    if (!cancelButton) return;
+    clearReplyContext(cancelButton.closest('.comment-form'));
   });
 
   document.addEventListener('click', async function (event) {
@@ -155,9 +176,7 @@
         body: body.toString(),
       });
       if (!response.ok) throw new Error('HTTP ' + response.status);
-      textarea.value = '';
-      textarea.placeholder = 'Viết bình luận...';
-      delete form.dataset.parentId;
+      clearReplyContext(form);
       await loadComments(section, form.dataset.commentsUrl);
     } catch (error) {
       window.Aloute.toast('Chưa gửi được bình luận, thử lại nhé.', 'error');

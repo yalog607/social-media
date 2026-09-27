@@ -548,8 +548,9 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 
 .post-comments { margin-top: .7rem; }
 .comment-empty { margin: .4rem 0; font-size: .88rem; }
-.comment { display: flex; gap: .6rem; margin-top: .8rem; }
-.comment .avatar { width: 34px; height: 34px; font-size: .85rem; }
+.comment { margin-top: .8rem; }
+.comment-row { display: flex; gap: .6rem; }
+.comment-row .avatar { width: 34px; height: 34px; font-size: .85rem; }
 .comment-content { min-width: 0; flex: 1; }
 .comment-bubble {
   display: inline-block; max-width: 100%; padding: .5rem .75rem;
@@ -565,8 +566,17 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 .comment-replies { margin-top: .6rem; padding-left: 1.2rem; border-left: 2px solid var(--paper-2); }
 .comment--reply { margin-top: .7rem; }
 
-.comment-form { display: flex; gap: .5rem; align-items: flex-end; margin-top: .9rem; }
+.comment-form { margin-top: .9rem; }
+.comment-form-row { display: flex; gap: .5rem; align-items: flex-end; }
 .comment-form textarea { flex: 1; min-height: 40px; resize: vertical; }
+.comment-replying-to {
+  display: flex; align-items: center; gap: .4rem; margin: 0 0 .4rem; font-size: .85rem; color: var(--ink-soft);
+}
+.comment-replying-to strong { color: var(--ink); }
+.comment-replying-to button {
+  padding: 0 .3rem; font: 700 1rem/1 var(--font-body); color: var(--ink-soft); background: none; border: 0; cursor: pointer;
+}
+.comment-replying-to button:hover { color: var(--ink); }
 
 /* ---------- 13. Tìm kiếm và hashtag ---------- */
 .topbar-search { display: none; }
@@ -606,3 +616,21 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 /* ---------- 14. Bạn bè, theo dõi, chặn ---------- */
 .profile-stats { font-size: .95rem; color: var(--ink-soft); }
 .profile-stats strong { color: var(--ink); font-family: var(--font-display); }
+
+/* ---------- 15. Xem trước và cắt ảnh (Cài đặt) ---------- */
+.settings-cover-preview {
+  height: 90px; margin-bottom: .6rem;
+  border: var(--line); border-radius: 12px;
+  background-color: var(--paper-2); background-size: cover; background-position: center;
+}
+.crop-stage { display: flex; justify-content: center; margin-bottom: .6rem; }
+.crop-frame {
+  position: relative; overflow: hidden; touch-action: none; cursor: grab;
+  border: var(--line); background: var(--paper-2); border-radius: 12px;
+}
+.crop-frame:active { cursor: grabbing; }
+.crop-frame.is-circle { border-radius: 50%; }
+.crop-frame img {
+  position: absolute; top: 0; left: 0; max-width: none; pointer-events: none;
+  user-select: none; -webkit-user-drag: none;
+}

@@ -25,10 +25,14 @@
 <th:block th:fragment="list">
     <p class="comment-empty text-soft" th:if="${#lists.isEmpty(comments)}">Chưa có bình luận nào, hãy là người đầu tiên nhé.</p>
     <div class="comment" th:each="c : ${comments}" th:id="'comment-' + ${c.id}">
-        <th:block th:replace="~{::entry(${c})}"></th:block>
+        <div class="comment-row">
+            <th:block th:replace="~{::entry(${c})}"></th:block>
+        </div>
         <div class="comment-replies" th:if="${c.hasReplies()}">
             <div class="comment comment--reply" th:each="r : ${c.replies}" th:id="'comment-' + ${r.id}">
-                <th:block th:replace="~{::entry(${r})}"></th:block>
+                <div class="comment-row">
+                    <th:block th:replace="~{::entry(${r})}"></th:block>
+                </div>
             </div>
         </div>
     </div>
