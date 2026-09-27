@@ -1,4 +1,4 @@
-# Production: app + PostgreSQL + Caddy (HTTPS tự động). Hướng dẫn đầy đủ: deploy/DEPLOY.md
+# Production: app + PostgreSQL + Caddy (HTTPS tự động).
 #
 #   cp .env.prod.example .env      # rồi điền giá trị thật
 #   docker compose -f docker-compose.prod.yml up -d --build

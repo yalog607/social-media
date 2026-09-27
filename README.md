@@ -3,7 +3,7 @@
 Mạng xã hội cho tuổi teen: Spring Boot 3.5 · Thymeleaf · Bootstrap 5 · JPA · PostgreSQL · JWT · WebSocket · Firebase.
 Giao diện phong cách neo-brutalism pastel kiểu sổ lưu bút.
 
-Trạng thái: **Giai đoạn 1 (nền tảng)** hoàn tất. Lộ trình các giai đoạn nằm ở cuối file.
+Trạng thái: đăng ký/đăng nhập, phân quyền 4 vai trò, hồ sơ, bảng tin, đăng bài (chữ/ảnh/video), cảm xúc, bình luận, chia sẻ.
 
 ## Yêu cầu
 - JDK 21+ (đã thử với JDK 24), Maven 3.9+
@@ -61,20 +61,6 @@ Firebase chỉ dùng để xác minh danh tính, miễn phí và không cần th
 
 Không có các biến này, ứng dụng vẫn chạy đủ chức năng: nút Google/Facebook hiển thị trạng thái tắt. Ảnh luôn được lưu vào thư mục `uploads/` (dev) hoặc Docker volume (production).
 
-## Deploy lên VPS + Caddy
-Docker Compose (app + PostgreSQL + Caddy): Caddy tự xin và gia hạn chứng chỉ Let's Encrypt, chỉ Caddy mở cổng 80/443. Có thể đặt thêm proxy Cloudflare phía trước (tùy chọn). Hướng dẫn từng bước, kiểm tra sau deploy và xử lý sự cố:
-**[deploy/DEPLOY.md](deploy/DEPLOY.md)**. Các file liên quan: `Dockerfile`, `docker-compose.prod.yml`, `deploy/Caddyfile`, `.env.prod.example`, `deploy/backup.sh`,
-`deploy/cloudflare-ips.sh`, `src/main/resources/application-prod.yml`. Profile `prod` từ chối khởi động nếu cấu hình yếu (khóa JWT mẫu, cookie không Secure, tài khoản demo...).
-
-## Bảo mật (đã áp dụng ở GĐ1)
-- JWT trong cookie **HttpOnly**, SameSite=Lax; refresh token xoay vòng, chỉ lưu hash, phát hiện tái sử dụng.
-- CSRF cho mọi request thay đổi dữ liệu (cookie `XSRF-TOKEN` + header `X-XSRF-TOKEN`).
-- Đăng nhập: giới hạn thử sai theo IP + tài khoản (IP thật do Caddy xác thực rồi truyền qua `X-Client-IP`, không giả mạo được), thông báo lỗi chung, chống dò thời gian.
-- Quên mật khẩu: link dùng một lần, hết hạn sau 30 phút, thu hồi mọi phiên khi đổi mật khẩu.
-- Đăng nhập Social: vô hiệu mật khẩu của tài khoản Local chưa xác minh khi liên kết (chống pre-hijacking).
-- Upload ảnh: kiểm tra chữ ký byte thật, không nhận SVG, giới hạn 5 MB, tên file do server sinh, cache dài + `nosniff` khi phục vụ.
-- Tài khoản bị khóa mất phiên ngay ở request kế tiếp, không chờ access token hết hạn.
-
 ## Cấu trúc
 ```
 src/main/java/com/aloute/
@@ -87,10 +73,3 @@ src/main/java/com/aloute/
 └─ config/    Security, MVC, Firebase, thuộc tính cấu hình
 src/main/resources/{db/migration, templates, static}
 ```
-
-## Lộ trình
-1. **Nền tảng** (xong): đăng ký/đăng nhập, Social, phân quyền 4 vai trò, hồ sơ, design system
-2. Bảng tin, đăng bài (text/ảnh/video), trang chi tiết, sửa/xóa (**2a xong**); like/comment/share (2b); tìm kiếm + hashtag (2c)
-3. Kết bạn/follow/block, chat realtime, thông báo, report
-4. Creator: thống kê, ví Xu/donate, hẹn giờ đăng, huy hiệu fan
-5. Manager và Admin: kiểm duyệt, chế tài, System Logs, thống kê

@@ -1,4 +1,4 @@
-# Profile prod: chạy sau Caddy (xem deploy/DEPLOY.md). Bí mật lấy hết từ biến môi trường.
+# Profile prod: chạy sau Caddy. Bí mật lấy hết từ biến môi trường.
 spring:
   thymeleaf:
     cache: true
