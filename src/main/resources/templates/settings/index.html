@@ -12,16 +12,21 @@
         <form th:action="@{/settings/profile}" th:object="${profileForm}" method="post" enctype="multipart/form-data" novalidate>
             <div th:replace="~{fragments/ui :: globalErrors}"></div>
             <div class="d-flex align-items-center gap-3 mb-3">
-                <span th:replace="~{fragments/ui :: avatar(${me.profile}, 'avatar--lg')}"></span>
+                <span id="avatarPreview" style="display:contents">
+                    <span th:replace="~{fragments/ui :: avatar(${me.profile}, 'avatar--lg')}"></span>
+                </span>
                 <div class="field mb-0 flex-grow-1">
                     <label for="avatar">Ảnh đại diện</label>
                     <input class="input-al" type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp">
-                    <p class="field-hint">JPG, PNG, GIF hoặc WEBP, tối đa 5 MB.</p>
+                    <p class="field-hint">JPG, PNG, GIF hoặc WEBP, tối đa 5 MB. Ảnh lớn hơn khung sẽ được cắt xén trước khi lưu.</p>
                 </div>
             </div>
             <div class="field">
                 <label for="cover">Ảnh bìa</label>
+                <div id="coverPreview" class="settings-cover-preview"
+                     th:style="${me.profile.coverUrl != null} ? 'background-image:url(' + ${me.profile.coverUrl} + ')' : null"></div>
                 <input class="input-al" type="file" id="cover" name="cover" accept="image/jpeg,image/png,image/gif,image/webp">
+                <p class="field-hint">JPG, PNG, GIF hoặc WEBP, tối đa 5 MB. Ảnh lớn hơn khung sẽ được cắt xén trước khi lưu.</p>
             </div>
             <div th:replace="~{fragments/forms :: textField('displayName', 'Tên hiển thị', 'text', 'nickname', null)}"></div>
             <div class="field">
@@ -75,6 +80,31 @@
             <button type="submit" class="btn-al btn-al--sky">Lưu mật khẩu</button>
         </form>
     </section>
+
+    <!-- Hộp thoại xem trước + cắt ảnh đại diện/ảnh bìa. feed/crop.js điều khiển toàn bộ, tự tạo bằng JS khi cần
+         nên không phải lo trùng lặp DOM giống lỗi từng gặp với fragment tự tham chiếu. -->
+    <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalTitle" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content note">
+                <h2 class="h4 mb-3" id="cropModalTitle" data-crop-title>Chỉnh ảnh</h2>
+                <div class="crop-stage">
+                    <div class="crop-frame" data-crop-frame>
+                        <img data-crop-image alt="Ảnh đang chỉnh">
+                    </div>
+                </div>
+                <p class="text-soft text-center mb-2" style="font-size:.85rem">Kéo để dời ảnh, dùng thanh trượt để phóng to</p>
+                <div class="field mb-3">
+                    <label for="cropZoom" class="visually-hidden">Phóng to</label>
+                    <input type="range" class="form-range" id="cropZoom" data-crop-zoom min="1" max="3" step="0.01" value="1">
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn-al btn-al--pink" data-crop-confirm>Dùng ảnh này</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script th:src="@{/js/crop.js}"></script>
 </main>
 </body>
 </html>
