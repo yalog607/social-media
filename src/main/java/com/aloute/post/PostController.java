@@ -84,4 +84,17 @@ public class PostController {
         // Đang đứng ở chính trang chi tiết của bài vừa xóa thì quay về bảng tin, không thì gặp 404
         return "redirect:" + (target.contains(id.toString()) ? "/" : target);
     }
+
+    @PostMapping("/posts/{id}/share")
+    public String share(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        @RequestParam(required = false) String caption,
+                        @RequestParam(required = false) String next, RedirectAttributes flash) {
+        try {
+            posts.share(me.id(), id, caption);
+            flash.addFlashAttribute("notice", "Đã chia sẻ bài viết!");
+        } catch (InvalidPostException | RateLimitExceededException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
 }

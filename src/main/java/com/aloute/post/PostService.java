@@ -101,6 +101,37 @@ public class PostService {
         return post;
     }
 
+    /**
+     * Đăng lại một bài công khai vào trang của người chia sẻ, kèm lời nhắn tùy chọn. Chia sẻ một bài đã là
+     * bài chia sẻ thì trỏ thẳng về bài gốc thật sự (không bao giờ trỏ qua một bài chia sẻ khác).
+     *
+     * @throws PostNotFoundException bài không tồn tại, không công khai, hoặc bài gốc của nó không còn công khai
+     * @throws InvalidPostException  lời nhắn quá dài
+     */
+    @Transactional
+    public Post share(UUID actorId, UUID postId, String caption) {
+        rateLimiter.check(RateAction.POST, actorId);
+        String text = cleanCaption(caption);
+        User author = users.findById(actorId).filter(User::isActive)
+                .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
+
+        Post source = posts.findLive(postId).orElseThrow(PostNotFoundException::new);
+        if (source.getVisibility() != Visibility.PUBLIC) {
+            throw new PostNotFoundException();
+        }
+        Post original = source.isShare() ? source.getSharedPost() : source;
+        if (original.isDeleted() || original.getVisibility() != Visibility.PUBLIC || !original.getAuthor().isActive()) {
+            throw new PostNotFoundException();
+        }
+
+        Post share = new Post();
+        share.setAuthor(author);
+        share.setVisibility(Visibility.PUBLIC);
+        share.setSharedPost(original);
+        applyContent(share, text);
+        return posts.save(share);
+    }
+
     /** Xóa mềm: bài biến mất khỏi mọi nơi nhưng dữ liệu còn (phục vụ kiểm duyệt ở giai đoạn sau). */
     @Transactional
     public void delete(UUID actorId, UUID postId) {
@@ -154,6 +185,15 @@ public class PostService {
         String text = content.replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]", "").strip();
         if (text.codePointCount(0, text.length()) > Post.MAX_CONTENT_LENGTH) {
             throw new InvalidPostException("Bài viết tối đa " + Post.MAX_CONTENT_LENGTH + " ký tự.");
+        }
+        return text;
+    }
+
+    /** Cùng quy tắc bỏ ký tự điều khiển của {@link #cleanContent}, nhưng giới hạn ngắn hơn và cho phép rỗng. */
+    private static String cleanCaption(String caption) {
+        String text = caption == null ? "" : caption.replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]", "").strip();
+        if (text.codePointCount(0, text.length()) > Post.MAX_SHARE_CAPTION_LENGTH) {
+            throw new InvalidPostException("Lời nhắn khi chia sẻ tối đa " + Post.MAX_SHARE_CAPTION_LENGTH + " ký tự.");
         }
         return text;
     }

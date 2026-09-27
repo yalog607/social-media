@@ -25,6 +25,25 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             where p.id = :id and p.deletedAt is null""")
     Optional<Post> findLive(@Param("id") UUID id);
 
+    /** Nhiều bài cùng lúc, dùng để dựng các bài GỐC được chia sẻ (một truy vấn cho cả trang, không phải một truy vấn mỗi bài). */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.id in :ids and p.deletedAt is null""")
+    List<Post> findLiveByIds(@Param("ids") Collection<UUID> ids);
+
+    /** Số lượt chia sẻ CÒN SỐNG của mỗi bài, cho cả một trang bài trong một truy vấn. */
+    @Query("""
+            select p.sharedPost.id as postId, count(p) as total from Post p
+            where p.sharedPost.id in :ids and p.deletedAt is null
+            group by p.sharedPost.id""")
+    List<PostShareCount> shareCountsByPostIds(@Param("ids") Collection<UUID> ids);
+
+    interface PostShareCount {
+        UUID getPostId();
+
+        long getTotal();
+    }
+
     /** Bảng tin: bài công khai của mọi người + mọi bài của chính người xem (kể cả riêng tư). */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile

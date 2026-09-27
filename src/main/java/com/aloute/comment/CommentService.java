@@ -1,0 +1,145 @@
+package com.aloute.comment;
+
+import com.aloute.common.RateAction;
+import com.aloute.common.RateLimiter;
+import com.aloute.post.Post;
+import com.aloute.post.PostService;
+import com.aloute.post.PostTextRenderer;
+import com.aloute.post.PostView;
+import com.aloute.user.Profile;
+import com.aloute.user.User;
+import com.aloute.user.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Thêm, xóa và liệt kê bình luận. Trả lời chỉ có MỘT cấp: trả lời của một trả lời được tự động gắn về
+ * bình luận gốc của nó (xem {@link #create}).
+ */
+@Service
+public class CommentService {
+
+    private final CommentRepository comments;
+    private final PostService posts;
+    private final UserRepository users;
+    private final RateLimiter rateLimiter;
+    private final Clock clock;
+
+    public CommentService(CommentRepository comments, PostService posts, UserRepository users,
+                          RateLimiter rateLimiter, Clock clock) {
+        this.comments = comments;
+        this.posts = posts;
+        this.users = users;
+        this.rateLimiter = rateLimiter;
+        this.clock = clock;
+    }
+
+    /**
+     * @param parentId bình luận đang trả lời, hoặc null nếu là bình luận gốc mới
+     * @throws com.aloute.post.PostNotFoundException bài không tồn tại hoặc không xem được
+     * @throws InvalidCommentException               nội dung rỗng/quá dài, hoặc {@code parentId} không thuộc bài này
+     */
+    @Transactional
+    public Comment create(UUID authorId, UUID postId, UUID parentId, String content) {
+        rateLimiter.check(RateAction.COMMENT, authorId);
+        Post post = posts.getVisible(postId, authorId);
+        String text = clean(content);
+
+        Comment parent = null;
+        if (parentId != null) {
+            Comment target = comments.findWithAuthors(parentId)
+                    .filter(c -> !c.isDeleted() && c.getPost().getId().equals(postId))
+                    .orElseThrow(() -> new InvalidCommentException("Bình luận bạn đang trả lời không còn nữa."));
+            // Rút gọn về một cấp: trả lời của một trả lời gắn thẳng về bình luận gốc
+            parent = target.isReply() ? target.getParent() : target;
+        }
+
+        Comment comment = new Comment();
+        comment.setPost(post);
+        comment.setAuthor(users.getReferenceById(authorId));
+        comment.setParent(parent);
+        comment.setContent(text);
+        return comments.save(comment);
+    }
+
+    /** Chỉ tác giả bình luận hoặc tác giả bài viết xóa được. Xóa mềm: giữ chỗ nếu còn trả lời chưa xóa. */
+    @Transactional
+    public void delete(UUID actorId, UUID commentId) {
+        Comment comment = comments.findWithAuthors(commentId)
+                .filter(c -> !c.isDeleted())
+                .orElseThrow(CommentNotFoundException::new);
+        boolean allowed = comment.getAuthor().getId().equals(actorId) || comment.getPost().getAuthor().getId().equals(actorId);
+        if (!allowed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không thể xóa bình luận này.");
+        }
+        comment.setDeletedAt(clock.instant());
+    }
+
+    /** @throws com.aloute.post.PostNotFoundException bài không tồn tại hoặc không xem được */
+    @Transactional(readOnly = true)
+    public List<CommentView> list(UUID postId, UUID viewerId) {
+        posts.getVisible(postId, viewerId);
+        List<Comment> flat = comments.findByPostId(postId);
+
+        Map<UUID, List<Comment>> repliesByParent = new LinkedHashMap<>();
+        List<Comment> roots = new ArrayList<>();
+        for (Comment comment : flat) {
+            if (comment.isReply()) {
+                repliesByParent.computeIfAbsent(comment.getParent().getId(), id -> new ArrayList<>()).add(comment);
+            } else {
+                roots.add(comment);
+            }
+        }
+
+        List<CommentView> views = new ArrayList<>();
+        for (Comment root : roots) {
+            List<Comment> replies = repliesByParent.getOrDefault(root.getId(), List.of());
+            if (root.isDeleted() && replies.isEmpty()) {
+                continue; // không còn gì để hiện, kể cả chỗ trống
+            }
+            List<CommentView> replyViews = replies.stream()
+                    .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
+                    .map(reply -> toView(reply, viewerId, List.of()))
+                    .toList();
+            views.add(toView(root, viewerId, replyViews));
+        }
+        return views;
+    }
+
+    private static CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies) {
+        User author = comment.getAuthor();
+        Profile profile = author.getProfile();
+        boolean mine = viewerId != null && viewerId.equals(author.getId());
+        boolean deleted = comment.isDeleted();
+        return new CommentView(
+                comment.getId(),
+                new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
+                        profile.getAvatarUrl(), author.primaryRole()),
+                deleted ? "" : PostTextRenderer.toSafeHtml(comment.getContent()),
+                comment.getCreatedAt(),
+                mine,
+                deleted,
+                replies);
+    }
+
+    /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra rỗng và độ dài. */
+    private static String clean(String content) {
+        String text = content == null ? "" : content.replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]", "").strip();
+        if (text.isEmpty()) {
+            throw new InvalidCommentException("Bình luận không được để trống.");
+        }
+        if (text.codePointCount(0, text.length()) > Comment.MAX_CONTENT_LENGTH) {
+            throw new InvalidCommentException("Bình luận tối đa " + Comment.MAX_CONTENT_LENGTH + " ký tự.");
+        }
+        return text;
+    }
+}

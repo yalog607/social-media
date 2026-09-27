@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**", "/logout").permitAll()
                         // Link chia sẻ một bài: khách xem được nếu bài công khai (PostService quyết định, còn lại là 404)
                         .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
+                        // Danh sách bình luận đi kèm trang chi tiết bài nên cùng quy tắc xem: khách thấy nếu bài công khai
+                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/manage/**").hasRole("MANAGER")
                         .requestMatchers("/creator/**").hasRole("CREATOR")

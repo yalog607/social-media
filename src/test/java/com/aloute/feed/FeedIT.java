@@ -37,6 +37,8 @@ class FeedIT extends IntegrationTest {
     @Autowired PostRepository postRepository;
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManagerFactory entityManagerFactory;
+    @Autowired com.aloute.reaction.ReactionService reactionService;
+    @Autowired com.aloute.comment.CommentService commentService;
 
     /** Tạo bài rồi đặt created_at cách đều nhau (bài đầu tiên cũ nhất) để thứ tự không phụ thuộc đồng hồ. */
     private List<Post> createSpaced(User author, int count, Visibility visibility) {
@@ -167,15 +169,17 @@ class FeedIT extends IntegrationTest {
 
     @Test
     void homeIsNewestFirst() {
+        // Dùng byAuthor thay vì home: home gộp bài PUBLIC của MỌI tác giả trong cả bộ test, nên khẳng định
+        // đúng-3-bài-đầu-tiên trên home không ổn định khi có test khác chạy song song tạo thêm bài công khai.
         User author = createUser();
         List<Post> created = createSpaced(author, 3, Visibility.PUBLIC);
         jdbc.update("update posts set created_at = now() + interval '1 hour' * ? where id = ?", 0, created.get(0).getId());
         jdbc.update("update posts set created_at = now() + interval '1 hour' * ? where id = ?", 1, created.get(1).getId());
         jdbc.update("update posts set created_at = now() + interval '1 hour' * ? where id = ?", 2, created.get(2).getId());
 
-        List<UUID> home = ids(feed.home(author.getId(), null));
+        List<UUID> own = ids(feed.byAuthor(author.getId(), author.getId(), null));
 
-        assertThat(home.subList(0, 3)).containsExactly(created.get(2).getId(), created.get(1).getId(), created.get(0).getId());
+        assertThat(own).containsExactly(created.get(2).getId(), created.get(1).getId(), created.get(0).getId());
     }
 
     @Test
@@ -217,6 +221,47 @@ class FeedIT extends IntegrationTest {
         assertThat(asOwner.edited()).isFalse();
         assertThat(asOwner.rawContent()).isEqualTo("<i>hi</i> #Vui"); // chữ gốc chỉ dành cho chủ bài
         assertThat(asGuest.rawContent()).isNull();
+        assertThat(asOwner.isShare()).isFalse();
+        assertThat(asOwner.reactions().total()).isEqualTo(0);
+        assertThat(asOwner.commentCount()).isEqualTo(0);
+        assertThat(asOwner.shareCount()).isEqualTo(0);
+    }
+
+    @Test
+    void viewCarriesReactionCommentAndShareCounts() {
+        User author = createUser();
+        Post post = postService.create(author.getId(), "bài gốc", Visibility.PUBLIC, List.of(), null);
+        User reactor = createUser();
+        reactionService.toggle(reactor.getId(), post.getId(), com.aloute.reaction.ReactionType.FIRE);
+        commentService.create(createUser().getId(), post.getId(), null, "bình luận đầu");
+        Post share = postService.share(createUser().getId(), post.getId(), "chia sẻ lại nè");
+
+        PostView original = feed.byAuthor(author.getId(), reactor.getId(), null).posts().get(0);
+
+        assertThat(original.reactions().total()).isEqualTo(1);
+        assertThat(original.reactions().mine()).isEqualTo(com.aloute.reaction.ReactionType.FIRE);
+        assertThat(original.commentCount()).isEqualTo(1);
+        assertThat(original.shareCount()).isEqualTo(1);
+        assertThat(share).isNotNull();
+    }
+
+    @Test
+    void shareViewEmbedsTheOriginalPostAndDegradesGracefullyWhenItDisappears() {
+        User author = createUser();
+        Post source = postService.create(author.getId(), "bài để chia sẻ", Visibility.PUBLIC, List.of(), null);
+        User sharer = createUser();
+        Post share = postService.share(sharer.getId(), source.getId(), "xem nè");
+
+        PostView shareView = feed.byAuthor(sharer.getId(), null, null).posts().get(0);
+        assertThat(shareView.isShare()).isTrue();
+        assertThat(shareView.sharedPostUnavailable()).isFalse();
+        assertThat(shareView.sharedPost().id()).isEqualTo(source.getId());
+        assertThat(shareView.sharedPost().contentHtml()).contains("bài để chia sẻ");
+
+        postService.delete(author.getId(), source.getId());
+        PostView afterDelete = feed.byAuthor(sharer.getId(), null, null).posts().get(0);
+        assertThat(afterDelete.sharedPostUnavailable()).isTrue();
+        assertThat(afterDelete.sharedPost()).isNull();
     }
 
     // ---------- Hiệu năng: không N+1 ----------
@@ -244,7 +289,7 @@ class FeedIT extends IntegrationTest {
         assertThat(page.posts()).hasSize(10);
         assertThat(page.posts().stream().map(PostView::id)).containsAnyElementsOf(mine);
         assertThat(stats.getPrepareStatementCount())
-                .as("số câu SQL cho cả trang 10 bài (bảng tin + media + vai trò theo lô)")
-                .isLessThanOrEqualTo(5);
+                .as("số câu SQL cho cả trang 10 bài (bảng tin + media + cảm xúc + bình luận + chia sẻ theo lô)")
+                .isLessThanOrEqualTo(7);
     }
 }

@@ -38,6 +38,7 @@ import java.util.UUID;
 public class Post {
 
     public static final int MAX_CONTENT_LENGTH = 2000;
+    public static final int MAX_SHARE_CAPTION_LENGTH = 500;
 
     @Id
     @GeneratedValue
@@ -72,6 +73,15 @@ public class Post {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /**
+     * Khác null nghĩa là bài này là một lượt CHIA SẺ của bài gốc (luôn trỏ thẳng tới bài gốc thật sự, không bao
+     * giờ trỏ qua một bài chia sẻ khác — {@code PostService#share} tự rút gọn). {@code content} khi đó là lời
+     * nhắn tùy chọn của người chia sẻ, không phải nội dung bài gốc.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shared_post_id", updatable = false)
+    private Post sharedPost;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<PostMedia> media = new ArrayList<>();
@@ -83,6 +93,10 @@ public class Post {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    public boolean isShare() {
+        return sharedPost != null;
     }
 
     public void addMedia(PostMedia item) {

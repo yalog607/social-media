@@ -315,4 +315,66 @@ class PostServiceIT extends IntegrationTest {
         assertThat(TestMedia.storedFileCount()).isEqualTo(before);
         assertThat(posts.findAll().stream().filter(p -> p.getContent().equals("sẽ bị hoàn tác"))).isEmpty();
     }
+
+    // ---------- Chia sẻ ----------
+
+    @Test
+    void sharesAPublicPostWithAnOptionalCaption() {
+        User original = createUser();
+        Post source = publicPost(original);
+        User sharer = createUser();
+
+        Post share = service.share(sharer.getId(), source.getId(), "  hay ghê #Nhân  ");
+
+        assertThat(share.getAuthor().getId()).isEqualTo(sharer.getId());
+        assertThat(share.getContent()).isEqualTo("hay ghê #Nhân");
+        assertThat(share.getVisibility()).isEqualTo(Visibility.PUBLIC);
+        assertThat(share.isShare()).isTrue();
+        assertThat(share.getSharedPost().getId()).isEqualTo(source.getId());
+    }
+
+    @Test
+    void sharingAShareFlattensToTheRealOriginal() {
+        User original = createUser();
+        Post source = publicPost(original);
+        Post firstShare = service.share(createUser().getId(), source.getId(), null);
+
+        Post secondShare = service.share(createUser().getId(), firstShare.getId(), null);
+
+        assertThat(secondShare.getSharedPost().getId())
+                .as("chia sẻ một bài đã là chia sẻ thì trỏ thẳng về bài gốc thật sự")
+                .isEqualTo(source.getId());
+    }
+
+    @Test
+    void cannotShareAPrivateOrMissingPost() {
+        User owner = createUser();
+        Post privatePost = service.create(owner.getId(), "riêng tư", Visibility.PRIVATE, List.of(), null);
+
+        assertThatThrownBy(() -> service.share(createUser().getId(), privatePost.getId(), null))
+                .isInstanceOf(PostNotFoundException.class);
+        assertThatThrownBy(() -> service.share(createUser().getId(), UUID.randomUUID(), null))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    @Test
+    void cannotShareAPostWhoseOriginalIsNoLongerPublic() {
+        User original = createUser();
+        Post source = publicPost(original);
+        Post share = service.share(createUser().getId(), source.getId(), null);
+        service.edit(original.getId(), source.getId(), source.getContent(), Visibility.PRIVATE);
+
+        assertThatThrownBy(() -> service.share(createUser().getId(), share.getId(), null))
+                .isInstanceOf(PostNotFoundException.class);
+    }
+
+    @Test
+    void shareCaptionHasItsOwnShorterLimit() {
+        User author = createUser();
+        Post source = publicPost(author);
+        String tooLong = "a".repeat(Post.MAX_SHARE_CAPTION_LENGTH + 1);
+
+        assertThatThrownBy(() -> service.share(createUser().getId(), source.getId(), tooLong))
+                .isInstanceOf(InvalidPostException.class);
+    }
 }

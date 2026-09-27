@@ -171,4 +171,31 @@ class PostWebIT extends IntegrationTest {
         mvc.perform(multipart("/posts").with(csrf()).with(asUser(user)).param("content", "bài 11").param("visibility", "PUBLIC"))
                 .andExpect(flash().attributeExists("composerError"));
     }
+
+    @Test
+    void sharesAPublicPost() throws Exception {
+        Post post = publicPost(createUser(), "bài để chia sẻ");
+
+        mvc.perform(post("/posts/" + post.getId() + "/share").with(csrf()).with(asUser(createUser()))
+                        .param("caption", "coi nè").param("next", "/"))
+                .andExpect(redirectedUrl("/"))
+                .andExpect(flash().attribute("notice", "Đã chia sẻ bài viết!"));
+    }
+
+    @Test
+    void guestSharingIsSentToLogin() throws Exception {
+        Post post = publicPost(createUser(), "bài để chia sẻ");
+
+        mvc.perform(post("/posts/" + post.getId() + "/share").with(csrf()).param("next", "/"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void sharingAPrivatePostOfSomeoneElseIs404() throws Exception {
+        User owner = createUser();
+        Post secret = postService.create(owner.getId(), "riêng tư", Visibility.PRIVATE, null, null);
+
+        mvc.perform(post("/posts/" + secret.getId() + "/share").with(csrf()).with(asUser(createUser())).param("next", "/"))
+                .andExpect(status().isNotFound());
+    }
 }
