@@ -27,9 +27,9 @@ public final class PostTextRenderer {
         StringBuilder out = new StringBuilder(escaped.length() + 32);
         while (matcher.find()) {
             String shown = matcher.group(1);
-            String target = URLEncoder.encode("#" + TextNormalizer.forSearch(shown), StandardCharsets.UTF_8);
+            String target = URLEncoder.encode(TextNormalizer.forSearch(shown), StandardCharsets.UTF_8);
             matcher.appendReplacement(out, Matcher.quoteReplacement(
-                    "<a class=\"hashtag\" href=\"/search?q=" + target + "\">#" + shown + "</a>"));
+                    "<a class=\"hashtag\" href=\"/tags/" + target + "\">#" + shown + "</a>"));
         }
         matcher.appendTail(out);
 

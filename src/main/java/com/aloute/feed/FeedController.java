@@ -1,5 +1,6 @@
 package com.aloute.feed;
 
+import com.aloute.common.TextNormalizer;
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.user.ProfileVisibilityRules;
 import com.aloute.user.User;
@@ -52,6 +53,16 @@ public class FeedController {
         }
         model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, cursor));
         model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
+        return LIST_FRAGMENT;
+    }
+
+    @GetMapping("/tags/{tag}/posts")
+    public String hashtagPosts(@PathVariable String tag, @AuthenticationPrincipal AlouteUserPrincipal viewer,
+                               @RequestParam(required = false) String cursor, Model model) {
+        String normalized = TextNormalizer.forSearch(tag);
+        UUID viewerId = viewer == null ? null : viewer.id();
+        model.addAttribute("page", feed.byHashtag(normalized, viewerId, cursor));
+        model.addAttribute("moreUrl", "/tags/" + normalized + "/posts");
         return LIST_FRAGMENT;
     }
 }

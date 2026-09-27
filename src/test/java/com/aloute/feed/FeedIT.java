@@ -292,4 +292,36 @@ class FeedIT extends IntegrationTest {
                 .as("số câu SQL cho cả trang 10 bài (bảng tin + media + cảm xúc + bình luận + chia sẻ theo lô)")
                 .isLessThanOrEqualTo(7);
     }
+
+    // ---------- Theo hashtag ----------
+
+    @Test
+    void byHashtagOnlyShowsPublicPostsWithThatTag() {
+        User author = createUser();
+        Post tagged = postService.create(author.getId(), "Xin chào #Nhân", Visibility.PUBLIC, List.of(), null);
+        postService.create(author.getId(), "không gắn thẻ", Visibility.PUBLIC, List.of(), null);
+        Post privateTagged = postService.create(author.getId(), "riêng tư #nhan", Visibility.PRIVATE, List.of(), null);
+
+        List<UUID> result = ids(feed.byHashtag("nhan", null, null));
+
+        assertThat(result).contains(tagged.getId()).doesNotContain(privateTagged.getId());
+    }
+
+    @Test
+    void byHashtagHidesDeletedPostsAndSuspendedAuthors() {
+        User author = createUser();
+        Post kept = postService.create(author.getId(), "#giu", Visibility.PUBLIC, List.of(), null);
+        Post deleted = postService.create(author.getId(), "#giu", Visibility.PUBLIC, List.of(), null);
+        postService.delete(author.getId(), deleted.getId());
+
+        User suspended = createUser();
+        Post fromSuspended = postService.create(suspended.getId(), "#giu", Visibility.PUBLIC, List.of(), null);
+        suspended.setStatus(UserStatus.SUSPENDED);
+        users.saveAndFlush(suspended);
+
+        List<UUID> result = ids(feed.byHashtag("giu", null, null));
+
+        assertThat(result).containsExactly(kept.getId());
+        assertThat(result).doesNotContain(deleted.getId(), fromSuspended.getId());
+    }
 }

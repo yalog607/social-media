@@ -63,4 +63,28 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             order by p.createdAt desc, p.id desc""")
     List<Post> byAuthor(@Param("authorId") UUID authorId, @Param("visibilities") Collection<Visibility> visibilities,
                         @Param("cursorTime") Instant cursorTime, @Param("cursorId") UUID cursorId, Pageable pageable);
+
+    /** Bài công khai chứa một hashtag (thẻ đã ở dạng chuẩn hóa), mới nhất trước. */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile join p.hashtags h
+            where h = :tag and p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
+              and p.visibility = com.aloute.user.Visibility.PUBLIC
+              and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
+            order by p.createdAt desc, p.id desc""")
+    List<Post> byHashtag(@Param("tag") String tag, @Param("cursorTime") Instant cursorTime,
+                        @Param("cursorId") UUID cursorId, Pageable pageable);
+
+    /**
+     * ID bài công khai khớp {@code escapedQuery} (đã escape ký tự đặc biệt của ILIKE), gần đúng nhất trước
+     * (điểm giống nhau theo trigram), rồi tới mới nhất. Chỉ trả về ID: nội dung đầy đủ được nạp theo lô ở
+     * {@code findLiveByIds} để dùng chung đường hydrate với các nơi khác (không N+1).
+     */
+    @Query(value = """
+            select p.id from posts p join users u on u.id = p.author_id
+            where p.deleted_at is null and p.visibility = 'PUBLIC' and u.status = 'ACTIVE'
+              and p.search_text ilike '%' || :escapedQuery || '%' escape '\\'
+            order by similarity(p.search_text, :rawQuery) desc, p.created_at desc
+            limit :limit""", nativeQuery = true)
+    List<UUID> searchPublicIds(@Param("escapedQuery") String escapedQuery, @Param("rawQuery") String rawQuery,
+                               @Param("limit") int limit);
 }

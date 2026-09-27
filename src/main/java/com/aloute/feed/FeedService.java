@@ -49,6 +49,14 @@ public class FeedService {
         return toPage(rows, viewerId);
     }
 
+    /** Bài công khai gắn thẻ {@code tag} (đã ở dạng chuẩn hóa), mới nhất trước. */
+    @Transactional(readOnly = true)
+    public FeedPage byHashtag(String tag, UUID viewerId, String cursor) {
+        Cursor from = Cursor.decode(cursor).orElse(Cursor.START);
+        List<Post> rows = posts.byHashtag(tag, from.createdAt(), from.id(), PageRequest.of(0, PAGE_SIZE + 1));
+        return toPage(rows, viewerId);
+    }
+
     private FeedPage toPage(List<Post> rows, UUID viewerId) {
         boolean hasMore = rows.size() > PAGE_SIZE;
         List<Post> page = hasMore ? rows.subList(0, PAGE_SIZE) : rows;

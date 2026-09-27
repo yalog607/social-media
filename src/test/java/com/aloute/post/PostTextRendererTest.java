@@ -18,8 +18,8 @@ class PostTextRendererTest {
     void turnsHashtagsIntoLinksWithNormalizedTarget() {
         String html = PostTextRenderer.toSafeHtml("Hôm nay #Học_Tập vui, #Vui!");
 
-        assertThat(html).contains("<a class=\"hashtag\" href=\"/search?q=%23hoc_tap\">#Học_Tập</a> vui");
-        assertThat(html).contains("<a class=\"hashtag\" href=\"/search?q=%23vui\">#Vui</a>!");
+        assertThat(html).contains("<a class=\"hashtag\" href=\"/tags/hoc_tap\">#Học_Tập</a> vui");
+        assertThat(html).contains("<a class=\"hashtag\" href=\"/tags/vui\">#Vui</a>!");
     }
 
     @Test
