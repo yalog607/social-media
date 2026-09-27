@@ -9,13 +9,16 @@
 
   /**
    * fetch có sẵn CSRF header. Nếu gặp 401 (access token hết hạn) thì gọi POST /auth/refresh
-   * rồi thử lại đúng một lần; refresh thất bại thì đưa về trang đăng nhập.
+   * rồi thử lại đúng một lần; refresh thất bại thì đưa về trang đăng nhập. Nếu gặp 403 (cookie CSRF
+   * vừa được cấp lại đúng lúc gọi, ví dụ do một request khác vừa refresh phiên) thì đọc lại cookie và
+   * thử lại đúng một lần trước khi trả lỗi thật.
    */
   async function api(url, options) {
     const opts = Object.assign({ credentials: 'same-origin' }, options);
     opts.headers = Object.assign({ 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, opts.headers);
     const method = (opts.method || 'GET').toUpperCase();
-    if (method !== 'GET' && method !== 'HEAD') {
+    const isWrite = method !== 'GET' && method !== 'HEAD';
+    if (isWrite) {
       opts.headers['X-XSRF-TOKEN'] = csrfToken();
     }
 
@@ -31,6 +34,12 @@
         response = await fetch(url, opts);
       } else {
         window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
+      }
+    } else if (response.status === 403 && isWrite) {
+      const retryToken = csrfToken();
+      if (retryToken && retryToken !== opts.headers['X-XSRF-TOKEN']) {
+        opts.headers['X-XSRF-TOKEN'] = retryToken;
+        response = await fetch(url, opts);
       }
     }
     return response;
