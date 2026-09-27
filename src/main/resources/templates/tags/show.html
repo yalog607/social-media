@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('#' + ${tag}, ~{::main}, 'none', ~{})}">
+<head><title th:text="'#' + ${tag}">#hashtag</title></head>
+<body>
+<main>
+    <p class="mb-3"><a class="back-link" th:href="@{/}">Về bảng tin</a></p>
+    <div class="page-title"><h1 th:text="'#' + ${tag}">#hashtag</h1></div>
+
+    <div id="feed" class="feed">
+        <th:block th:replace="~{feed/list :: list}"></th:block>
+    </div>
+
+    <section class="note note--sky empty" th:if="${#lists.isEmpty(page.posts)}">
+        <h2 class="h3">Chưa có bài công khai nào gắn thẻ này</h2>
+        <p>Đăng bài kèm <strong th:text="'#' + ${tag}">#hashtag</strong> để xuất hiện ở đây đầu tiên.</p>
+    </section>
+
+    <th:block th:if="${me != null}">
+        <div th:replace="~{fragments/post-modals :: modals}"></div>
+    </th:block>
+</main>
+</body>
+</html>

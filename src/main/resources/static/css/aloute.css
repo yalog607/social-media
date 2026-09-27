@@ -567,3 +567,38 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 
 .comment-form { display: flex; gap: .5rem; align-items: flex-end; margin-top: .9rem; }
 .comment-form textarea { flex: 1; min-height: 40px; resize: vertical; }
+
+/* ---------- 13. Tìm kiếm và hashtag ---------- */
+.topbar-search { display: none; }
+@media (min-width: 640px) {
+  .topbar-search { display: block; width: clamp(180px, 26vw, 320px); }
+  .topbar-search input { width: 100%; }
+}
+
+.search-form { display: flex; gap: .6rem; max-width: 560px; }
+.search-form input { flex: 1; }
+
+.search-tabs { display: flex; gap: .4rem; margin-bottom: 1.2rem; border-bottom: 2px solid var(--paper-2); }
+.search-tabs a {
+  padding: .55rem 1rem; font: 700 .95rem/1 var(--font-body); color: var(--ink-soft);
+  text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.search-tabs a:hover { color: var(--ink); }
+.search-tabs a.is-active { color: var(--ink); border-bottom-color: var(--ink); }
+
+.search-user {
+  display: flex; align-items: center; gap: .8rem; padding: .8rem 1rem; margin-bottom: .7rem;
+  background: var(--white); border: var(--line); border-radius: var(--r-card); box-shadow: var(--sh-sm);
+  text-decoration: none; color: inherit;
+}
+.search-user:hover { transform: translate(-2px, -2px); box-shadow: var(--sh); }
+.search-user-info { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.search-user-name { font: 800 1rem/1.3 var(--font-display); color: var(--ink); }
+.search-user-handle { font-size: .85rem; color: var(--ink-soft); }
+
+.trending-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.trending-list li { display: flex; align-items: center; gap: .5rem; }
+.trending-list a { font: 800 .95rem/1.3 var(--font-display); color: var(--ink); text-decoration: none; }
+.trending-list a:hover { text-decoration: underline; }
+.trending-count { margin-left: auto; font-size: .82rem; color: var(--ink-soft); }
+.trending-list--wide { background: var(--white); border: var(--line); border-radius: var(--r-card); box-shadow: var(--sh-sm); padding: 1rem 1.2rem; }

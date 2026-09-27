@@ -25,6 +25,7 @@
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ">aloute</a>
+            <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
             <span class="ms-auto"></span>
             <div class="dropdown">
                 <button class="user-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -93,6 +94,7 @@
     <header class="topbar">
         <div class="topbar-inner">
             <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ">aloute</a>
+            <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
             <span class="ms-auto"></span>
             <a class="btn-al btn-al--ghost btn-al--sm d-none d-sm-inline-flex" th:href="@{/login}">Đăng nhập</a>
             <a class="btn-al btn-al--pink btn-al--sm" th:href="@{/register}">Tạo tài khoản</a>

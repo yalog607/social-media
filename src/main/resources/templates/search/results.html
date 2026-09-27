@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Tìm kiếm', ~{::main}, 'none', ~{})}">
+<head><title>Tìm kiếm</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Tìm kiếm</h1></div>
+
+    <form method="get" th:action="@{/search}" class="search-form mb-3">
+        <input type="hidden" name="tab" th:value="${tab}">
+        <input type="search" name="q" th:value="${q}" class="input-al" maxlength="100"
+               placeholder="Tìm người, bài viết, #hashtag" aria-label="Từ khóa tìm kiếm">
+        <button type="submit" class="btn-al btn-al--pink">Tìm</button>
+    </form>
+
+    <nav class="search-tabs" aria-label="Loại kết quả">
+        <a th:classappend="${tab == 'posts'} ? 'is-active'" th:href="@{/search(q=${q},tab='posts')}">Bài viết</a>
+        <a th:classappend="${tab == 'users'} ? 'is-active'" th:href="@{/search(q=${q},tab='users')}">Người dùng</a>
+        <a th:classappend="${tab == 'hashtags'} ? 'is-active'" th:href="@{/search(q=${q},tab='hashtags')}">Hashtag</a>
+    </nav>
+
+    <p class="text-soft mb-3" th:if="${tooShort}">Gõ ít nhất 2 ký tự để bắt đầu tìm nhé.</p>
+
+    <section class="note note--sky empty" th:if="${#strings.isEmpty(q)}">
+        <h2 class="h3">Tìm gì đó đi</h2>
+        <p>Gõ tên người, nội dung bài viết, hoặc #hashtag.</p>
+    </section>
+
+    <th:block th:unless="${#strings.isEmpty(q) or tooShort}">
+        <div th:switch="${tab}">
+
+            <div th:case="'users'">
+                <a class="search-user" th:each="u : ${users}" th:href="@{/u/{u}(u=${u.username})}">
+                    <span th:replace="~{fragments/ui :: avatar(${u}, '')}"></span>
+                    <span class="search-user-info">
+                        <span class="search-user-name" th:text="${u.displayName}">Tên</span>
+                        <span class="search-user-handle" th:text="'@' + ${u.username}">@username</span>
+                    </span>
+                    <span th:if="${u.primaryRole.name() != 'USER'}" th:replace="~{fragments/ui :: roleChip(${u.primaryRole})}"></span>
+                </a>
+                <section class="note note--sky empty" th:if="${#lists.isEmpty(users)}">
+                    <h2 class="h3">Không thấy ai cả</h2>
+                    <p>Thử một từ khóa khác xem sao.</p>
+                </section>
+            </div>
+
+            <div th:case="'hashtags'">
+                <ul class="trending-list trending-list--wide">
+                    <li th:each="h : ${hashtags}">
+                        <a th:href="@{/tags/{t}(t=${h.tag})}" th:text="'#' + ${h.tag}">#tag</a>
+                        <span class="trending-count" th:text="${h.postCount} + ' bài'">0 bài</span>
+                    </li>
+                </ul>
+                <section class="note note--sky empty" th:if="${#lists.isEmpty(hashtags)}">
+                    <h2 class="h3">Không thấy hashtag nào</h2>
+                    <p>Thử một từ khóa khác xem sao.</p>
+                </section>
+            </div>
+
+            <div th:case="*">
+                <div id="feed" class="feed">
+                    <th:block th:each="post : ${posts}">
+                        <th:block th:replace="~{fragments/post :: card(${post})}"></th:block>
+                    </th:block>
+                </div>
+                <section class="note note--sky empty" th:if="${#lists.isEmpty(posts)}">
+                    <h2 class="h3">Không thấy bài nào</h2>
+                    <p>Thử một từ khóa khác xem sao.</p>
+                </section>
+            </div>
+        </div>
+    </th:block>
+
+    <th:block th:if="${me != null}">
+        <div th:replace="~{fragments/post-modals :: modals}"></div>
+    </th:block>
+</main>
+</body>
+</html>

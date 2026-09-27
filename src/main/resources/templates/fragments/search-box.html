@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Ô tìm kiếm dùng chung cho cả hai khung topbar (đăng nhập/khách) ở layout/base.html. -->
+<form th:fragment="searchBox" class="topbar-search" method="get" th:action="@{/search}" role="search">
+    <input type="search" name="q" class="input-al input-al--sm" placeholder="Tìm người, bài viết, #hashtag"
+           aria-label="Tìm kiếm" maxlength="100" th:value="${q}">
+</form>
+
+</body>
+</html>

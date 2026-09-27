@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Khung hashtag đang hot. Tham số: list (List<HashtagResult>). -->
+<section th:fragment="trending(list)" class="note note--mint tilt-l mb-3" aria-labelledby="trending-title" th:if="${!#lists.isEmpty(list)}">
+    <h2 id="trending-title" class="h3 mb-2">Đang hot</h2>
+    <ul class="trending-list">
+        <li th:each="item : ${list}">
+            <a th:href="@{/tags/{tag}(tag=${item.tag})}" th:text="'#' + ${item.tag}">#tag</a>
+            <span class="trending-count" th:text="${item.postCount}">0</span>
+        </li>
+    </ul>
+</section>
+
+</body>
+</html>

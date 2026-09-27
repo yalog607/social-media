@@ -51,6 +51,8 @@
 </main>
 
 <aside class="app-rail">
+    <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
+
     <section class="note note--lemon tilt-r" aria-labelledby="role-title">
         <h2 id="role-title" class="h3 mb-2">Vai trò của bạn</h2>
         <p class="mb-2"><span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span></p>
