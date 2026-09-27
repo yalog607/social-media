@@ -27,10 +27,12 @@ public class FeedController {
 
     private final FeedService feed;
     private final UserRepository users;
+    private final ProfileVisibilityRules visibility;
 
-    public FeedController(FeedService feed, UserRepository users) {
+    public FeedController(FeedService feed, UserRepository users, ProfileVisibilityRules visibility) {
         this.feed = feed;
         this.users = users;
+        this.visibility = visibility;
     }
 
     @GetMapping("/feed")
@@ -48,7 +50,7 @@ public class FeedController {
                 .filter(User::isActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         UUID viewerId = viewer == null ? null : viewer.id();
-        if (!ProfileVisibilityRules.canView(owner, viewerId)) {
+        if (!visibility.canView(owner, viewerId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
         model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, cursor));

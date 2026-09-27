@@ -53,6 +53,9 @@
             <a class="nav-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}"
                th:attr="aria-current=${active == 'profile'} ? 'page'">
                 <svg aria-hidden="true"><use href="#i-user"/></svg>Trang cá nhân</a>
+            <a class="nav-tab" th:classappend="${active == 'friends'} ? 'is-active'" th:href="@{/friends}"
+               th:attr="aria-current=${active == 'friends'} ? 'page'">
+                <svg aria-hidden="true"><use href="#i-heart"/></svg>Bạn bè</a>
             <a class="nav-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}"
                th:attr="aria-current=${active == 'settings'} ? 'page'">
                 <svg aria-hidden="true"><use href="#i-gear"/></svg>Cài đặt</a>
@@ -78,6 +81,8 @@
             <svg aria-hidden="true"><use href="#i-home"/></svg>Trang chủ</a>
         <a class="bottom-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}">
             <svg aria-hidden="true"><use href="#i-user"/></svg>Của tôi</a>
+        <a class="bottom-tab" th:classappend="${active == 'friends'} ? 'is-active'" th:href="@{/friends}">
+            <svg aria-hidden="true"><use href="#i-heart"/></svg>Bạn bè</a>
         <a class="bottom-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}">
             <svg aria-hidden="true"><use href="#i-gear"/></svg>Cài đặt</a>
         <a class="bottom-tab" th:if="${caps.contains('CREATOR')}" th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">

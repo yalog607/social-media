@@ -26,6 +26,7 @@ class PostServiceIT extends IntegrationTest {
     @Autowired PostService service;
     @Autowired PostRepository posts;
     @Autowired TransactionTemplate tx;
+    @Autowired com.aloute.social.FriendService friendService;
 
     private Post reload(UUID id) {
         return posts.findById(id).orElseThrow();
@@ -376,5 +377,21 @@ class PostServiceIT extends IntegrationTest {
 
         assertThatThrownBy(() -> service.share(createUser().getId(), source.getId(), tooLong))
                 .isInstanceOf(InvalidPostException.class);
+    }
+
+    // ---------- Quyền xem "chỉ bạn bè" ----------
+
+    @Test
+    void friendsOnlyPostIsVisibleToAFriendButNotAStrangerOrGuest() {
+        User author = createUser();
+        User friend = createUser();
+        User stranger = createUser();
+        friendService.sendRequest(author.getId(), friend.getId());
+        friendService.accept(friend.getId(), author.getId());
+        Post post = service.create(author.getId(), "chỉ bạn bè thôi", Visibility.FRIENDS, List.of(), null);
+
+        assertThat(service.getVisible(post.getId(), friend.getId())).isNotNull();
+        assertThatThrownBy(() -> service.getVisible(post.getId(), stranger.getId())).isInstanceOf(PostNotFoundException.class);
+        assertThatThrownBy(() -> service.getVisible(post.getId(), null)).isInstanceOf(PostNotFoundException.class);
     }
 }

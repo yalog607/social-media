@@ -39,6 +39,7 @@ class FeedIT extends IntegrationTest {
     @Autowired EntityManagerFactory entityManagerFactory;
     @Autowired com.aloute.reaction.ReactionService reactionService;
     @Autowired com.aloute.comment.CommentService commentService;
+    @Autowired com.aloute.social.FriendService friendService;
 
     /** Tạo bài rồi đặt created_at cách đều nhau (bài đầu tiên cũ nhất) để thứ tự không phụ thuộc đồng hồ. */
     private List<Post> createSpaced(User author, int count, Visibility visibility) {

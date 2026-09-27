@@ -42,7 +42,7 @@
             <select id="composerVisibility" name="visibility" class="input-al composer-visibility">
                 <option value="PUBLIC" th:selected="${chosen == 'PUBLIC'}">Công khai</option>
                 <option value="PRIVATE" th:selected="${chosen == 'PRIVATE'}">Chỉ mình tôi</option>
-                <option value="FRIENDS" disabled>Bạn bè (sắp có)</option>
+                <option value="FRIENDS">Bạn bè</option>
             </select>
 
             <span class="composer-count ms-auto"><span data-count>0</span>/<span th:text="${mediaLimits.maxChars}">2000</span></span>

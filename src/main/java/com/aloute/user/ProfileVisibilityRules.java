@@ -1,24 +1,37 @@
 package com.aloute.user;
 
+import com.aloute.social.FriendService;
+import org.springframework.stereotype.Component;
+
 import java.util.UUID;
 
 /**
  * Ai được xem hồ sơ (và bài viết) của một người. Dùng chung cho trang cá nhân và danh sách bài của họ
  * để hai nơi không bao giờ lệch quy tắc.
  */
-public final class ProfileVisibilityRules {
+@Component
+public class ProfileVisibilityRules {
 
-    private ProfileVisibilityRules() {
+    private final FriendService friends;
+
+    public ProfileVisibilityRules(FriendService friends) {
+        this.friends = friends;
     }
 
     /**
-     * Chủ hồ sơ luôn xem được; người khác (kể cả khách) chỉ xem khi hồ sơ công khai. "Chỉ bạn bè" tạm thời
-     * chỉ mình chủ xem cho tới khi có tính năng kết bạn (giai đoạn 3).
+     * Chủ hồ sơ luôn xem được; bài/hồ sơ công khai ai cũng xem; "Chỉ bạn bè" chỉ bạn bè đã kết bạn xem được.
      *
      * @param viewerId null nếu là khách
      */
-    public static boolean canView(User owner, UUID viewerId) {
+    public boolean canView(User owner, UUID viewerId) {
         boolean isOwner = viewerId != null && viewerId.equals(owner.getId());
-        return isOwner || owner.getProfile().getProfileVisibility() == Visibility.PUBLIC;
+        if (isOwner) {
+            return true;
+        }
+        return switch (owner.getProfile().getProfileVisibility()) {
+            case PUBLIC -> true;
+            case FRIENDS -> viewerId != null && friends.areFriends(owner.getId(), viewerId);
+            case PRIVATE -> false;
+        };
     }
 }

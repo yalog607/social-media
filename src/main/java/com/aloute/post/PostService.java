@@ -4,6 +4,7 @@ import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
 import com.aloute.common.TextNormalizer;
 import com.aloute.media.MediaService;
+import com.aloute.social.FriendService;
 import com.aloute.user.User;
 import com.aloute.user.UserRepository;
 import com.aloute.user.Visibility;
@@ -29,14 +30,16 @@ public class PostService {
     private final MediaService media;
     private final RateLimiter rateLimiter;
     private final Clock clock;
+    private final FriendService friends;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
-                       RateLimiter rateLimiter, Clock clock) {
+                       RateLimiter rateLimiter, Clock clock, FriendService friends) {
         this.posts = posts;
         this.users = users;
         this.media = media;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
+        this.friends = friends;
     }
 
     /**
@@ -148,16 +151,19 @@ public class PostService {
         return post;
     }
 
-    /**
-     * Quy tắc xem: tác giả phải còn hoạt động; bài công khai ai cũng xem; còn lại (riêng tư, và tạm thời cả "bạn bè"
-     * cho tới khi có tính năng kết bạn) chỉ tác giả xem.
-     */
-    public static boolean canView(Post post, UUID viewerId) {
+    /** Quy tắc xem: tác giả phải còn hoạt động; công khai ai cũng xem; "bạn bè" chỉ bạn bè đã kết bạn xem được. */
+    public boolean canView(Post post, UUID viewerId) {
         if (post.isDeleted() || !post.getAuthor().isActive()) {
             return false;
         }
-        return post.getVisibility() == Visibility.PUBLIC
-                || (viewerId != null && viewerId.equals(post.getAuthor().getId()));
+        if (viewerId != null && viewerId.equals(post.getAuthor().getId())) {
+            return true;
+        }
+        return switch (post.getVisibility()) {
+            case PUBLIC -> true;
+            case FRIENDS -> viewerId != null && friends.areFriends(post.getAuthor().getId(), viewerId);
+            case PRIVATE -> false;
+        };
     }
 
     // ---------- Nội bộ ----------

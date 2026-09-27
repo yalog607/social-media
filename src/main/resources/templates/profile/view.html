@@ -10,8 +10,70 @@
         <div class="p-4 pt-0">
             <div class="d-flex flex-wrap align-items-end gap-3" style="margin-top:-56px">
                 <span th:replace="~{fragments/ui :: avatar(${owner.profile}, 'avatar--xl')}"></span>
+
                 <div class="ms-auto pb-2" th:if="${isOwner}">
                     <a class="btn-al btn-al--sm" th:href="@{/settings}">Chỉnh sửa hồ sơ</a>
+                </div>
+
+                <div class="ms-auto pb-2 d-flex gap-2 flex-wrap align-items-center" th:if="${!isOwner and me != null}">
+                    <form method="post" th:if="${hasBlocked}" th:action="@{/u/{u}/unblock(u=${owner.username})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="next" th:value="${currentPath}">
+                        <button type="submit" class="btn-al btn-al--white btn-al--sm">Bỏ chặn</button>
+                    </form>
+
+                    <th:block th:unless="${blockedEitherWay}">
+                        <form method="post" th:if="${friendState.name() == 'NONE'}" th:action="@{/u/{u}/friend-request(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Kết bạn</button>
+                        </form>
+                        <form method="post" th:if="${friendState.name() == 'OUTGOING'}" th:action="@{/u/{u}/friend-cancel(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--white btn-al--sm">Hủy lời mời</button>
+                        </form>
+                        <form method="post" th:if="${friendState.name() == 'INCOMING'}" th:action="@{/u/{u}/friend-accept(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Chấp nhận</button>
+                        </form>
+                        <form method="post" th:if="${friendState.name() == 'INCOMING'}" th:action="@{/u/{u}/friend-decline(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--white btn-al--sm">Từ chối</button>
+                        </form>
+                        <form method="post" th:if="${friendState.name() == 'FRIENDS'}" th:action="@{/u/{u}/unfriend(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--white btn-al--sm">★ Bạn bè</button>
+                        </form>
+
+                        <form method="post" th:if="${isFollowing}" th:action="@{/u/{u}/unfollow(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--white btn-al--sm">Đang theo dõi</button>
+                        </form>
+                        <form method="post" th:unless="${isFollowing}" th:action="@{/u/{u}/follow(u=${owner.username})}">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <input type="hidden" name="next" th:value="${currentPath}">
+                            <button type="submit" class="btn-al btn-al--white btn-al--sm">Theo dõi</button>
+                        </form>
+
+                        <div class="dropdown">
+                            <button type="button" class="post-menu-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                                    aria-label="Tùy chọn khác">&#8943;</button>
+                            <ul class="dropdown-menu dropdown-menu-end menu-al">
+                                <li>
+                                    <form method="post" th:action="@{/u/{u}/block(u=${owner.username})}">
+                                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                        <input type="hidden" name="next" th:value="@{/}">
+                                        <button type="submit" class="dropdown-item">Chặn người này</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </th:block>
                 </div>
             </div>
             <h1 class="h2 mt-3 mb-1" th:text="${owner.profile.displayName}">Tên hiển thị</h1>
@@ -22,13 +84,18 @@
                 </th:block>
                 <span class="text-soft">Tham gia từ <span th:text="${joined}">01/2026</span></span>
             </p>
+            <p class="d-flex flex-wrap gap-3 profile-stats mb-3">
+                <span><strong th:text="${friendCount}">0</strong> bạn bè</span>
+                <span><strong th:text="${followerCount}">0</strong> người theo dõi</span>
+                <span><strong th:text="${followingCount}">0</strong> đang theo dõi</span>
+            </p>
             <p class="mb-0" th:if="${canView and owner.profile.bio != null}" th:text="${owner.profile.bio}">Giới thiệu</p>
         </div>
     </article>
 
     <section class="note note--lavender empty" th:unless="${canView}">
-        <h2 class="h3">Trang này ở chế độ riêng tư</h2>
-        <p>Chủ tài khoản chỉ chia sẻ trang cá nhân với một số người.</p>
+        <h2 class="h3" th:text="${hasBlocked} ? 'Bạn đã chặn người này' : 'Trang này ở chế độ riêng tư'">Trang riêng tư</h2>
+        <p th:text="${hasBlocked} ? 'Bỏ chặn để xem lại trang cá nhân của họ.' : 'Chủ tài khoản chỉ chia sẻ trang cá nhân với một số người.'">...</p>
     </section>
 
     <th:block th:if="${canView}">

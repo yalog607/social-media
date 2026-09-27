@@ -44,24 +44,37 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
         long getTotal();
     }
 
-    /** Bảng tin: bài công khai của mọi người + mọi bài của chính người xem (kể cả riêng tư). */
+    /** Cùng bạn bè (kết bạn đã được chấp nhận) hay không — dùng lại ở cả bảng tin lẫn trang cá nhân. */
+    String IS_FRIEND = """
+            exists (select 1 from com.aloute.social.Friendship f
+                    where f.status = com.aloute.social.FriendshipStatus.ACCEPTED
+                      and ((f.userA.id = a.id and f.userB.id = :viewerId) or (f.userB.id = a.id and f.userA.id = :viewerId)))""";
+
+    /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem. */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
             where p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
-              and (p.visibility = com.aloute.user.Visibility.PUBLIC or a.id = :viewerId)
+              and (p.visibility = com.aloute.user.Visibility.PUBLIC or a.id = :viewerId
+                   or (p.visibility = com.aloute.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
+              ))
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
             order by p.createdAt desc, p.id desc""")
     List<Post> feed(@Param("viewerId") UUID viewerId, @Param("cursorTime") Instant cursorTime,
                     @Param("cursorId") UUID cursorId, Pageable pageable);
 
-    /** Bài của một tác giả, giới hạn theo các mức quyền xem mà người xem được thấy. */
+    /**
+     * Bài của một tác giả, giới hạn theo các mức quyền xem mà người xem được thấy ({@code visibilities} là
+     * PUBLIC-only cho người lạ hoặc mọi mức cho chính chủ); bài "chỉ bạn bè" hiện thêm nếu người xem là bạn bè.
+     */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
             where p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE and a.id = :authorId
-              and p.visibility in :visibilities
+              and (p.visibility in :visibilities or (p.visibility = com.aloute.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
+              ))
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
             order by p.createdAt desc, p.id desc""")
     List<Post> byAuthor(@Param("authorId") UUID authorId, @Param("visibilities") Collection<Visibility> visibilities,
+                        @Param("viewerId") UUID viewerId,
                         @Param("cursorTime") Instant cursorTime, @Param("cursorId") UUID cursorId, Pageable pageable);
 
     /** Bài công khai chứa một hashtag (thẻ đã ở dạng chuẩn hóa), mới nhất trước. */

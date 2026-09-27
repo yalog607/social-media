@@ -19,8 +19,9 @@ public class FeedService {
 
     public static final int PAGE_SIZE = 10;
 
+    /** Người lạ chỉ thấy bài PUBLIC qua tập này; bài FRIENDS được cộng thêm riêng ở PostRepository nếu là bạn bè. */
     private static final Set<Visibility> PUBLIC_ONLY = EnumSet.of(Visibility.PUBLIC);
-    /** Chủ hồ sơ thấy mọi bài của mình. "Bạn bè" tạm coi như riêng tư nên cũng chỉ chủ bài thấy. */
+    /** Chủ hồ sơ thấy mọi bài của mình, mọi mức quyền xem. */
     private static final Set<Visibility> ALL = EnumSet.allOf(Visibility.class);
 
     private final PostRepository posts;
@@ -45,7 +46,7 @@ public class FeedService {
     public FeedPage byAuthor(UUID authorId, UUID viewerId, String cursor) {
         Cursor from = Cursor.decode(cursor).orElse(Cursor.START);
         Set<Visibility> visible = authorId.equals(viewerId) ? ALL : PUBLIC_ONLY;
-        List<Post> rows = posts.byAuthor(authorId, visible, from.createdAt(), from.id(), PageRequest.of(0, PAGE_SIZE + 1));
+        List<Post> rows = posts.byAuthor(authorId, visible, viewerId, from.createdAt(), from.id(), PageRequest.of(0, PAGE_SIZE + 1));
         return toPage(rows, viewerId);
     }
 
