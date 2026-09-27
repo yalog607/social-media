@@ -66,6 +66,8 @@ public class ProfileController {
         model.addAttribute("followerCount", follows.followerCount(owner.getId()));
         model.addAttribute("followingCount", follows.followingCount(owner.getId()));
         model.addAttribute("blockedEitherWay", blockedEitherWay);
+        // Ảnh đại diện luôn hiện dù hồ sơ riêng tư; phóng to thì vẫn phải theo đúng ý chủ hồ sơ (trừ chính họ)
+        model.addAttribute("canZoomPhotos", isOwner || (!blockedEitherWay && owner.getProfile().isPhotoZoomEnabled()));
         if (!isOwner && viewerId != null) {
             model.addAttribute("friendState", friends.stateBetween(viewerId, owner.getId()));
             model.addAttribute("isFollowing", follows.isFollowing(viewerId, owner.getId()));

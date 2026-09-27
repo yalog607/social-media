@@ -634,3 +634,23 @@ body[data-role="admin"] .logo { background: var(--lavender); }
   position: absolute; top: 0; left: 0; max-width: none; pointer-events: none;
   user-select: none; -webkit-user-drag: none;
 }
+
+/* ---------- 16. Phóng to ảnh (lightbox) ---------- */
+.lightbox-trigger { cursor: zoom-in; display: inline-flex; border-radius: 50%; }
+.lightbox-trigger:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.profile-cover.is-zoomable { cursor: zoom-in; }
+.profile-cover.is-zoomable:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+
+body.lightbox-open { overflow: hidden; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 1080;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(22, 18, 31, .88); padding: 2rem;
+}
+.lightbox-img { max-width: min(92vw, 1100px); max-height: 88vh; border-radius: 12px; box-shadow: var(--sh); }
+.lightbox-close {
+  position: absolute; top: 1rem; right: 1rem;
+  width: 44px; height: 44px; font: 800 1.4rem/1 var(--font-body); color: var(--ink);
+  background: var(--white); border: var(--line); border-radius: 50%; cursor: pointer;
+}
+.lightbox-close:hover { background: var(--pink); }

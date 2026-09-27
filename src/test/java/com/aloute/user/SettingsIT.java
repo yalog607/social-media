@@ -163,6 +163,19 @@ class SettingsIT extends IntegrationTest {
     }
 
     @Test
+    void photoZoomIsOnByDefaultAndCanBeTurnedOff() throws Exception {
+        User user = createUser();
+        assertThat(user.getProfile().isPhotoZoomEnabled()).as("mặc định cho phép phóng to").isTrue();
+
+        mvc.perform(post("/settings/privacy").with(csrf()).with(asUser(user))
+                        .param("profileVisibility", "PUBLIC").param("defaultPostVisibility", "PUBLIC")
+                        .param("messagePermission", "EVERYONE").param("photoZoomEnabled", "false"))
+                .andExpect(redirectedUrl("/settings"));
+
+        assertThat(users.findById(user.getId()).orElseThrow().getProfile().isPhotoZoomEnabled()).isFalse();
+    }
+
+    @Test
     void invalidPrivacyValueIsRejectedWithoutServerError() throws Exception {
         int status = mvc.perform(post("/settings/privacy").with(csrf()).with(asUser(createUser()))
                         .param("profileVisibility", "EVERYONE-PLEASE"))

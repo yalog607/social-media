@@ -105,7 +105,7 @@ public class SettingsController {
             return render(model, user, null, null, form);
         }
         profiles.updatePrivacy(principal.id(), form.getProfileVisibility(),
-                form.getDefaultPostVisibility(), form.getMessagePermission());
+                form.getDefaultPostVisibility(), form.getMessagePermission(), form.isPhotoZoomEnabled());
         redirect.addFlashAttribute("notice", "Đã lưu quyền riêng tư!");
         return "redirect:/settings";
     }
@@ -139,6 +139,7 @@ public class SettingsController {
         form.setProfileVisibility(p.getProfileVisibility());
         form.setDefaultPostVisibility(p.getDefaultPostVisibility());
         form.setMessagePermission(p.getMessagePermission());
+        form.setPhotoZoomEnabled(p.isPhotoZoomEnabled());
         return form;
     }
 }

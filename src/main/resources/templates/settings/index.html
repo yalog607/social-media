@@ -62,6 +62,11 @@
                     <option th:each="m : ${messagePermissions}" th:value="${m}" th:text="${m.label()}">Mọi người</option>
                 </select>
             </div>
+            <div class="field form-check">
+                <input class="form-check-input" type="checkbox" id="photoZoomEnabled" th:field="*{photoZoomEnabled}">
+                <label class="form-check-label" for="photoZoomEnabled">Cho phép người khác phóng to ảnh đại diện và ảnh bìa của bạn</label>
+                <p class="field-hint">Bạn luôn xem to được ảnh của chính mình dù tắt mục này.</p>
+            </div>
             <button type="submit" class="btn-al btn-al--mint">Lưu quyền riêng tư</button>
         </form>
     </section>

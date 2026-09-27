@@ -58,11 +58,12 @@ public class ProfileService {
 
     @Transactional
     public void updatePrivacy(UUID userId, Visibility profileVisibility, Visibility defaultPostVisibility,
-                              MessagePermission messagePermission) {
+                              MessagePermission messagePermission, boolean photoZoomEnabled) {
         Profile profile = users.findById(userId).orElseThrow().getProfile();
         profile.setProfileVisibility(profileVisibility);
         profile.setDefaultPostVisibility(defaultPostVisibility);
         profile.setMessagePermission(messagePermission);
+        profile.setPhotoZoomEnabled(photoZoomEnabled);
     }
 
     public boolean hasPassword(User user) {

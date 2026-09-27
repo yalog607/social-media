@@ -59,6 +59,10 @@ public class Profile {
     @Column(name = "message_permission", nullable = false)
     private MessagePermission messagePermission = MessagePermission.EVERYONE;
 
+    /** Cho người khác (không phải chủ hồ sơ) bấm phóng to ảnh đại diện/ảnh bìa hay không. Chủ hồ sơ luôn xem to được. */
+    @Column(name = "photo_zoom_enabled", nullable = false)
+    private boolean photoZoomEnabled = true;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

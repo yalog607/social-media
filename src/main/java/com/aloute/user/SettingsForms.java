@@ -49,5 +49,6 @@ public final class SettingsForms {
         private Visibility defaultPostVisibility = Visibility.PUBLIC;
         @NotNull
         private MessagePermission messagePermission = MessagePermission.EVERYONE;
+        private boolean photoZoomEnabled = true;
     }
 }
