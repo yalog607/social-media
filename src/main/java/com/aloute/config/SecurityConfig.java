@@ -8,7 +8,6 @@ import com.aloute.security.JwtAuthFilter;
 import com.aloute.security.JwtService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -31,9 +30,9 @@ public class SecurityConfig {
     private static final String[] PUBLIC_STATIC = {
             "/css/**", "/js/**", "/img/**", "/fonts/**", "/webjars/**", "/favicon.ico", "/uploads/**", "/error"
     };
+    // Khách chỉ vào được các trang này (đăng ký/đăng nhập) và trang giới thiệu; mọi nội dung khác bắt buộc đăng nhập.
     private static final String[] PUBLIC_PAGES = {
-            "/", "/login", "/register", "/forgot-password", "/reset-password", "/u/**", "/dev/**",
-            "/search", "/tags/**"
+            "/", "/login", "/register", "/forgot-password", "/reset-password", "/dev/**"
     };
 
     @Bean
@@ -79,10 +78,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_STATIC).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
                         .requestMatchers("/auth/**", "/logout").permitAll()
-                        // Link chia sẻ một bài: khách xem được nếu bài công khai (PostService quyết định, còn lại là 404)
-                        .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
-                        // Danh sách bình luận đi kèm trang chi tiết bài nên cùng quy tắc xem: khách thấy nếu bài công khai
-                        .requestMatchers(HttpMethod.GET, "/api/posts/*/comments").permitAll()
+                        // Khách không được xem gì khác kể cả bài công khai, tìm kiếm, hashtag: bắt buộc đăng nhập.
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/manage/**").hasRole("MANAGER")
                         .requestMatchers("/creator/**").hasRole("CREATOR")

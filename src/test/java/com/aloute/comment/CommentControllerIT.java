@@ -10,11 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Phần 2b: thêm/xóa/xem bình luận qua HTTP. */
@@ -37,13 +35,12 @@ class CommentControllerIT extends IntegrationTest {
     }
 
     @Test
-    void guestCanReadCommentsOfAPublicPost() throws Exception {
+    void guestCannotReadComments() throws Exception {
         Post post = publicPost(createUser());
         comments.create(createUser().getId(), post.getId(), null, "xin chào");
 
         mvc.perform(get("/api/posts/" + post.getId() + "/comments"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("xin chào")));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -15,38 +15,44 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Phần 2c: trang tìm kiếm và trang hashtag qua HTTP. Khách dùng được vì chỉ thấy nội dung công khai. */
+/** Phần 2c: trang tìm kiếm và trang hashtag qua HTTP. Bắt buộc đăng nhập, khách không dùng được. */
 class SearchControllerIT extends IntegrationTest {
 
     @Autowired PostService posts;
 
     @Test
-    void guestCanSearchPosts() throws Exception {
+    void findsPublicPosts() throws Exception {
         User author = createUser();
         posts.create(author.getId(), "Cà phê sữa đá buổi sáng", Visibility.PUBLIC, List.of(), null);
 
-        mvc.perform(get("/search").param("q", "ca phe sua da").param("tab", "posts"))
+        mvc.perform(get("/search").param("q", "ca phe sua da").param("tab", "posts").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Cà phê sữa đá")));
     }
 
     @Test
+    void guestSearchingIsSentToLogin() throws Exception {
+        mvc.perform(get("/search").param("q", "gi bat ky"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     void searchWithoutQueryShowsHintNotResults() throws Exception {
-        mvc.perform(get("/search"))
+        mvc.perform(get("/search").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Tìm gì đó đi")));
     }
 
     @Test
     void tooShortQueryShowsHint() throws Exception {
-        mvc.perform(get("/search").param("q", "a"))
+        mvc.perform(get("/search").param("q", "a").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("ít nhất 2 ký tự")));
     }
 
     @Test
     void typingAHashtagRedirectsToTheTagPage() throws Exception {
-        mvc.perform(get("/search").param("q", "#Học_Tập"))
+        mvc.perform(get("/search").param("q", "#Học_Tập").with(asUser(createUser())))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tags/hoc_tap"));
     }
@@ -55,7 +61,7 @@ class SearchControllerIT extends IntegrationTest {
     void usersTabListsMatchingActiveUsers() throws Exception {
         User user = createUser();
 
-        mvc.perform(get("/search").param("q", user.getUsername()).param("tab", "users"))
+        mvc.perform(get("/search").param("q", user.getUsername()).param("tab", "users").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(user.getUsername())));
     }
@@ -64,24 +70,29 @@ class SearchControllerIT extends IntegrationTest {
     void hashtagsTabListsMatchingTags() throws Exception {
         posts.create(createUser().getId(), "#reactjs học react", Visibility.PUBLIC, List.of(), null);
 
-        mvc.perform(get("/search").param("q", "react").param("tab", "hashtags"))
+        mvc.perform(get("/search").param("q", "react").param("tab", "hashtags").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("#reactjs")));
     }
 
     @Test
-    void guestCanBrowseAHashtagPage() throws Exception {
+    void browsesAHashtagPage() throws Exception {
         posts.create(createUser().getId(), "sáng nay có #cafe ngon", Visibility.PUBLIC, List.of(), null);
 
-        mvc.perform(get("/tags/cafe"))
+        mvc.perform(get("/tags/cafe").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("sáng nay có")))
                 .andExpect(content().string(containsString("href=\"/tags/cafe\"")));
     }
 
     @Test
+    void guestBrowsingAHashtagPageIsSentToLogin() throws Exception {
+        mvc.perform(get("/tags/cafe")).andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     void hashtagPageOfAnUnusedTagShowsEmptyState() throws Exception {
-        mvc.perform(get("/tags/khongtontai12345"))
+        mvc.perform(get("/tags/khongtontai12345").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Chưa có bài công khai")));
     }
@@ -90,7 +101,7 @@ class SearchControllerIT extends IntegrationTest {
     void hashtagFragmentEndpointHasNoPageChrome() throws Exception {
         posts.create(createUser().getId(), "#feed test", Visibility.PUBLIC, List.of(), null);
 
-        mvc.perform(get("/tags/feed/posts"))
+        mvc.perform(get("/tags/feed/posts").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<nav"))));
     }

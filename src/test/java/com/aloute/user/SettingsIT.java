@@ -173,11 +173,17 @@ class SettingsIT extends IntegrationTest {
     // ---------- Trang cá nhân ----------
 
     @Test
-    void publicProfileIsVisibleToAnonymousVisitors() throws Exception {
+    void publicProfileIsVisibleToLoggedInVisitors() throws Exception {
         User user = createUser();
-        mvc.perform(get("/u/" + user.getUsername()))
+        mvc.perform(get("/u/" + user.getUsername()).with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(user.getProfile().getDisplayName())));
+    }
+
+    @Test
+    void guestVisitingAProfileIsSentToLogin() throws Exception {
+        User user = createUser();
+        mvc.perform(get("/u/" + user.getUsername())).andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -187,7 +193,7 @@ class SettingsIT extends IntegrationTest {
         User withoutCover = createUser();
         assertThat(withoutCover.getProfile().getCoverUrl()).isNull();
 
-        String html = mvc.perform(get("/u/" + withoutCover.getUsername()))
+        String html = mvc.perform(get("/u/" + withoutCover.getUsername()).with(asUser(createUser())))
                 .andReturn().getResponse().getContentAsString();
 
         assertThat(html).contains("class=\"profile-cover\"");
@@ -211,12 +217,12 @@ class SettingsIT extends IntegrationTest {
 
     @Test
     void unknownOrSuspendedUsersGive404() throws Exception {
-        mvc.perform(get("/u/khong_ton_tai_12345")).andExpect(status().isNotFound());
+        mvc.perform(get("/u/khong_ton_tai_12345").with(asUser(createUser()))).andExpect(status().isNotFound());
 
         User suspended = createUser();
         suspended.setStatus(UserStatus.SUSPENDED);
         users.saveAndFlush(suspended);
-        mvc.perform(get("/u/" + suspended.getUsername())).andExpect(status().isNotFound());
+        mvc.perform(get("/u/" + suspended.getUsername()).with(asUser(createUser()))).andExpect(status().isNotFound());
     }
 
     @Test
@@ -232,7 +238,8 @@ class SettingsIT extends IntegrationTest {
         user.getProfile().setBio("<img src=x onerror=alert(2)>");
         users.saveAndFlush(user);
 
-        String html = mvc.perform(get("/u/" + user.getUsername())).andReturn().getResponse().getContentAsString();
+        String html = mvc.perform(get("/u/" + user.getUsername()).with(asUser(createUser())))
+                .andReturn().getResponse().getContentAsString();
 
         assertThat(html).doesNotContain("<script>alert(1)</script>").doesNotContain("<img src=x onerror");
         assertThat(html).contains("&lt;script&gt;alert(1)&lt;/script&gt;");

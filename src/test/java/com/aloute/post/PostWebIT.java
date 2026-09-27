@@ -84,13 +84,20 @@ class PostWebIT extends IntegrationTest {
     }
 
     @Test
-    void detailShowsPublicPostToGuests() throws Exception {
+    void detailShowsPublicPostToLoggedInUsers() throws Exception {
         Post post = publicPost(createUser(), "Bài công khai #vui");
 
-        mvc.perform(get("/posts/" + post.getId()))
+        mvc.perform(get("/posts/" + post.getId()).with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Bài công khai")))
                 .andExpect(content().string(containsString("class=\"hashtag\"")));
+    }
+
+    @Test
+    void guestViewingAPostIsSentToLogin() throws Exception {
+        Post post = publicPost(createUser(), "Bài công khai");
+
+        mvc.perform(get("/posts/" + post.getId())).andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -99,7 +106,6 @@ class PostWebIT extends IntegrationTest {
         Post secret = postService.create(owner.getId(), "riêng tư", Visibility.PRIVATE, null, null);
 
         mvc.perform(get("/posts/" + secret.getId()).with(asUser(createUser()))).andExpect(status().isNotFound());
-        mvc.perform(get("/posts/" + secret.getId())).andExpect(status().isNotFound());
         mvc.perform(get("/posts/" + secret.getId()).with(asUser(owner))).andExpect(status().isOk());
     }
 
@@ -107,7 +113,7 @@ class PostWebIT extends IntegrationTest {
     void scriptTagsInPostsAreEscaped() throws Exception {
         Post post = publicPost(createUser(), "<script>alert(1)</script>");
 
-        mvc.perform(get("/posts/" + post.getId()))
+        mvc.perform(get("/posts/" + post.getId()).with(asUser(createUser())))
                 .andExpect(content().string(not(containsString("<script>alert(1)"))))
                 .andExpect(content().string(containsString("&lt;script&gt;alert(1)&lt;/script&gt;")));
     }
@@ -132,7 +138,7 @@ class PostWebIT extends IntegrationTest {
 
         mvc.perform(post("/posts/" + post.getId() + "/delete").with(csrf()).with(asUser(owner)).param("next", "/posts/" + post.getId()))
                 .andExpect(redirectedUrl("/"));
-        mvc.perform(get("/posts/" + post.getId())).andExpect(status().isNotFound());
+        mvc.perform(get("/posts/" + post.getId()).with(asUser(owner))).andExpect(status().isNotFound());
     }
 
     @Test
@@ -148,16 +154,25 @@ class PostWebIT extends IntegrationTest {
     }
 
     @Test
-    void profilePostsFragmentShowsOnlyPublicPostsToGuests() throws Exception {
+    void profilePostsFragmentShowsOnlyPublicPostsToAStranger() throws Exception {
         User owner = createUser();
         publicPost(owner, "thấy được");
-        postService.create(owner.getId(), "ẩn với khách", Visibility.PRIVATE, null, null);
+        postService.create(owner.getId(), "ẩn với người lạ", Visibility.PRIVATE, null, null);
 
-        mvc.perform(get("/u/" + owner.getUsername() + "/posts"))
+        mvc.perform(get("/u/" + owner.getUsername() + "/posts").with(asUser(createUser())))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("thấy được")))
-                .andExpect(content().string(not(containsString("ẩn với khách"))))
+                .andExpect(content().string(not(containsString("ẩn với người lạ"))))
                 .andExpect(content().string(not(containsString("Xem thêm"))));
+    }
+
+    @Test
+    void guestBrowsingAProfileIsSentToLogin() throws Exception {
+        User owner = createUser();
+        publicPost(owner, "thấy được");
+
+        mvc.perform(get("/u/" + owner.getUsername())).andExpect(status().is3xxRedirection());
+        mvc.perform(get("/u/" + owner.getUsername() + "/posts")).andExpect(status().is3xxRedirection());
     }
 
     @Test
