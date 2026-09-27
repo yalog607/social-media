@@ -2,8 +2,9 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Thẻ một bài. Tham số: PostView. Toàn bộ dữ liệu đã có sẵn trong PostView nên không gây truy vấn ngầm. -->
-<article th:fragment="card(post)" class="post" th:id="'post-' + ${post.id}">
+<!-- Phần nhìn thấy của MỘT bài (không kèm thanh hành động): tác giả, thời gian, chữ, ảnh/video.
+     Dùng chung cho thẻ bài thật (card) và bài GỐC được nhúng bên trong một lượt chia sẻ (sharedCard). -->
+<th:block th:fragment="content(post)">
     <header class="post-head">
         <a class="post-avatar" th:href="@{/u/{u}(u=${post.author.username})}" th:attr="aria-label='Trang cá nhân của ' + ${post.author.displayName}">
             <span th:replace="~{fragments/ui :: avatar(${post.author}, '')}"></span>
@@ -51,6 +52,53 @@
 
     <video class="post-video" th:if="${post.hasVideo()}" th:src="${post.media[0].url}"
            controls preload="metadata" playsinline></video>
+</th:block>
+
+<!-- Khung nhỏ nhúng bài GỐC bên trong một lượt chia sẻ: cùng nội dung nhưng không có thanh hành động riêng. -->
+<article th:fragment="sharedCard(post)" class="post post--embedded">
+    <th:block th:replace="~{::content(${post})}"></th:block>
+</article>
+
+<!-- Thẻ một bài. Tham số: PostView. Toàn bộ dữ liệu đã có sẵn trong PostView nên không gây truy vấn ngầm. -->
+<article th:fragment="card(post)" class="post" th:id="'post-' + ${post.id}">
+    <th:block th:replace="~{::content(${post})}"></th:block>
+
+    <th:block th:if="${post.isShare()}">
+        <th:block th:if="${post.sharedPost != null}" th:replace="~{::sharedCard(${post.sharedPost})}"></th:block>
+        <p class="note note--sky post-shared-gone" th:unless="${post.sharedPost != null}">Bài gốc không còn hiển thị.</p>
+    </th:block>
+
+    <div class="post-stats" th:if="${post.reactions.total() > 0 or post.commentCount > 0 or post.shareCount > 0}">
+        <span th:if="${post.reactions.total() > 0}" th:text="${post.reactions.total()} + ' cảm xúc'">0 cảm xúc</span>
+        <span th:if="${post.commentCount > 0}" th:text="${post.commentCount} + ' bình luận'">0 bình luận</span>
+        <span th:if="${post.shareCount > 0}" th:text="${post.shareCount} + ' lượt chia sẻ'">0 lượt chia sẻ</span>
+    </div>
+
+    <div class="post-actions" th:attr="data-post-id=${post.id}">
+        <div class="reactions" role="group" aria-label="Cảm xúc cho bài viết này">
+            <button type="button" class="reaction-chip" th:each="type : ${T(com.aloute.reaction.ReactionType).values()}"
+                    th:attr="data-type=${type.name()}, aria-pressed=${post.reactions.mine() == type}"
+                    th:classappend="${post.reactions.mine() == type} ? 'is-active' : ''"
+                    th:title="${type.label()}" th:disabled="${me == null}">
+                <span th:text="${type.emoji()}">❤️</span>
+                <span class="reaction-count" th:text="${post.reactions.count(type) > 0} ? ${post.reactions.count(type)} : ''"></span>
+            </button>
+        </div>
+        <button type="button" class="post-action-btn" data-toggle-comments
+                th:attr="data-comments-url=@{/api/posts/{id}/comments(id=${post.id})}">Bình luận</button>
+        <button type="button" class="post-action-btn" th:if="${me != null}"
+                data-bs-toggle="modal" data-bs-target="#sharePostModal" th:attr="data-post-id=${post.id}">Chia sẻ</button>
+    </div>
+
+    <section class="post-comments" hidden data-comments>
+        <div class="comment-list" data-comment-list></div>
+        <form class="comment-form" method="post" novalidate data-no-lock th:if="${me != null}"
+              th:attr="data-post-id=${post.id}, data-comments-url=@{/api/posts/{id}/comments(id=${post.id})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <textarea name="content" class="input-al" rows="1" maxlength="1000" placeholder="Viết bình luận..." aria-label="Viết bình luận"></textarea>
+            <button type="submit" class="btn-al btn-al--sm btn-al--pink">Gửi</button>
+        </form>
+    </section>
 </article>
 
 </body>

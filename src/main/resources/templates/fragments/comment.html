@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Nội dung dùng chung cho bình luận gốc và trả lời: avatar, bong bóng chữ, thời gian, nút trả lời/xóa. -->
+<th:block th:fragment="entry(c)">
+    <span th:replace="~{fragments/ui :: avatar(${c.author}, 'avatar--sm')}"></span>
+    <div class="comment-content">
+        <div class="comment-bubble" th:classappend="${c.deleted} ? 'is-deleted' : ''">
+            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a>
+            <div th:unless="${c.deleted}" class="comment-text" th:utext="${c.contentHtml}"></div>
+            <div th:if="${c.deleted}" class="comment-text text-soft">Bình luận đã bị xóa.</div>
+        </div>
+        <div class="comment-meta" th:unless="${c.deleted}">
+            <span th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span>
+            <button type="button" class="comment-link-btn" data-reply-to th:if="${me != null}"
+                    th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}">Trả lời</button>
+            <button type="button" class="comment-link-btn" data-delete-comment th:if="${c.mine}"
+                    th:attr="data-comment-id=${c.id}">Xóa</button>
+        </div>
+    </div>
+</th:block>
+
+<!-- Cả danh sách bình luận của một bài (gốc + trả lời, tối đa một cấp). Model: postId, comments (List&lt;CommentView&gt;). -->
+<th:block th:fragment="list">
+    <p class="comment-empty text-soft" th:if="${#lists.isEmpty(comments)}">Chưa có bình luận nào, hãy là người đầu tiên nhé.</p>
+    <div class="comment" th:each="c : ${comments}" th:id="'comment-' + ${c.id}">
+        <th:block th:replace="~{::entry(${c})}"></th:block>
+        <div class="comment-replies" th:if="${c.hasReplies()}">
+            <div class="comment comment--reply" th:each="r : ${c.replies}" th:id="'comment-' + ${r.id}">
+                <th:block th:replace="~{::entry(${r})}"></th:block>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+</body>
+</html>

@@ -24,18 +24,143 @@
     }
   });
 
-  // ---------- Hộp thoại sửa/xóa dùng chung: điền dữ liệu của bài vừa bấm ----------
+  // ---------- Hộp thoại sửa/xóa/chia sẻ dùng chung: điền dữ liệu của bài vừa bấm ----------
   document.addEventListener('show.bs.modal', function (event) {
     const modal = event.target;
     const trigger = event.relatedTarget;
     if (!trigger || !trigger.dataset.postId) return;
     const form = modal.querySelector('form');
+    // Đọc lại cookie CSRF ngay lúc mở hộp thoại: trang có thể đã mở từ lâu, và giá trị in sẵn khi tải trang
+    // đôi khi bị các request tài nguyên tĩnh chạy song song ghi đè ngay sau đó (xem CsrfCookieFilter).
+    const csrfInput = form.querySelector('input[name="_csrf"]');
+    if (csrfInput) {
+      csrfInput.value = window.Aloute.csrfToken();
+    }
     if (modal.id === 'editPostModal') {
       form.action = '/posts/' + trigger.dataset.postId + '/edit';
       form.elements.content.value = trigger.dataset.content || '';
       form.elements.visibility.value = trigger.dataset.visibility || 'PUBLIC';
     } else if (modal.id === 'deletePostModal') {
       form.action = '/posts/' + trigger.dataset.postId + '/delete';
+    } else if (modal.id === 'sharePostModal') {
+      form.action = '/posts/' + trigger.dataset.postId + '/share';
+      form.elements.caption.value = '';
+      const copyButton = modal.querySelector('[data-copy-link]');
+      copyButton.dataset.url = window.location.origin + '/posts/' + trigger.dataset.postId;
+    }
+  });
+
+  // ---------- Sao chép liên kết bài viết (hộp thoại chia sẻ) ----------
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-copy-link]');
+    if (!button || !button.dataset.url) return;
+    navigator.clipboard.writeText(button.dataset.url)
+      .then(function () { window.Aloute.toast('Đã sao chép liên kết!', 'ok'); })
+      .catch(function () { window.Aloute.toast('Chưa sao chép được, thử lại nhé.', 'error'); });
+  });
+
+  // ---------- Cảm xúc: bấm để thả/đổi/bỏ, cập nhật số đếm ngay không cần tải lại trang ----------
+  document.addEventListener('click', async function (event) {
+    const chip = event.target.closest('.reaction-chip');
+    if (!chip || chip.disabled) return;
+    const actions = chip.closest('[data-post-id]');
+    const postId = actions.dataset.postId;
+    const type = chip.dataset.type;
+    try {
+      const response = await window.Aloute.api('/api/posts/' + postId + '/reaction?type=' + type, { method: 'POST' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      actions.querySelectorAll('.reaction-chip').forEach(function (item) {
+        const count = data.counts[item.dataset.type] || 0;
+        item.querySelector('.reaction-count').textContent = count > 0 ? String(count) : '';
+        const active = data.mine === item.dataset.type;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+    } catch (error) {
+      window.Aloute.toast('Chưa thả được cảm xúc, thử lại nhé.', 'error');
+    }
+  });
+
+  // ---------- Bình luận: mở/đóng, tải danh sách, thêm, trả lời, xóa ----------
+  function commentSectionOf(el) {
+    return el.closest('.post').querySelector('.post-comments');
+  }
+
+  async function loadComments(section, url) {
+    const list = section.querySelector('[data-comment-list]');
+    try {
+      const response = await window.Aloute.api(url, { headers: { Accept: 'text/html' } });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      list.innerHTML = await response.text();
+    } catch (error) {
+      window.Aloute.toast('Chưa tải được bình luận, thử lại nhé.', 'error');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const toggle = event.target.closest('[data-toggle-comments]');
+    if (!toggle) return;
+    const section = commentSectionOf(toggle);
+    const wasHidden = section.hidden;
+    section.hidden = !wasHidden;
+    if (wasHidden && !section.dataset.loaded) {
+      section.dataset.loaded = 'true';
+      loadComments(section, toggle.dataset.commentsUrl);
+    }
+  });
+
+  document.addEventListener('click', function (event) {
+    const replyButton = event.target.closest('[data-reply-to]');
+    if (!replyButton) return;
+    const section = commentSectionOf(replyButton);
+    const form = section.querySelector('.comment-form');
+    if (!form) return;
+    form.dataset.parentId = replyButton.dataset.parentId;
+    const textarea = form.elements.content;
+    textarea.placeholder = 'Trả lời ' + replyButton.dataset.name + '…';
+    textarea.focus();
+  });
+
+  document.addEventListener('click', async function (event) {
+    const deleteButton = event.target.closest('[data-delete-comment]');
+    if (!deleteButton) return;
+    const section = commentSectionOf(deleteButton);
+    try {
+      const response = await window.Aloute.api('/api/comments/' + deleteButton.dataset.commentId + '/delete', { method: 'POST' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const toggle = section.closest('.post').querySelector('[data-toggle-comments]');
+      await loadComments(section, toggle.dataset.commentsUrl);
+    } catch (error) {
+      window.Aloute.toast('Chưa xóa được bình luận, thử lại nhé.', 'error');
+    }
+  });
+
+  document.addEventListener('submit', async function (event) {
+    const form = event.target.closest('.comment-form');
+    if (!form) return;
+    event.preventDefault();
+    const textarea = form.elements.content;
+    const content = textarea.value.trim();
+    if (!content) return;
+    const section = form.closest('.post-comments');
+    const body = new URLSearchParams({ content: content });
+    if (form.dataset.parentId) {
+      body.set('parentId', form.dataset.parentId);
+    }
+    try {
+      const response = await window.Aloute.api(form.dataset.commentsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      textarea.value = '';
+      textarea.placeholder = 'Viết bình luận...';
+      delete form.dataset.parentId;
+      await loadComments(section, form.dataset.commentsUrl);
+    } catch (error) {
+      window.Aloute.toast('Chưa gửi được bình luận, thử lại nhé.', 'error');
     }
   });
 

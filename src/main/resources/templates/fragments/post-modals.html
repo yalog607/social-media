@@ -48,6 +48,26 @@
             </form>
         </div>
     </div>
+
+    <div class="modal fade" id="sharePostModal" tabindex="-1" aria-labelledby="sharePostTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" novalidate>
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="${currentPath}">
+                <h2 class="h4 mb-3" id="sharePostTitle">Chia sẻ bài viết</h2>
+                <div class="field">
+                    <label for="sharePostCaption" class="visually-hidden">Lời nhắn khi chia sẻ</label>
+                    <textarea id="sharePostCaption" name="caption" class="input-al" rows="3" maxlength="500"
+                              placeholder="Muốn nói gì thêm không? (không bắt buộc)"></textarea>
+                </div>
+                <button type="button" class="btn-al btn-al--white btn-al--sm mb-3" data-copy-link>Sao chép liên kết</button>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Chia sẻ ngay</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </th:block>
 
 </body>
