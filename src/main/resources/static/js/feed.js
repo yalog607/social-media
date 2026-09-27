@@ -204,17 +204,27 @@
       videoInput.files = videoTransfer.files;
     }
 
-    function refresh() {
+    // Chỉ dựng lại khi danh sách ảnh/video thật sự đổi (không phải mỗi lần gõ chữ), nếu không ảnh sẽ nháy liên tục:
+    // mỗi lần gọi revoke URL cũ và tạo <img> mới, trong khi ảnh cũ vừa được trình duyệt giải phóng.
+    function refreshPreviews() {
       objectUrls.forEach(URL.revokeObjectURL);
       objectUrls = [];
       previews.textContent = '';
-      images.forEach(function (file, index) { previews.appendChild(preview(file, false, function () { images.splice(index, 1); refresh(); })); });
-      if (video) previews.appendChild(preview(video, true, function () { video = null; refresh(); }));
+      images.forEach(function (file, index) { previews.appendChild(preview(file, false, function () { images.splice(index, 1); refreshPreviews(); refreshCounters(); })); });
+      if (video) previews.appendChild(preview(video, true, function () { video = null; refreshPreviews(); refreshCounters(); }));
       syncInputs();
+    }
+
+    function refreshCounters() {
       const length = Array.from(text.value).length; // đếm ký tự (emoji tính là 1), khớp giới hạn của máy chủ
       counter.textContent = String(length);
       counterBox.classList.toggle('is-near', length > maxChars * 0.9);
       submit.disabled = length === 0 && images.length === 0 && !video;
+    }
+
+    function refresh() {
+      refreshPreviews();
+      refreshCounters();
     }
 
     function preview(file, isVideo, onRemove) {
@@ -267,7 +277,7 @@
       refresh();
     });
 
-    text.addEventListener('input', refresh);
+    text.addEventListener('input', refreshCounters);
     refresh();
   }
 })();
