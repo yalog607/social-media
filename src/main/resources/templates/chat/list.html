@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Tin nhắn', ~{::main}, 'messages', ~{})}">
+<head><title>Tin nhắn</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Tin nhắn</h1></div>
+
+    <section class="note note--sky mb-4" th:if="${!#lists.isEmpty(friends)}">
+        <h2 class="h4 mb-2">Nhắn tin mới</h2>
+        <form class="chat-new-form" method="post" th:action="@{/messages/start}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <select name="username" required>
+                <option value="" disabled selected>Chọn một người bạn...</option>
+                <option th:each="f : ${friends}" th:value="${f.username}" th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</option>
+            </select>
+            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Bắt đầu trò chuyện</button>
+        </form>
+
+        <details>
+            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer">Tạo nhóm</summary>
+            <form method="post" th:action="@{/messages/group}" class="mt-3">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <div class="field">
+                    <label for="groupTitle">Tên nhóm</label>
+                    <input id="groupTitle" type="text" name="title" maxlength="100" required>
+                </div>
+                <div class="chat-group-picker">
+                    <label th:each="f : ${friends}">
+                        <input type="checkbox" name="memberIds" th:value="${f.id}">
+                        <span th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn-al btn-al--pink btn-al--sm">Tạo nhóm</button>
+            </form>
+        </details>
+    </section>
+
+    <section>
+        <a class="search-user chat-row" th:each="c : ${conversations}" th:classappend="${c.unread > 0} ? 'is-unread'"
+           th:href="@{/messages/{id}(id=${c.id})}">
+            <span class="avatar">
+                <img th:if="${c.avatarUrl != null}" th:src="${c.avatarUrl}" alt="" loading="lazy">
+                <th:block th:unless="${c.avatarUrl != null}"
+                          th:text="${#strings.toUpperCase(#strings.substring(c.title, 0, 1))}">A</th:block>
+            </span>
+            <span class="search-user-info">
+                <span class="search-user-name" th:text="${c.title}">Tên</span>
+                <span class="chat-preview" th:text="${#strings.isEmpty(c.lastMessagePreview)} ? 'Chưa có tin nhắn nào' : ${c.lastMessagePreview}">Xem trước</span>
+            </span>
+            <span class="chat-time" th:text="${@timeAgo.format(c.lastMessageAt)}">vừa xong</span>
+            <span class="nav-badge" th:if="${c.unread > 0}" th:text="${c.unread}">1</span>
+        </a>
+
+        <section class="note note--sky empty" th:if="${#lists.isEmpty(conversations)}">
+            <h2 class="h3">Chưa có cuộc trò chuyện nào</h2>
+            <p>Bắt đầu nhắn tin với một người bạn ở trên nhé.</p>
+        </section>
+    </section>
+</main>
+</body>
+</html>

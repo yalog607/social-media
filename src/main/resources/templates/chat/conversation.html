@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${header.title}, ~{::main}, 'messages', ~{})}">
+<head><title>Tin nhắn</title></head>
+<body>
+<main th:attr="data-conversation-id=${conversation.id}, data-user-id=${me.id}, data-group=${header.group}" id="chat-main">
+    <div class="chat-header">
+        <span class="avatar">
+            <img th:if="${header.avatarUrl != null}" th:src="${header.avatarUrl}" alt="" loading="lazy">
+            <th:block th:unless="${header.avatarUrl != null}"
+                      th:text="${#strings.toUpperCase(#strings.substring(header.title, 0, 1))}">A</th:block>
+        </span>
+        <div>
+            <h1 th:text="${header.title}">Tên</h1>
+            <p class="text-soft mb-0" th:if="${header.group}" th:text="${#lists.size(members)} + ' thành viên'">3 thành viên</p>
+        </div>
+        <div class="chat-header-actions">
+            <a class="btn-al btn-al--white btn-al--sm" th:href="@{/messages}">← Tất cả tin nhắn</a>
+            <form method="post" th:if="${header.group}" th:action="@{/messages/{id}/leave(id=${conversation.id})}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <button type="submit" class="btn-al btn-al--white btn-al--sm">Rời nhóm</button>
+            </form>
+        </div>
+    </div>
+
+    <section class="mb-4" th:if="${header.group}">
+        <details>
+            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer">Thành viên &amp; thêm người</summary>
+            <div class="mt-3">
+                <p class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="role-chip" th:each="m : ${members}" th:text="${m.displayName}">Tên</span>
+                </p>
+                <form method="post" th:if="${!#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
+                      class="chat-new-form">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <select name="memberId" required>
+                        <option value="" disabled selected>Thêm bạn bè vào nhóm...</option>
+                        <option th:each="f : ${friendsNotInGroup}" th:value="${f.id}" th:text="${f.displayName}">Tên</option>
+                    </select>
+                    <button type="submit" class="btn-al btn-al--pink btn-al--sm">Thêm</button>
+                </form>
+            </div>
+        </details>
+    </section>
+
+    <div class="chat-window" id="chat-window">
+        <div class="msg" th:each="m : ${history}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
+            <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
+            <div class="msg-body">
+                <span class="msg-sender" th:if="${header.group}" th:text="${m.sender.displayName}">Tên</span>
+                <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                       th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                        <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
+                    </a>
+                    <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                           class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
+                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="msg-attachment-file"
+                       th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener">file.pdf</a>
+                    <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                </span>
+                <span class="msg-time" th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
+            </div>
+        </div>
+        <p class="text-soft text-center" th:if="${#lists.isEmpty(history)}">Chưa có tin nhắn nào, bắt đầu chào hỏi nhé!</p>
+    </div>
+
+    <div class="chat-attach-preview" id="chat-attach-preview" hidden>
+        <span id="chat-attach-name"></span>
+        <button type="button" id="chat-attach-clear" aria-label="Bỏ file đính kèm">×</button>
+    </div>
+    <form class="chat-composer" id="chat-composer">
+        <input type="file" id="chat-attach-input" hidden>
+        <button type="button" class="chat-attach-btn" id="chat-attach-btn" aria-label="Đính kèm file">
+            <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
+        </button>
+        <textarea name="content" rows="1" maxlength="2000" placeholder="Nhắn gì đó..." aria-label="Nội dung tin nhắn"></textarea>
+        <button type="submit" class="chat-send-btn" aria-label="Gửi">
+            <svg aria-hidden="true"><use href="#i-send"/></svg>
+        </button>
+    </form>
+    <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
+    <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
+    <script th:src="@{/js/chat.js}"></script>
+</main>
+</body>
+</html>

@@ -6,7 +6,8 @@ import java.time.Duration;
 public enum RateAction {
     POST(10, Duration.ofMinutes(10), "Bạn đăng bài hơi nhanh rồi, đợi ít phút rồi thử lại nhé."),
     COMMENT(30, Duration.ofMinutes(5), "Bạn bình luận hơi nhanh, đợi một chút rồi thử lại nhé."),
-    REACTION(120, Duration.ofMinutes(1), "Bạn thả cảm xúc hơi nhanh, đợi một chút rồi thử lại nhé.");
+    REACTION(120, Duration.ofMinutes(1), "Bạn thả cảm xúc hơi nhanh, đợi một chút rồi thử lại nhé."),
+    CHAT_MESSAGE(60, Duration.ofMinutes(1), "Bạn nhắn tin hơi nhanh, đợi một chút rồi thử lại nhé.");
 
     private final int max;
     private final Duration window;

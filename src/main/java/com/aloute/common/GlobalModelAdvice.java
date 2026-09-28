@@ -1,5 +1,6 @@
 package com.aloute.common;
 
+import com.aloute.chat.ChatService;
 import com.aloute.config.AlouteProperties;
 import com.aloute.notification.NotificationService;
 import com.aloute.security.ActiveAccountInterceptor;
@@ -25,13 +26,15 @@ public class GlobalModelAdvice {
     private final AlouteProperties props;
     private final RoleHierarchy roleHierarchy;
     private final NotificationService notifications;
+    private final ChatService chats;
 
     public GlobalModelAdvice(UserRepository users, AlouteProperties props, RoleHierarchy roleHierarchy,
-                             NotificationService notifications) {
+                             NotificationService notifications, ChatService chats) {
         this.users = users;
         this.props = props;
         this.roleHierarchy = roleHierarchy;
         this.notifications = notifications;
+        this.chats = chats;
     }
 
     /**
@@ -82,6 +85,16 @@ public class GlobalModelAdvice {
             return 0;
         }
         return notifications.unreadCount(principal.id());
+    }
+
+    /** Số tin nhắn chưa đọc trên mọi hội thoại, hiện ở mục "Tin nhắn" trên thanh điều hướng. 0 nếu chưa đăng nhập. */
+    @ModelAttribute("unreadMessages")
+    public long unreadMessages() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AlouteUserPrincipal principal)) {
+            return 0;
+        }
+        return chats.totalUnread(principal.id());
     }
 
     @ModelAttribute("firebaseWeb")
