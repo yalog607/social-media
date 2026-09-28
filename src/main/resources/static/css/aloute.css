@@ -428,7 +428,15 @@ body[data-role="admin"] .logo { background: var(--lavender); }
     radial-gradient(circle at 72% 38%, var(--pink) 0 26%, transparent 27%),
     linear-gradient(160deg, var(--sky), var(--lavender));
 }
-.bubble { display: block; padding: .55rem .9rem; margin-bottom: .6rem; border: var(--line); font-weight: 600; max-width: 88%; overflow-wrap: anywhere; }
+/* Hai điều cố ý ở đây, cả hai đều đã kiểm chứng trực tiếp bằng cách tách riêng từng phần tử ra ngoài để so sánh:
+   1) overflow-wrap: break-word (không phải anywhere) — "anywhere" còn ảnh hưởng tới cách trình duyệt tính độ
+      rộng tự nhiên của bubble, khiến bubble bị co hẹp và tin ngắn cũng xuống dòng dù thừa chỗ.
+   2) max-width: 100% (không phải 88% hay bất kỳ % nào khác 100) — bubble là hộp "tự co theo chữ" (width auto)
+      nằm trong .msg-body cũng "tự co theo chữ"; max-width dạng % (vd 88%) trên một hộp tự-co như vậy khiến
+      trình duyệt tính sai độ rộng vừa khít chữ, làm MỌI tin nhắn (kể cả 2 ký tự) bị bẻ xuống 2 dòng dù thừa
+      chỗ. 100% không bị lỗi này (trình duyệt xử lý as "bằng hộp cha", không cần giải "vừa khít rồi lấy %").
+      Độ rộng tối đa thật sự của bubble vẫn được giới hạn qua max-width của .msg-body bên dưới. */
+.bubble { display: block; padding: .55rem .9rem; margin-bottom: .6rem; border: var(--line); font-weight: 600; max-width: 100%; overflow-wrap: break-word; }
 .bubble--in { background: var(--white); border-radius: 16px 16px 16px 4px; }
 .bubble--out { background: var(--mint); border-radius: 16px 16px 4px 16px; margin-left: auto; }
 
@@ -721,8 +729,6 @@ body.lightbox-open { overflow: hidden; }
 .msg { display: flex; gap: .6rem; align-items: flex-end; margin-bottom: .5rem; max-width: 100%; }
 .msg.is-mine { flex-direction: row-reverse; }
 .msg .avatar { flex: none; width: 32px; height: 32px; font-size: .85rem; }
-/* min-width:0 là bắt buộc: item flex mặc định không co dưới kích thước nội dung (min-width:auto),
-   nên một chuỗi dài không dấu cách sẽ đẩy khung rộng ra thay vì bị bẻ dòng theo overflow-wrap bên dưới. */
 .msg-body { display: flex; flex-direction: column; max-width: min(420px, 78%); min-width: 0; }
 .msg.is-mine .msg-body { align-items: flex-end; }
 .msg-sender { font-size: .78rem; font-weight: 700; color: var(--ink-soft); margin-bottom: .15rem; }
