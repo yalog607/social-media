@@ -1,6 +1,7 @@
 package com.aloute.storage;
 
 import com.aloute.config.AlouteProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,8 +13,13 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Lưu file vào thư mục trên đĩa máy chủ, phục vụ qua /uploads/**. Production gắn Docker volume vào thư mục này. */
+/**
+ * Lưu file vào thư mục trên đĩa máy chủ, phục vụ qua /uploads/**. Production gắn Docker volume vào thư mục này.
+ * Mặc định ({@code aloute.storage.type} trống hoặc {@code local}); {@link CloudinaryStorageService} thay thế
+ * khi đặt {@code aloute.storage.type=cloudinary}.
+ */
 @Service
+@ConditionalOnProperty(prefix = "aloute.storage", name = "type", havingValue = "local", matchIfMissing = true)
 public class LocalStorageService implements StorageService {
 
     private static final String URL_PREFIX = "/uploads/";

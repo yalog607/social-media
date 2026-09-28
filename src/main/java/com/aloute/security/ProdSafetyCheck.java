@@ -42,8 +42,12 @@ public class ProdSafetyCheck {
         if (props.firebase().webConfigured() && !props.firebase().enabled()) {
             log.warn("Đã có FIREBASE_WEB_* nhưng thiếu FIREBASE_CREDENTIALS: nút đăng nhập Google/Facebook vẫn bị tắt.");
         }
-        log.info("Ảnh người dùng lưu tại {} (production: phải là Docker volume để không mất khi tạo lại container).",
-                Path.of(props.storage().localDir()).toAbsolutePath().normalize());
+        if (props.storage().useCloudinary()) {
+            log.info("Ảnh/video người dùng lưu trên Cloudinary (cloud: {}).", props.storage().cloudinary().cloudName());
+        } else {
+            log.info("Ảnh người dùng lưu tại {} (production: phải là Docker volume để không mất khi tạo lại container).",
+                    Path.of(props.storage().localDir()).toAbsolutePath().normalize());
+        }
     }
 
     /** Danh sách vấn đề (rỗng nghĩa là ổn). Tách riêng để test được mà không phải khởi động cả ứng dụng. */
@@ -87,9 +91,15 @@ public class ProdSafetyCheck {
                     + " hoặc để trống để tắt đăng nhập Google/Facebook)");
         }
 
-        String uploadProblem = uploadDirProblem(props.storage().localDir());
-        if (uploadProblem != null) {
-            problems.add(uploadProblem);
+        if (props.storage().useCloudinary()) {
+            if (props.storage().cloudinary() == null || !props.storage().cloudinary().configured()) {
+                problems.add("ALOUTE_STORAGE_TYPE=cloudinary nhưng thiếu CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET");
+            }
+        } else {
+            String uploadProblem = uploadDirProblem(props.storage().localDir());
+            if (uploadProblem != null) {
+                problems.add(uploadProblem);
+            }
         }
         return problems;
     }

@@ -34,7 +34,7 @@ class ProdSafetyCheckTest {
                 new AlouteProperties.Cookie(cookieSecure),
                 new AlouteProperties.Seed(seedPassword, "admin@aloute.example", demo),
                 new AlouteProperties.Mail("no-reply@aloute.example"),
-                new AlouteProperties.Storage(uploadDir),
+                new AlouteProperties.Storage("local", uploadDir, null),
                 new AlouteProperties.Firebase(firebaseCredentials, null),
                 new AlouteProperties.Security(5, 15));
     }

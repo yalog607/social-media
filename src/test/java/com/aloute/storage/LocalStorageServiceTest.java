@@ -21,7 +21,7 @@ class LocalStorageServiceTest {
     @BeforeEach
     void setUp() {
         storage = new LocalStorageService(new AlouteProperties(null, null, null, null, null,
-                new AlouteProperties.Storage(root.toString()), null, null));
+                new AlouteProperties.Storage("local", root.toString(), null), null, null));
     }
 
     private Path fileOf(String url) {

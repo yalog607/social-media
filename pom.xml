@@ -23,6 +23,7 @@
         <firebase-admin.version>9.10.0</firebase-admin.version>
         <bootstrap.version>5.3.8</bootstrap.version>
         <metadata-extractor.version>2.21.0</metadata-extractor.version>
+        <cloudinary.version>1.39.0</cloudinary.version>
     </properties>
 
     <dependencies>
@@ -99,6 +100,13 @@
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>
             <version>${firebase-admin.version}</version>
+        </dependency>
+
+        <!-- Lưu ảnh/video (tuỳ chọn, aloute.storage.type=cloudinary) -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>${cloudinary.version}</version>
         </dependency>
 
         <!-- Front-end assets, không phụ thuộc CDN -->

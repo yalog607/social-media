@@ -57,7 +57,13 @@ aloute:
   mail:
     from: ${ALOUTE_MAIL_FROM:no-reply@aloute.local}
   storage:
+    # local (mặc định, không cần tài khoản gì) hoặc cloudinary (cần đủ 3 biến CLOUDINARY_* bên dưới)
+    type: ${ALOUTE_STORAGE_TYPE:local}
     local-dir: ${ALOUTE_UPLOAD_DIR:uploads}
+    cloudinary:
+      cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+      api-key: ${CLOUDINARY_API_KEY:}
+      api-secret: ${CLOUDINARY_API_SECRET:}
   firebase:
     # Đường dẫn file service account (ngoài git), chỉ để xác thực đăng nhập Social. Bỏ trống = tắt Firebase.
     credentials: ${FIREBASE_CREDENTIALS:}

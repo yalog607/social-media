@@ -31,7 +31,7 @@ class MediaServiceTest {
     @BeforeEach
     void setUp() {
         var props = new AlouteProperties(null, null, null, null, null,
-                new AlouteProperties.Storage(root.toString()), null, null);
+                new AlouteProperties.Storage("local", root.toString(), null), null, null);
         media = new MediaService(new LocalStorageService(props));
     }
 

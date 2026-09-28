@@ -30,8 +30,26 @@ public record AlouteProperties(
     public record Mail(String from) {
     }
 
-    /** Ảnh người dùng lưu trên đĩa của máy chủ tại {@code localDir} (production: gắn Docker volume vào đó). */
-    public record Storage(String localDir) {
+    /**
+     * {@code type}: {@code local} (mặc định, lưu trên đĩa tại {@code localDir}, production gắn Docker volume vào đó)
+     * hoặc {@code cloudinary} (lưu trên Cloudinary, xem {@code cloudinary.*}).
+     */
+    public record Storage(String type, String localDir, Cloudinary cloudinary) {
+
+        public boolean useCloudinary() {
+            return "cloudinary".equalsIgnoreCase(type);
+        }
+
+        public record Cloudinary(String cloudName, String apiKey, String apiSecret) {
+
+            public boolean configured() {
+                return notBlank(cloudName) && notBlank(apiKey) && notBlank(apiSecret);
+            }
+
+            private static boolean notBlank(String s) {
+                return s != null && !s.isBlank();
+            }
+        }
     }
 
     /** Firebase chỉ dùng cho đăng nhập Social (Authentication); không dùng Storage. */
