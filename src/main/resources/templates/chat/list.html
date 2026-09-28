@@ -48,8 +48,10 @@
                 <span class="search-user-name" th:text="${c.title}">Tên</span>
                 <span class="chat-preview" th:text="${#strings.isEmpty(c.lastMessagePreview)} ? 'Chưa có tin nhắn nào' : ${c.lastMessagePreview}">Xem trước</span>
             </span>
-            <span class="chat-time" th:text="${@timeAgo.format(c.lastMessageAt)}">vừa xong</span>
-            <span class="nav-badge" th:if="${c.unread > 0}" th:text="${c.unread}">1</span>
+            <span class="chat-row-meta">
+                <span class="chat-time" th:text="${@timeAgo.format(c.lastMessageAt)}">vừa xong</span>
+                <span class="nav-badge" th:if="${c.unread > 0}" th:text="${c.unread}">1</span>
+            </span>
         </a>
 
         <section class="note note--sky empty" th:if="${#lists.isEmpty(conversations)}">

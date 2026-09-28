@@ -5,6 +5,7 @@ import com.aloute.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,5 +65,31 @@ class ProfilePhotoZoomIT extends IntegrationTest {
         mvc.perform(get("/u/" + owner.getUsername()).with(asUser(stranger)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("data-lightbox"))));
+    }
+
+    /**
+     * Từng có lỗi: {@code th:if}/{@code th:unless} trên hai thẻ khác nhau cùng gắn {@code th:replace} tới
+     * fragment avatar khiến CẢ HAI đều render, hiện 2 ảnh đại diện chồng nhau. Đếm số lần fragment avatar
+     * xuất hiện để không tái diễn dù nguyên nhân gốc là gì.
+     */
+    @Test
+    void profilePageRendersTheAvatarFragmentExactlyOnce() throws Exception {
+        User owner = withPhotos(true);
+
+        String body = mvc.perform(get("/u/" + owner.getUsername()).with(asUser(owner)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(countOccurrences(body, "class=\"avatar avatar--xl\"")).isEqualTo(1);
+    }
+
+    private static int countOccurrences(String text, String needle) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.indexOf(needle, index)) != -1) {
+            count++;
+            index += needle.length();
+        }
+        return count;
     }
 }
