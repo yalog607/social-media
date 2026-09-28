@@ -21,6 +21,10 @@ import java.util.regex.Pattern;
  * Lưu file trên Cloudinary thay vì đĩa máy chủ. Bật bằng {@code aloute.storage.type=cloudinary} (biến môi trường
  * {@code ALOUTE_STORAGE_TYPE}) kèm {@code CLOUDINARY_CLOUD_NAME}/{@code CLOUDINARY_API_KEY}/{@code CLOUDINARY_API_SECRET}.
  * Mặc định vẫn dùng {@link LocalStorageService} nên không cần tài khoản Cloudinary khi phát triển/kiểm thử.
+ *
+ * <p>Nếu Cloudinary từ chối yêu cầu (hết hạn mức, sai quyền API key...) hoặc không gọi được (mạng lỗi), tự động
+ * lưu tạm xuống đĩa máy chủ ({@link #localFallback}) thay vì báo lỗi cho người dùng — file vẫn hiển thị được ngay,
+ * chỉ là chưa nằm trên Cloudinary. Không có cơ chế tự đồng bộ lại lên Cloudinary sau đó.</p>
  */
 @Service
 @ConditionalOnProperty(prefix = "aloute.storage", name = "type", havingValue = "cloudinary")
@@ -37,6 +41,7 @@ public class CloudinaryStorageService implements StorageService {
 
     private final Cloudinary cloudinary;
     private final String cloudName;
+    private final LocalStorageService localFallback;
 
     public CloudinaryStorageService(AlouteProperties props) {
         AlouteProperties.Storage.Cloudinary cfg = props.storage().cloudinary();
@@ -50,6 +55,9 @@ public class CloudinaryStorageService implements StorageService {
                 "api_key", cfg.apiKey(),
                 "api_secret", cfg.apiSecret(),
                 "secure", true));
+        // Không phải bean Spring (LocalStorageService bị @ConditionalOnProperty loại khi type=cloudinary),
+        // tự dựng một bản riêng chỉ để làm chỗ lưu dự phòng.
+        this.localFallback = new LocalStorageService(props);
     }
 
     @Override
@@ -60,15 +68,17 @@ public class CloudinaryStorageService implements StorageService {
         } catch (IOException e) {
             throw new UncheckedIOException("Không đọc được file", e);
         }
-        ImageSniffer.sniff(data); // chỉ để kiểm tra định dạng thật, ném InvalidUploadException nếu không phải ảnh
-        return upload(data, folder, ownerId + "-" + UUID.randomUUID(), "image");
+        ImageSniffer.Detected type = ImageSniffer.sniff(data); // ném InvalidUploadException nếu không phải ảnh thật
+        return upload(data, folder, ownerId + "-" + UUID.randomUUID(), "image", type.extension(),
+                () -> localFallback.storeImage(file, folder, ownerId));
     }
 
     @Override
     public String storeBytes(byte[] data, String folder, String extension) {
         validateFolder(folder);
         validateExtension(extension);
-        return upload(data, folder, UUID.randomUUID().toString(), "auto");
+        return upload(data, folder, UUID.randomUUID().toString(), "auto", extension,
+                () -> localFallback.storeBytes(data, folder, extension));
     }
 
     @Override
@@ -80,17 +90,20 @@ public class CloudinaryStorageService implements StorageService {
     @Override
     public void delete(String url) {
         Matcher matcher = matchOwnCloud(url);
-        if (matcher == null) {
-            throw new IllegalArgumentException("URL không thuộc khu vực lưu trữ");
+        if (matcher != null) {
+            try {
+                cloudinary.uploader().destroy(matcher.group(3), ObjectUtils.asMap("resource_type", matcher.group(2)));
+            } catch (IOException | RuntimeException e) {
+                log.warn("Không xóa được file Cloudinary {}: {}", url, e.getMessage());
+            }
+            return;
         }
-        try {
-            cloudinary.uploader().destroy(matcher.group(3), ObjectUtils.asMap("resource_type", matcher.group(2)));
-        } catch (IOException e) {
-            log.warn("Không xóa được file Cloudinary {}: {}", url, e.getMessage());
-        }
+        localFallback.delete(url); // URL không phải của Cloudinary: hẳn là file đã lưu dự phòng trên đĩa lúc trước
     }
 
-    private String upload(byte[] data, String folder, String publicId, String resourceType) {
+    /** Thử tải lên Cloudinary; hỏng vì bất kỳ lý do gì (hết hạn mức, sai quyền, mất mạng...) thì lưu tạm xuống đĩa. */
+    private String upload(byte[] data, String folder, String publicId, String resourceType, String extension,
+                          java.util.function.Supplier<String> fallback) {
         try {
             Map<?, ?> result = cloudinary.uploader().upload(data, ObjectUtils.asMap(
                     "folder", folder,
@@ -98,8 +111,10 @@ public class CloudinaryStorageService implements StorageService {
                     "resource_type", resourceType,
                     "overwrite", true));
             return String.valueOf(result.get("secure_url"));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Không lưu được file lên Cloudinary", e);
+        } catch (IOException | RuntimeException e) {
+            log.warn("Không tải file lên Cloudinary được ({}: {}), lưu tạm trên đĩa máy chủ thay thế.",
+                    e.getClass().getSimpleName(), e.getMessage());
+            return fallback.get();
         }
     }
 

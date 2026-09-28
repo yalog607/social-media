@@ -91,15 +91,15 @@ public class ProdSafetyCheck {
                     + " hoặc để trống để tắt đăng nhập Google/Facebook)");
         }
 
-        if (props.storage().useCloudinary()) {
-            if (props.storage().cloudinary() == null || !props.storage().cloudinary().configured()) {
-                problems.add("ALOUTE_STORAGE_TYPE=cloudinary nhưng thiếu CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET");
-            }
-        } else {
-            String uploadProblem = uploadDirProblem(props.storage().localDir());
-            if (uploadProblem != null) {
-                problems.add(uploadProblem);
-            }
+        if (props.storage().useCloudinary()
+                && (props.storage().cloudinary() == null || !props.storage().cloudinary().configured())) {
+            problems.add("ALOUTE_STORAGE_TYPE=cloudinary nhưng thiếu CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET");
+        }
+        // Ngay cả khi dùng Cloudinary, CloudinaryStorageService vẫn lưu tạm xuống đây khi Cloudinary từ chối
+        // yêu cầu (hết hạn mức, sai quyền...) nên thư mục này luôn phải ghi được, không chỉ khi type=local.
+        String uploadProblem = uploadDirProblem(props.storage().localDir());
+        if (uploadProblem != null) {
+            problems.add(uploadProblem);
         }
         return problems;
     }

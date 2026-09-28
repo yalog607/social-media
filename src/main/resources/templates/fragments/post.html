@@ -45,7 +45,8 @@
 
     <div class="media-grid" th:if="${post.hasMedia() and !post.hasVideo()}"
          th:classappend="'media-grid--' + ${#lists.size(post.media)}">
-        <a th:each="item : ${post.media}" th:href="${item.url}" target="_blank" rel="noopener">
+        <a class="lightbox-trigger" th:each="item : ${post.media}" role="button" tabindex="0"
+           th:attr="data-lightbox=${item.url}, aria-label='Xem ảnh cỡ lớn'">
             <img th:src="${item.url}" th:alt="'Ảnh trong bài viết của ' + ${post.author.displayName}" loading="lazy">
         </a>
     </div>

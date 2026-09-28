@@ -163,4 +163,22 @@ class ProdSafetyCheckTest {
         var p = props(STRONG_SECRET, false, HTTPS, "", false, uploads, "");
         assertThat(ProdSafetyCheck.problems(p, "pw")).hasSize(1);
     }
+
+    @Test
+    void cloudinaryNeedsFullCredentialsAndAStillWritableFallbackDirectory() {
+        var missingCredentials = new AlouteProperties(HTTPS,
+                new AlouteProperties.Jwt(STRONG_SECRET, 15, 7), new AlouteProperties.Cookie(true),
+                new AlouteProperties.Seed("", "admin@aloute.example", false), new AlouteProperties.Mail("no-reply@aloute.example"),
+                new AlouteProperties.Storage("cloudinary", uploads, null),
+                new AlouteProperties.Firebase("", null), new AlouteProperties.Security(5, 15));
+        assertThat(ProdSafetyCheck.problems(missingCredentials, "pw")).anyMatch(s -> s.contains("CLOUDINARY"));
+
+        var valid = new AlouteProperties(HTTPS,
+                new AlouteProperties.Jwt(STRONG_SECRET, 15, 7), new AlouteProperties.Cookie(true),
+                new AlouteProperties.Seed("", "admin@aloute.example", false), new AlouteProperties.Mail("no-reply@aloute.example"),
+                new AlouteProperties.Storage("cloudinary", uploads, new AlouteProperties.Storage.Cloudinary("c", "k", "s")),
+                new AlouteProperties.Firebase("", null), new AlouteProperties.Security(5, 15));
+        // Dù đã dùng Cloudinary, thư mục lưu tạm vẫn phải ghi được (CloudinaryStorageService lưu tạm xuống đây khi bị từ chối)
+        assertThat(ProdSafetyCheck.problems(valid, "pw")).isEmpty();
+    }
 }
