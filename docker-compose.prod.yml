@@ -55,6 +55,11 @@ services:
       FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
       FIREBASE_WEB_AUTH_DOMAIN: ${FIREBASE_WEB_AUTH_DOMAIN:-}
       FIREBASE_WEB_PROJECT_ID: ${FIREBASE_WEB_PROJECT_ID:-}
+      # Mặc định "local" (ảnh lưu trên volume "uploads" bên dưới). Đặt "cloudinary" + 3 biến CLOUDINARY_* để chuyển.
+      ALOUTE_STORAGE_TYPE: ${ALOUTE_STORAGE_TYPE:-local}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
     volumes:
       # Thư mục chứa file service account Firebase (chỉ đọc). Tạo bằng: mkdir -p secrets && chmod 700 secrets
       - ./secrets:/run/secrets:ro
