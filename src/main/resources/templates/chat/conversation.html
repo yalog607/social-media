@@ -33,7 +33,7 @@
                 <form method="post" th:if="${!#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
                       class="chat-new-form">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                    <select name="memberId" required>
+                    <select class="input-al" name="memberId" required>
                         <option value="" disabled selected>Thêm bạn bè vào nhóm...</option>
                         <option th:each="f : ${friendsNotInGroup}" th:value="${f.id}" th:text="${f.displayName}">Tên</option>
                     </select>

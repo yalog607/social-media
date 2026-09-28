@@ -10,7 +10,7 @@
         <h2 class="h4 mb-2">Nhắn tin mới</h2>
         <form class="chat-new-form" method="post" th:action="@{/messages/start}">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <select name="username" required>
+            <select class="input-al" name="username" required>
                 <option value="" disabled selected>Chọn một người bạn...</option>
                 <option th:each="f : ${friends}" th:value="${f.username}" th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</option>
             </select>
@@ -23,7 +23,7 @@
                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                 <div class="field">
                     <label for="groupTitle">Tên nhóm</label>
-                    <input id="groupTitle" type="text" name="title" maxlength="100" required>
+                    <input class="input-al" id="groupTitle" type="text" name="title" maxlength="100" required>
                 </div>
                 <div class="chat-group-picker">
                     <label th:each="f : ${friends}">

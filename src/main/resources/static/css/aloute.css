@@ -715,7 +715,12 @@ body.lightbox-open { overflow: hidden; }
 .msg-attachment-file svg { width: 20px; height: 20px; flex: none; }
 
 .chat-composer { display: flex; align-items: flex-end; gap: .5rem; }
-.chat-composer textarea { flex: 1; resize: none; max-height: 120px; }
+.chat-composer textarea {
+  flex: 1; resize: none; max-height: 120px; min-height: 44px;
+  padding: .6rem 1rem; font: 500 1rem var(--font-body); color: var(--ink);
+  background: var(--white); border: var(--line); border-radius: var(--r-pill);
+}
+.chat-composer textarea:focus { outline: none; box-shadow: 3px 3px 0 var(--role); }
 .chat-attach-btn, .chat-send-btn {
   flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
   border: var(--line); border-radius: 50%; background: var(--white); cursor: pointer;
