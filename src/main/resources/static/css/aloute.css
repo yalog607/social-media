@@ -654,3 +654,18 @@ body.lightbox-open { overflow: hidden; }
   background: var(--white); border: var(--line); border-radius: 50%; cursor: pointer;
 }
 .lightbox-close:hover { background: var(--pink); }
+
+/* ---------- 17. Thông báo ---------- */
+.nav-badge {
+  margin-left: auto; min-width: 22px; height: 22px; padding: 0 .35rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  font: 800 .78rem/1 var(--font-body); color: var(--white);
+  background: var(--danger); border: 2px solid var(--ink); border-radius: var(--r-pill);
+}
+.bottom-tab { position: relative; }
+.nav-badge--bottom { position: absolute; top: .1rem; right: 18%; margin-left: 0; }
+
+.notification-row { align-items: flex-start; }
+.notification-row.is-unread { background: var(--paper-2); }
+.notification-text { color: var(--ink); font-weight: 600; }
+.notification-time { font-size: .82rem; color: var(--ink-soft); }

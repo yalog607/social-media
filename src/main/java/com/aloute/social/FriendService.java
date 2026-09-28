@@ -1,5 +1,6 @@
 package com.aloute.social;
 
+import com.aloute.notification.NotificationService;
 import com.aloute.post.PostView;
 import com.aloute.user.UserRepository;
 import org.springframework.stereotype.Service;
@@ -20,12 +21,15 @@ public class FriendService {
     private final FriendshipRepository friendships;
     private final UserRepository users;
     private final BlockService blocks;
+    private final NotificationService notifications;
     private final Clock clock;
 
-    public FriendService(FriendshipRepository friendships, UserRepository users, BlockService blocks, Clock clock) {
+    public FriendService(FriendshipRepository friendships, UserRepository users, BlockService blocks,
+                         NotificationService notifications, Clock clock) {
         this.friendships = friendships;
         this.users = users;
         this.blocks = blocks;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -65,6 +69,7 @@ public class FriendService {
             friendship.setStatus(FriendshipStatus.PENDING);
             friendship.setRequestedBy(users.getReferenceById(actorId));
             friendships.save(friendship);
+            notifications.friendRequested(actorId, targetId);
             return;
         }
         Friendship friendship = existing.get();
@@ -77,6 +82,7 @@ public class FriendService {
         // Người kia đã mời mình từ trước: coi như mình vừa chấp nhận
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendship.setRespondedAt(clock.instant());
+        notifications.friendAccepted(actorId, targetId);
     }
 
     /** @throws SocialActionException không có lời mời nào từ {@code requesterId} đang chờ {@code actorId} */
@@ -85,6 +91,7 @@ public class FriendService {
         Friendship friendship = pendingFrom(requesterId, actorId);
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendship.setRespondedAt(clock.instant());
+        notifications.friendAccepted(actorId, requesterId);
     }
 
     /** Từ chối lời mời {@code requesterId} đã gửi cho {@code actorId}. */

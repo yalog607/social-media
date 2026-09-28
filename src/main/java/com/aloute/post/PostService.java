@@ -4,6 +4,7 @@ import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
 import com.aloute.common.TextNormalizer;
 import com.aloute.media.MediaService;
+import com.aloute.notification.NotificationService;
 import com.aloute.social.FriendService;
 import com.aloute.user.User;
 import com.aloute.user.UserRepository;
@@ -31,15 +32,17 @@ public class PostService {
     private final RateLimiter rateLimiter;
     private final Clock clock;
     private final FriendService friends;
+    private final NotificationService notifications;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
-                       RateLimiter rateLimiter, Clock clock, FriendService friends) {
+                       RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications) {
         this.posts = posts;
         this.users = users;
         this.media = media;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
         this.friends = friends;
+        this.notifications = notifications;
     }
 
     /**
@@ -132,7 +135,9 @@ public class PostService {
         share.setVisibility(Visibility.PUBLIC);
         share.setSharedPost(original);
         applyContent(share, text);
-        return posts.save(share);
+        Post saved = posts.save(share);
+        notifications.postShared(actorId, original);
+        return saved;
     }
 
     /** Xóa mềm: bài biến mất khỏi mọi nơi nhưng dữ liệu còn (phục vụ kiểm duyệt ở giai đoạn sau). */

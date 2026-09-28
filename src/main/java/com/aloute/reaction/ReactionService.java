@@ -2,6 +2,7 @@ package com.aloute.reaction;
 
 import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
+import com.aloute.notification.NotificationService;
 import com.aloute.post.Post;
 import com.aloute.post.PostService;
 import com.aloute.user.UserRepository;
@@ -24,12 +25,15 @@ public class ReactionService {
     private final PostService posts;
     private final UserRepository users;
     private final RateLimiter rateLimiter;
+    private final NotificationService notifications;
 
-    public ReactionService(ReactionRepository reactions, PostService posts, UserRepository users, RateLimiter rateLimiter) {
+    public ReactionService(ReactionRepository reactions, PostService posts, UserRepository users,
+                           RateLimiter rateLimiter, NotificationService notifications) {
         this.reactions = reactions;
         this.posts = posts;
         this.users = users;
         this.rateLimiter = rateLimiter;
+        this.notifications = notifications;
     }
 
     /** @throws com.aloute.post.PostNotFoundException bài không tồn tại hoặc không xem được */
@@ -49,6 +53,7 @@ public class ReactionService {
             }
             reaction.setType(type);
             reactions.save(reaction);
+            notifications.postReacted(userId, post);
         }
         return summarize(postId, userId);
     }

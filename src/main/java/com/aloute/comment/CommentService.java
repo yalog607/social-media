@@ -2,6 +2,7 @@ package com.aloute.comment;
 
 import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
+import com.aloute.notification.NotificationService;
 import com.aloute.post.Post;
 import com.aloute.post.PostService;
 import com.aloute.post.PostTextRenderer;
@@ -32,14 +33,16 @@ public class CommentService {
     private final PostService posts;
     private final UserRepository users;
     private final RateLimiter rateLimiter;
+    private final NotificationService notifications;
     private final Clock clock;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
-                          RateLimiter rateLimiter, Clock clock) {
+                          RateLimiter rateLimiter, NotificationService notifications, Clock clock) {
         this.comments = comments;
         this.posts = posts;
         this.users = users;
         this.rateLimiter = rateLimiter;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -68,7 +71,13 @@ public class CommentService {
         comment.setAuthor(users.getReferenceById(authorId));
         comment.setParent(parent);
         comment.setContent(text);
-        return comments.save(comment);
+        Comment saved = comments.save(comment);
+        if (parent == null) {
+            notifications.postCommented(authorId, post);
+        } else {
+            notifications.commentReplied(authorId, parent.getAuthor().getId(), post);
+        }
+        return saved;
     }
 
     /** Chỉ tác giả bình luận hoặc tác giả bài viết xóa được. Xóa mềm: giữ chỗ nếu còn trả lời chưa xóa. */

@@ -1,6 +1,7 @@
 package com.aloute.common;
 
 import com.aloute.config.AlouteProperties;
+import com.aloute.notification.NotificationService;
 import com.aloute.security.ActiveAccountInterceptor;
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.user.User;
@@ -23,11 +24,14 @@ public class GlobalModelAdvice {
     private final UserRepository users;
     private final AlouteProperties props;
     private final RoleHierarchy roleHierarchy;
+    private final NotificationService notifications;
 
-    public GlobalModelAdvice(UserRepository users, AlouteProperties props, RoleHierarchy roleHierarchy) {
+    public GlobalModelAdvice(UserRepository users, AlouteProperties props, RoleHierarchy roleHierarchy,
+                             NotificationService notifications) {
         this.users = users;
         this.props = props;
         this.roleHierarchy = roleHierarchy;
+        this.notifications = notifications;
     }
 
     /**
@@ -68,6 +72,16 @@ public class GlobalModelAdvice {
     public String currentPath(HttpServletRequest request) {
         String query = request.getQueryString();
         return request.getRequestURI() + (query == null ? "" : "?" + query);
+    }
+
+    /** Số thông báo chưa đọc, hiện ở chuông thông báo trên topbar. 0 nếu chưa đăng nhập. */
+    @ModelAttribute("unreadNotifications")
+    public long unreadNotifications() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof AlouteUserPrincipal principal)) {
+            return 0;
+        }
+        return notifications.unreadCount(principal.id());
     }
 
     @ModelAttribute("firebaseWeb")
