@@ -33,7 +33,7 @@
                 <form method="post" th:if="${!#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
                       class="chat-new-form">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                    <select class="input-al" name="memberId" required>
+                    <select class="input-al" name="memberId" required data-custom-select>
                         <option value="" disabled selected>Thêm bạn bè vào nhóm...</option>
                         <option th:each="f : ${friendsNotInGroup}" th:value="${f.id}" th:text="${f.displayName}">Tên</option>
                     </select>
@@ -82,6 +82,7 @@
     <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
     <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
     <script th:src="@{/js/chat.js}"></script>
+    <script th:src="@{/js/custom-select.js}"></script>
 </main>
 </body>
 </html>

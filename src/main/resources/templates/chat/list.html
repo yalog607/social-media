@@ -10,7 +10,7 @@
         <h2 class="h4 mb-2">Nhắn tin mới</h2>
         <form class="chat-new-form" method="post" th:action="@{/messages/start}">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <select class="input-al" name="username" required>
+            <select class="input-al" name="username" required data-custom-select>
                 <option value="" disabled selected>Chọn một người bạn...</option>
                 <option th:each="f : ${friends}" th:value="${f.username}" th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</option>
             </select>
@@ -59,6 +59,7 @@
             <p>Bắt đầu nhắn tin với một người bạn ở trên nhé.</p>
         </section>
     </section>
+    <script th:src="@{/js/custom-select.js}"></script>
 </main>
 </body>
 </html>
