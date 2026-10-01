@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Thống kê', ~{::main}, 'manage', ~{})}">
+<head><title>Thống kê</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Kiểm duyệt</h1></div>
+    <th:block th:replace="~{manage/nav :: tabs('stats')}"></th:block>
+
+    <section class="stat-grid mb-4">
+        <div class="note stat" th:each="e : ${overview}">
+            <span class="stat-label" th:text="${e.key}">Nhãn</span>
+            <strong class="stat-value" th:text="${e.value}">0</strong>
+        </div>
+    </section>
+    <section class="note" aria-labelledby="reasons-title">
+        <h2 id="reasons-title" class="h4 mb-3">Báo cáo 30 ngày qua theo lý do</h2>
+        <p class="text-soft mb-0" th:if="${#maps.isEmpty(reasons)}">Chưa có báo cáo nào.</p>
+        <table class="table-al" th:unless="${#maps.isEmpty(reasons)}">
+            <thead><tr><th>Lý do</th><th>Số báo cáo</th></tr></thead>
+            <tbody><tr th:each="e : ${reasons}"><td th:text="${e.key}">SPAM</td><td th:text="${e.value}">0</td></tr></tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

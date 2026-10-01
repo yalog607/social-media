@@ -17,9 +17,16 @@ import java.util.UUID;
 public class ManageController {
 
     private final ModerationService moderation;
+    private final SupportService support;
+    private final BannedHashtags hashtags;
+    private final ManageStats stats;
 
-    public ManageController(ModerationService moderation) {
+    public ManageController(ModerationService moderation, SupportService support, BannedHashtags hashtags,
+                            ManageStats stats) {
         this.moderation = moderation;
+        this.support = support;
+        this.hashtags = hashtags;
+        this.stats = stats;
     }
 
     @GetMapping("/manage")
@@ -59,5 +66,61 @@ public class ManageController {
             flash.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/manage/suspended";
+    }
+
+    @GetMapping("/manage/support")
+    public String supportQueue(Model model) {
+        model.addAttribute("active", "manage");
+        model.addAttribute("tickets", support.open());
+        return "manage/support";
+    }
+
+    @PostMapping("/manage/support/{id}")
+    public String reply(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id,
+                        @RequestParam String reply, RedirectAttributes flash) {
+        try {
+            support.reply(me.id(), id, reply);
+            flash.addFlashAttribute("notice", "Đã phản hồi và đóng phiếu.");
+        } catch (InvalidModerationException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/manage/support";
+    }
+
+    @GetMapping("/manage/hashtags")
+    public String bannedHashtags(Model model) {
+        model.addAttribute("active", "manage");
+        model.addAttribute("tags", hashtags.list());
+        return "manage/hashtags";
+    }
+
+    @PostMapping("/manage/hashtags")
+    public String ban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, RedirectAttributes flash) {
+        try {
+            hashtags.ban(me.id(), tag);
+            flash.addFlashAttribute("notice", "Đã cấm hashtag.");
+        } catch (InvalidModerationException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/manage/hashtags";
+    }
+
+    @PostMapping("/manage/hashtags/remove")
+    public String unban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, RedirectAttributes flash) {
+        try {
+            hashtags.unban(me.id(), tag);
+            flash.addFlashAttribute("notice", "Đã gỡ cấm hashtag.");
+        } catch (InvalidModerationException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/manage/hashtags";
+    }
+
+    @GetMapping("/manage/stats")
+    public String stats(Model model) {
+        model.addAttribute("active", "manage");
+        model.addAttribute("overview", stats.overview());
+        model.addAttribute("reasons", stats.reasons());
+        return "manage/stats";
     }
 }

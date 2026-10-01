@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Hashtag cấm', ~{::main}, 'manage', ~{})}">
+<head><title>Hashtag cấm</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Kiểm duyệt</h1></div>
+    <th:block th:replace="~{manage/nav :: tabs('hashtags')}"></th:block>
+
+    <form method="post" th:action="@{/manage/hashtags}" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+        <input name="tag" class="input-al" maxlength="51" required placeholder="#hashtag cần cấm" aria-label="Hashtag cần cấm">
+        <button type="submit" class="btn-al btn-al--pink btn-al--sm">Cấm</button>
+    </form>
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(tags)}">Chưa cấm hashtag nào.</p>
+    <ul class="list-unstyled" th:unless="${#lists.isEmpty(tags)}">
+        <li class="note mb-2 d-flex align-items-center justify-content-between" th:each="t : ${tags}">
+            <strong th:text="'#' + ${t}">#tag</strong>
+            <form method="post" th:action="@{/manage/hashtags/remove}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="tag" th:value="${t}">
+                <button type="submit" class="btn-al btn-al--white btn-al--sm">Gỡ cấm</button>
+            </form>
+        </li>
+    </ul>
+</main>
+</body>
+</html>

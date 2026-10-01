@@ -4,6 +4,7 @@ import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
 import com.aloute.common.TextNormalizer;
 import com.aloute.media.MediaService;
+import com.aloute.moderation.BannedHashtags;
 import com.aloute.notification.NotificationService;
 import com.aloute.social.FriendService;
 import com.aloute.user.User;
@@ -40,10 +41,12 @@ public class PostService {
     private final FriendService friends;
     private final NotificationService notifications;
     private final PostTagRepository tags;
+    private final BannedHashtags bannedHashtags;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
                        RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
-                       PostTagRepository tags) {
+                       PostTagRepository tags, BannedHashtags bannedHashtags) {
+        this.bannedHashtags = bannedHashtags;
         this.posts = posts;
         this.users = users;
         this.media = media;
@@ -100,6 +103,7 @@ public class PostService {
                        MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
+        rejectBannedHashtags(text);
         boolean hasMedia = hasContent(video) || (images != null && images.stream().anyMatch(PostService::hasContent));
         if (text.isEmpty() && !hasMedia) {
             throw new InvalidPostException("Hãy viết gì đó hoặc thêm ảnh/video nhé.");
@@ -161,6 +165,7 @@ public class PostService {
     public Post edit(UUID actorId, UUID postId, String content, Visibility visibility) {
         Post post = ownedLivePost(actorId, postId);
         String text = cleanContent(content);
+        rejectBannedHashtags(text);
         if (text.isEmpty() && post.getMedia().isEmpty()) {
             throw new InvalidPostException("Bài không có ảnh/video thì cần có chữ nhé.");
         }
@@ -185,6 +190,7 @@ public class PostService {
     public Post share(UUID actorId, UUID postId, String caption) {
         rateLimiter.check(RateAction.POST, actorId);
         String text = cleanCaption(caption);
+        rejectBannedHashtags(text);
         User author = users.findById(actorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
@@ -294,6 +300,13 @@ public class PostService {
             }
         }
         return ids;
+    }
+
+    private void rejectBannedHashtags(String text) {
+        List<String> banned = bannedHashtags.bannedIn(text);
+        if (!banned.isEmpty()) {
+            throw new InvalidPostException("Hashtag #" + banned.get(0) + " không được phép sử dụng.");
+        }
     }
 
     private void validateSchedule(User author, Instant scheduledAt) {
