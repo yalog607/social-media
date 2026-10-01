@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Nhắn hàng loạt', ~{::main}, 'creator', ~{})}">
+<head><title>Nhắn hàng loạt</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Nhắn hàng loạt</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <section class="note note--taped mb-4" aria-labelledby="send-title">
+        <h2 id="send-title" class="h4 mb-2">Gửi thông báo mới</h2>
+        <p class="text-soft small">Người nhận thấy tin trong trang Thông báo. Mỗi ngày gửi tối đa 3 lần; người đã chặn bạn hoặc bị bạn chặn không nhận được.</p>
+        <form th:action="@{/creator/broadcasts}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="bAudience">Gửi tới</label>
+                <select id="bAudience" name="audience" class="input-al">
+                    <option th:each="a : ${audiences}" th:value="${a.name()}" th:text="${a.label()}">Người theo dõi</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="bTitle">Tiêu đề</label>
+                <input id="bTitle" name="title" class="input-al" required th:maxlength="${maxTitle}" th:value="${draftTitle}">
+            </div>
+            <div class="field">
+                <label for="bBody">Nội dung</label>
+                <textarea id="bBody" name="body" class="input-al" rows="4" required th:maxlength="${maxBody}" th:text="${draftBody}"></textarea>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Gửi</button>
+        </form>
+    </section>
+
+    <section class="note" aria-labelledby="history-title">
+        <h2 id="history-title" class="h4 mb-3">Đã gửi gần đây</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(history)}">Bạn chưa gửi tin nào.</p>
+        <table class="table-al" th:unless="${#lists.isEmpty(history)}">
+            <thead><tr><th>Tiêu đề</th><th>Gửi tới</th><th>Người nhận</th><th>Lúc</th></tr></thead>
+            <tbody>
+            <tr th:each="h : ${history}">
+                <td th:text="${h.title()}">Tiêu đề</td>
+                <td th:text="${h.audience().label()}">Người theo dõi</td>
+                <td th:text="${h.recipientCount()}">0</td>
+                <td th:text="${@timeAgo.format(h.createdAt())}">vừa xong</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

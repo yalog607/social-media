@@ -53,6 +53,16 @@ public class Notification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Chỉ có với thông báo nhắn hàng loạt; nội dung nằm ở bản ghi {@code broadcasts}. */
+    @Column(name = "broadcast_id")
+    private UUID broadcastId;
+
+    @org.hibernate.annotations.Formula("(select b.title from broadcasts b where b.id = broadcast_id)")
+    private String broadcastTitle;
+
+    @org.hibernate.annotations.Formula("(select b.body from broadcasts b where b.id = broadcast_id)")
+    private String broadcastBody;
+
     @Column(name = "read_at")
     private Instant readAt;
 

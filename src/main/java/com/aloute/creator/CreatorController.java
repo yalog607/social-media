@@ -30,10 +30,12 @@ public class CreatorController {
     private final PostService posts;
     private final PostViewAssembler assembler;
     private final FanService fans;
+    private final BroadcastService broadcasts;
 
     public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
-                             FanService fans) {
+                             FanService fans, BroadcastService broadcasts) {
         this.fans = fans;
+        this.broadcasts = broadcasts;
         this.insights = insights;
         this.posts = posts;
         this.assembler = assembler;
@@ -45,6 +47,31 @@ public class CreatorController {
         model.addAttribute("active", "creator");
         model.addAttribute("insights", insights.insights(me.id(), days == 30 ? 30 : 7));
         return "creator/dashboard";
+    }
+
+    @GetMapping("/creator/broadcasts")
+    public String broadcasts(@AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("history", broadcasts.history(me.id()));
+        model.addAttribute("audiences", BroadcastAudience.values());
+        model.addAttribute("maxTitle", BroadcastService.MAX_TITLE);
+        model.addAttribute("maxBody", BroadcastService.MAX_BODY);
+        return "creator/broadcasts";
+    }
+
+    @PostMapping("/creator/broadcasts")
+    public String sendBroadcast(@AuthenticationPrincipal AlouteUserPrincipal me,
+                                @RequestParam BroadcastAudience audience, @RequestParam String title,
+                                @RequestParam String body, RedirectAttributes flash) {
+        try {
+            int count = broadcasts.send(me.id(), audience, title, body);
+            flash.addFlashAttribute("notice", "Đã gửi tới " + count + " người.");
+        } catch (InvalidBroadcastException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            flash.addFlashAttribute("draftTitle", title);
+            flash.addFlashAttribute("draftBody", body);
+        }
+        return "redirect:/creator/broadcasts";
     }
 
     @GetMapping("/creator/fans")

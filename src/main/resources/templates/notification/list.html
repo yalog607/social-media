@@ -11,6 +11,7 @@
         <span th:replace="~{fragments/ui :: avatar(${n.actor}, '')}"></span>
         <span class="search-user-info">
             <span class="notification-text" th:text="${n.text}">Ai đó đã làm gì đó</span>
+            <span class="notification-body" th:if="${n.detail != null}" th:text="${n.detail}">Nội dung</span>
             <span class="notification-time" th:title="${@timeAgo.full(n.createdAt)}" th:text="${@timeAgo.format(n.createdAt)}">vừa xong</span>
         </span>
     </a>

@@ -116,6 +116,7 @@ public class NotificationService {
                         profile.getAvatarUrl(), actor.primaryRole()),
                 text(n),
                 n.getPost() != null ? n.getPost().getId() : null,
+                n.getBroadcastBody(),
                 n.getCreatedAt(),
                 n.isRead());
     }
@@ -130,6 +131,7 @@ public class NotificationService {
             case POST_COMMENT -> name + " đã bình luận về bài viết của bạn";
             case COMMENT_REPLY -> name + " đã trả lời bình luận của bạn";
             case POST_SHARED -> name + " đã chia sẻ bài viết của bạn";
+            case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
             case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
         };

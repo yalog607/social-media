@@ -10,5 +10,6 @@ public enum NotificationType {
     COMMENT_REPLY,
     POST_SHARED,
     POST_TAGGED,
-    DONATION
+    DONATION,
+    BROADCAST
 }
