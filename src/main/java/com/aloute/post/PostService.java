@@ -16,6 +16,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,6 +33,7 @@ public class PostService {
     private final MediaService media;
     public static final int MAX_TAGS = 10;
     public static final int MAX_UNLOCK_PRICE = 1000;
+    public static final int MAX_SCHEDULE_DAYS = 30;
 
     private final RateLimiter rateLimiter;
     private final Clock clock;
@@ -71,7 +74,7 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, null);
+        return create(authorId, content, visibility, images, video, taggedUserIds, null, null);
     }
 
     /**
@@ -83,6 +86,18 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, null);
+    }
+
+    /**
+     * Như trên, thêm {@code scheduledAt}: giờ hẹn đăng. Bài hẹn giờ chỉ chủ bài thấy cho tới khi đến giờ; thông báo
+     * gắn thẻ cũng hoãn tới lúc đó. Chỉ Creator hẹn giờ được, trong khoảng từ bây giờ tới {@value #MAX_SCHEDULE_DAYS} ngày.
+     *
+     * @throws InvalidPostException giờ hẹn không hợp lệ hoặc người đăng chưa phải Creator
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
+                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
         boolean hasMedia = hasContent(video) || (images != null && images.stream().anyMatch(PostService::hasContent));
@@ -100,6 +115,7 @@ public class PostService {
                 throw new InvalidPostException("Giá mở khóa từ 1 đến " + MAX_UNLOCK_PRICE + " Xu.");
             }
         }
+        validateSchedule(author, scheduledAt);
         Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
         List<UUID> tagIds = validTagIds(authorId, taggedUserIds, chosen);
 
@@ -109,6 +125,7 @@ public class PostService {
             post.setAuthor(author);
             post.setVisibility(chosen);
             post.setUnlockPrice(unlockPrice);
+            post.setScheduledAt(scheduledAt);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();
@@ -124,7 +141,9 @@ public class PostService {
                 tag.setPost(saved);
                 tag.setTaggedUser(users.getReferenceById(tagId));
                 tags.save(tag);
-                notifications.postTagged(authorId, tagId, saved);
+                if (scheduledAt == null) {
+                    notifications.postTagged(authorId, tagId, saved);
+                }
             }
             discardMediaUnlessCommitted(stored);
             return saved;
@@ -170,7 +189,7 @@ public class PostService {
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
         Post source = posts.findLive(postId).orElseThrow(PostNotFoundException::new);
-        if (source.getVisibility() != Visibility.PUBLIC) {
+        if (source.getVisibility() != Visibility.PUBLIC || source.isScheduled()) {
             throw new PostNotFoundException();
         }
         Post original = source.isShare() ? source.getSharedPost() : source;
@@ -186,6 +205,28 @@ public class PostService {
         Post saved = posts.save(share);
         notifications.postShared(actorId, original);
         return saved;
+    }
+
+    /**
+     * Đổi giờ hẹn của một bài chưa đăng.
+     *
+     * @throws PostNotFoundException bài không tồn tại, không phải của {@code actorId}, hoặc không còn là bài hẹn giờ
+     */
+    @Transactional
+    public Post reschedule(UUID actorId, UUID postId, Instant scheduledAt) {
+        Post post = ownedLivePost(actorId, postId);
+        if (!post.isScheduled()) {
+            throw new PostNotFoundException();
+        }
+        validateSchedule(post.getAuthor(), scheduledAt);
+        post.setScheduledAt(scheduledAt);
+        return post;
+    }
+
+    /** Các bài hẹn giờ chưa đăng của {@code authorId}, sớm nhất trước. */
+    @Transactional(readOnly = true)
+    public List<Post> scheduledOf(UUID authorId) {
+        return posts.findScheduledByAuthor(authorId);
     }
 
     /** Xóa mềm: bài biến mất khỏi mọi nơi nhưng dữ liệu còn (phục vụ kiểm duyệt ở giai đoạn sau). */
@@ -211,6 +252,9 @@ public class PostService {
         }
         if (viewerId != null && viewerId.equals(post.getAuthor().getId())) {
             return true;
+        }
+        if (post.isScheduled()) {
+            return false;
         }
         return switch (post.getVisibility()) {
             case PUBLIC -> true;
@@ -250,6 +294,22 @@ public class PostService {
             }
         }
         return ids;
+    }
+
+    private void validateSchedule(User author, Instant scheduledAt) {
+        if (scheduledAt == null) {
+            return;
+        }
+        if (!author.hasRole(com.aloute.user.Role.CREATOR)) {
+            throw new InvalidPostException("Chỉ Creator mới hẹn giờ đăng bài được.");
+        }
+        Instant now = clock.instant();
+        if (!scheduledAt.isAfter(now)) {
+            throw new InvalidPostException("Giờ hẹn phải ở tương lai.");
+        }
+        if (scheduledAt.isAfter(now.plus(Duration.ofDays(MAX_SCHEDULE_DAYS)))) {
+            throw new InvalidPostException("Chỉ hẹn giờ được trong vòng " + MAX_SCHEDULE_DAYS + " ngày.");
+        }
     }
 
     private static void applyContent(Post post, String text) {

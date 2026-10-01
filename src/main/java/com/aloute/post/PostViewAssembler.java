@@ -73,7 +73,9 @@ public class PostViewAssembler {
         Map<UUID, Long> commentCountByPost = loadCommentCounts(allIds);
         Map<UUID, Long> shareCountByPost = loadShareCounts(allIds);
         Map<UUID, List<PostView.AuthorView>> taggedByPost = loadTagged(allIds);
-        Set<UUID> unlocked = paidAccess.unlockedAmong(viewerId, allIds);
+        // Chỉ tra cứu mở khóa khi trong trang có bài trả phí (bảng tin thường không phát sinh thêm truy vấn nào)
+        List<UUID> paidIds = allPosts.stream().filter(p -> p.getUnlockPrice() != null).map(Post::getId).toList();
+        Set<UUID> unlocked = paidAccess.unlockedAmong(viewerId, paidIds);
 
         // Bước 1: dựng bài GỐC trước (sharedPost luôn null ở bước này — bài gốc không bao giờ tự nó là một chia sẻ khác)
         Map<UUID, PostView> baseViews = new HashMap<>();

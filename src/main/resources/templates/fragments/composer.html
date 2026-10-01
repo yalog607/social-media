@@ -55,6 +55,12 @@
                    placeholder="Để trống nếu bài miễn phí" th:value="${composerUnlockPrice}">
         </div>
 
+        <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
+            <label for="composerSchedule" class="field-hint">Hẹn giờ đăng (không bắt buộc)</label>
+            <input id="composerSchedule" name="scheduledAt" type="datetime-local" class="input-al" th:value="${composerScheduledAt}">
+            <input type="hidden" name="tzOffset" data-tz-offset>
+        </div>
+
         <details class="composer-tags mt-2" th:if="${!#lists.isEmpty(tagFriends)}" th:with="picked=${composerTagged != null ? composerTagged : T(java.util.List).of()}">
             <summary class="btn-al btn-al--sm btn-al--white">Gắn thẻ bạn bè (tối đa <span th:text="${maxTags}">10</span>)</summary>
             <div class="chat-group-picker">

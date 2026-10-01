@@ -330,6 +330,9 @@
     const errorBox = form.querySelector('[data-composer-error]');
     const submit = form.querySelector('[data-composer-submit]');
 
+    const tzField = form.querySelector('[data-tz-offset]');
+    if (tzField) tzField.value = String(new Date().getTimezoneOffset()); // để máy chủ hiểu đúng giờ hẹn theo múi giờ của bạn
+
     const maxChars = Number(form.dataset.maxChars);
     const maxImages = Number(form.dataset.maxImages);
     const maxImageBytes = Number(form.dataset.maxImageMb) * MB;
