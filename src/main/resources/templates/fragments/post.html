@@ -23,8 +23,26 @@
                 <span class="visibility-chip" th:if="${post.visibility.name() != 'PUBLIC'}"
                       th:text="${post.visibility.name() == 'PRIVATE'} ? 'Chỉ mình tôi' : 'Bạn bè'">Chỉ mình tôi</span>
             </div>
+            <div class="post-tagged" th:if="${!#lists.isEmpty(post.tagged)}">
+                cùng với
+                <th:block th:each="t, st : ${post.tagged}"><a th:href="@{/u/{u}(u=${t.username})}" th:text="${t.displayName}">Bạn</a><th:block th:unless="${st.last}">, </th:block></th:block>
+            </div>
         </div>
 
+        <div class="dropdown ms-auto" th:if="${me != null and !post.mine}">
+            <button type="button" class="post-menu-btn" data-bs-toggle="dropdown" aria-expanded="false"
+                    aria-label="Tùy chọn cho bài viết này">&#8943;</button>
+            <ul class="dropdown-menu dropdown-menu-end menu-al">
+                <li>
+                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reportModal"
+                            th:attr="data-report-type='POST', data-report-id=${post.id}, data-report-label='bài viết này'">Báo cáo bài viết</button>
+                </li>
+                <li th:if="${post.author.id != me.id}">
+                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reportModal"
+                            th:attr="data-report-type='USER', data-report-id=${post.author.id}, data-report-label='người dùng này'">Báo cáo người đăng</button>
+                </li>
+            </ul>
+        </div>
         <div class="dropdown ms-auto" th:if="${post.mine}">
             <button type="button" class="post-menu-btn" data-bs-toggle="dropdown" aria-expanded="false"
                     aria-label="Tùy chọn cho bài viết này">&#8943;</button>

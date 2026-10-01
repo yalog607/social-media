@@ -17,6 +17,7 @@ import java.util.UUID;
  * {@code sharedPostId} khác null nghĩa là bài này là một lượt CHIA SẺ. {@code sharedPost} là bài gốc đã dựng
  * sẵn, hoặc {@code null} nếu bài gốc không còn xem được (đã xóa/chuyển riêng tư) — khi đó template hiện khung
  * "Bài gốc không còn hiển thị" thay vì nội dung. {@code sharedPost} không bao giờ tự nó là một bài chia sẻ khác.
+ * {@code tagged} là các bạn bè được gắn thẻ (chỉ những người còn hoạt động).
  */
 public record PostView(
         UUID id,
@@ -32,7 +33,8 @@ public record PostView(
         long commentCount,
         long shareCount,
         UUID sharedPostId,
-        PostView sharedPost) {
+        PostView sharedPost,
+        List<AuthorView> tagged) {
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
     }

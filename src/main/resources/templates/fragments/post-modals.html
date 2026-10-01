@@ -49,6 +49,35 @@
         </div>
     </div>
 
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportTitle" aria-hidden="true" th:if="${me != null}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" novalidate data-report-form>
+                <input type="hidden" name="targetType">
+                <input type="hidden" name="targetId">
+                <h2 class="h4 mb-3" id="reportTitle">Báo cáo <span data-report-label>nội dung này</span></h2>
+                <div class="field">
+                    <label for="reportReason">Lý do</label>
+                    <select id="reportReason" name="reason" class="input-al" required>
+                        <option value="SPAM">Spam hoặc quảng cáo</option>
+                        <option value="HARASSMENT">Quấy rối, xúc phạm</option>
+                        <option value="INAPPROPRIATE">Nội dung không phù hợp</option>
+                        <option value="MISINFO">Thông tin sai lệch</option>
+                        <option value="OTHER">Lý do khác</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="reportDetail">Chi tiết (không bắt buộc)</label>
+                    <textarea id="reportDetail" name="detail" class="input-al" rows="3" maxlength="500"></textarea>
+                </div>
+                <p class="field-error" data-report-error role="alert" hidden></p>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Gửi báo cáo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal fade" id="sharePostModal" tabindex="-1" aria-labelledby="sharePostTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form class="modal-content note" method="post" novalidate>

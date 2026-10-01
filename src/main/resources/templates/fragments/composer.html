@@ -49,6 +49,16 @@
             <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
         </div>
 
+        <details class="composer-tags mt-2" th:if="${!#lists.isEmpty(tagFriends)}" th:with="picked=${composerTagged != null ? composerTagged : T(java.util.List).of()}">
+            <summary class="btn-al btn-al--sm btn-al--white">Gắn thẻ bạn bè (tối đa <span th:text="${maxTags}">10</span>)</summary>
+            <div class="chat-group-picker">
+                <label th:each="f : ${tagFriends}">
+                    <input type="checkbox" name="taggedUserIds" th:value="${f.id}" th:checked="${#lists.contains(picked, f.id)}">
+                    <span th:text="${f.displayName}">Bạn</span>
+                </label>
+            </div>
+        </details>
+
         <p class="field-hint mt-2 mb-0">
             Tối đa <span th:text="${mediaLimits.maxImages}">4</span> ảnh (mỗi ảnh
             <span th:text="${mediaLimits.maxImageMb}">8</span> MB) hoặc 1 video MP4/WEBM

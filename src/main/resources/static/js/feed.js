@@ -46,6 +46,52 @@
   });
   watch(document);
 
+  // ---------- Hộp thoại báo cáo dùng chung: điền loại/ID đối tượng của nút vừa bấm, gửi bằng fetch ----------
+  document.addEventListener('show.bs.modal', function (event) {
+    const modal = event.target;
+    const trigger = event.relatedTarget;
+    if (modal.id !== 'reportModal' || !trigger || !trigger.dataset.reportId) return;
+    const form = modal.querySelector('[data-report-form]');
+    form.elements.targetType.value = trigger.dataset.reportType;
+    form.elements.targetId.value = trigger.dataset.reportId;
+    form.elements.detail.value = '';
+    modal.querySelector('[data-report-label]').textContent = trigger.dataset.reportLabel || 'nội dung này';
+    const error = form.querySelector('[data-report-error]');
+    error.hidden = true;
+  });
+
+  document.addEventListener('submit', async function (event) {
+    const form = event.target.closest('[data-report-form]');
+    if (!form) return;
+    event.preventDefault();
+    const error = form.querySelector('[data-report-error]');
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const response = await window.Aloute.api('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString(),
+      });
+      if (response.status === 400 || response.status === 429) {
+        let message = 'Chưa gửi được báo cáo, thử lại nhé.';
+        if (response.status === 429) message = 'Bạn gửi báo cáo hơi nhiều, đợi ít phút rồi thử lại nhé.';
+        else try { message = (await response.json()).error || message; } catch (ignored) { /* giữ thông báo chung */ }
+        error.textContent = message;
+        error.hidden = false;
+        return;
+      }
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      bootstrap.Modal.getInstance(form.closest('.modal')).hide();
+      window.Aloute.toast('Đã gửi báo cáo, cảm ơn bạn.', 'success');
+    } catch (failure) {
+      error.textContent = 'Chưa gửi được báo cáo, thử lại nhé.';
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
   // ---------- Hộp thoại sửa/xóa/chia sẻ dùng chung: điền dữ liệu của bài vừa bấm ----------
   document.addEventListener('show.bs.modal', function (event) {
     const modal = event.target;

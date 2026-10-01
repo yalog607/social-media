@@ -15,6 +15,9 @@
             <span th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span>
             <button type="button" class="comment-link-btn" data-reply-to th:if="${me != null}"
                     th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}">Trả lời</button>
+            <button type="button" class="comment-link-btn" th:if="${me != null and !c.mine}"
+                    data-bs-toggle="modal" data-bs-target="#reportModal"
+                    th:attr="data-report-type='COMMENT', data-report-id=${c.id}, data-report-label='bình luận này'">Báo cáo</button>
             <button type="button" class="comment-link-btn" data-delete-comment th:if="${c.mine}"
                     th:attr="data-comment-id=${c.id}">Xóa</button>
         </div>

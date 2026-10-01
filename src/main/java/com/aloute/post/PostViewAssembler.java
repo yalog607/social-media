@@ -27,13 +27,16 @@ public class PostViewAssembler {
     private final PostMediaRepository mediaRepository;
     private final ReactionService reactions;
     private final CommentRepository commentRepository;
+    private final PostTagRepository tagRepository;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
-                             ReactionService reactions, CommentRepository commentRepository) {
+                             ReactionService reactions, CommentRepository commentRepository,
+                             PostTagRepository tagRepository) {
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
         this.reactions = reactions;
         this.commentRepository = commentRepository;
+        this.tagRepository = tagRepository;
     }
 
     /** @param viewerId người xem, null nếu là khách (để đánh dấu bài "của tôi") */
@@ -65,11 +68,12 @@ public class PostViewAssembler {
         Map<UUID, ReactionSummary> reactionsByPost = reactions.summarizeAll(allIds, viewerId);
         Map<UUID, Long> commentCountByPost = loadCommentCounts(allIds);
         Map<UUID, Long> shareCountByPost = loadShareCounts(allIds);
+        Map<UUID, List<PostView.AuthorView>> taggedByPost = loadTagged(allIds);
 
         // Bước 1: dựng bài GỐC trước (sharedPost luôn null ở bước này — bài gốc không bao giờ tự nó là một chia sẻ khác)
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
-            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost, null));
+            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost, taggedByPost, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -104,6 +108,17 @@ public class PostViewAssembler {
         return byPost;
     }
 
+    private Map<UUID, List<PostView.AuthorView>> loadTagged(Collection<UUID> postIds) {
+        Map<UUID, List<PostView.AuthorView>> byPost = new HashMap<>();
+        for (PostTag tag : tagRepository.findByPostIds(postIds)) {
+            User user = tag.getTaggedUser();
+            byPost.computeIfAbsent(tag.getPost().getId(), id -> new ArrayList<>())
+                    .add(new PostView.AuthorView(user.getId(), user.getUsername(), user.getProfile().getDisplayName(),
+                            user.getProfile().getAvatarUrl(), user.primaryRole()));
+        }
+        return byPost;
+    }
+
     private Map<UUID, Long> loadCommentCounts(Collection<UUID> postIds) {
         Map<UUID, Long> counts = new HashMap<>();
         for (CommentRepository.PostCommentCount row : commentRepository.countsByPostIds(postIds)) {
@@ -122,7 +137,8 @@ public class PostViewAssembler {
 
     private static PostView toView(Post post, UUID viewerId, Map<UUID, List<PostView.MediaView>> mediaByPost,
                                    Map<UUID, ReactionSummary> reactionsByPost, Map<UUID, Long> commentCountByPost,
-                                   Map<UUID, Long> shareCountByPost, PostView sharedPost) {
+                                   Map<UUID, Long> shareCountByPost,
+                                   Map<UUID, List<PostView.AuthorView>> taggedByPost, PostView sharedPost) {
         User author = post.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
@@ -142,13 +158,14 @@ public class PostViewAssembler {
                 commentCountByPost.getOrDefault(post.getId(), 0L),
                 shareCountByPost.getOrDefault(post.getId(), 0L),
                 sharedId,
-                sharedPost);
+                sharedPost,
+                taggedByPost.getOrDefault(post.getId(), List.of()));
     }
 
     /** Bản sao của {@code view} với {@code sharedPost} được gắn (bản thân {@code view} được dựng như bài thường ở bước 1). */
     private static PostView withShared(PostView view, UUID sharedPostId, PostView sharedPost) {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
-                view.shareCount(), sharedPostId, sharedPost);
+                view.shareCount(), sharedPostId, sharedPost, view.tagged());
     }
 }

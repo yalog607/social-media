@@ -39,14 +39,16 @@ public class PostController {
                          @RequestParam(required = false) Visibility visibility,
                          @RequestParam(required = false) List<MultipartFile> images,
                          @RequestParam(required = false) MultipartFile video,
+                         @RequestParam(required = false) List<UUID> taggedUserIds,
                          RedirectAttributes flash) {
         try {
-            posts.create(me.id(), content, visibility, images, video);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds);
             flash.addFlashAttribute("notice", "Đã đăng bài!");
         } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
             flash.addFlashAttribute("composerError", e.getMessage());
             flash.addFlashAttribute("composerContent", content);
             flash.addFlashAttribute("composerVisibility", visibility == null ? null : visibility.name());
+            flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);
         }
         return "redirect:/";
     }

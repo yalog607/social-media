@@ -29,13 +29,17 @@ public class PostService {
     private final PostRepository posts;
     private final UserRepository users;
     private final MediaService media;
+    public static final int MAX_TAGS = 10;
+
     private final RateLimiter rateLimiter;
     private final Clock clock;
     private final FriendService friends;
     private final NotificationService notifications;
+    private final PostTagRepository tags;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
-                       RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications) {
+                       RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
+                       PostTagRepository tags) {
         this.posts = posts;
         this.users = users;
         this.media = media;
@@ -43,6 +47,7 @@ public class PostService {
         this.clock = clock;
         this.friends = friends;
         this.notifications = notifications;
+        this.tags = tags;
     }
 
     /**
@@ -54,6 +59,17 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video) {
+        return create(authorId, content, visibility, images, video, List.of());
+    }
+
+    /**
+     * Như {@link #create(UUID, String, Visibility, List, MultipartFile)} và gắn thẻ thêm {@code taggedUserIds}.
+     *
+     * @throws InvalidPostException thẻ không hợp lệ: quá {@value #MAX_TAGS} người, không phải bạn bè, hoặc bài "Chỉ mình tôi"
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility,
+                       List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
         boolean hasMedia = hasContent(video) || (images != null && images.stream().anyMatch(PostService::hasContent));
@@ -63,11 +79,14 @@ public class PostService {
         User author = users.findById(authorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
+        Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
+        List<UUID> tagIds = validTagIds(authorId, taggedUserIds, chosen);
+
         List<MediaService.StoredMedia> stored = media.storeAll(images, video);
         try {
             Post post = new Post();
             post.setAuthor(author);
-            post.setVisibility(visibility != null ? visibility : author.getProfile().getDefaultPostVisibility());
+            post.setVisibility(chosen);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();
@@ -78,6 +97,13 @@ public class PostService {
                 post.addMedia(entity);
             }
             Post saved = posts.save(post);
+            for (UUID tagId : tagIds) {
+                PostTag tag = new PostTag();
+                tag.setPost(saved);
+                tag.setTaggedUser(users.getReferenceById(tagId));
+                tags.save(tag);
+                notifications.postTagged(authorId, tagId, saved);
+            }
             discardMediaUnlessCommitted(stored);
             return saved;
         } catch (RuntimeException e) {
@@ -179,6 +205,29 @@ public class PostService {
             throw new PostNotFoundException();
         }
         return post;
+    }
+
+    /** Bỏ trùng và chính tác giả; chỉ bạn bè mới gắn thẻ được, và người được gắn phải xem được bài. */
+    private List<UUID> validTagIds(UUID authorId, List<UUID> requested, Visibility visibility) {
+        if (requested == null || requested.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = requested.stream().filter(id -> id != null && !id.equals(authorId)).distinct().toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        if (visibility == Visibility.PRIVATE) {
+            throw new InvalidPostException("Bài \"Chỉ mình tôi\" không gắn thẻ bạn bè được.");
+        }
+        if (ids.size() > MAX_TAGS) {
+            throw new InvalidPostException("Mỗi bài gắn thẻ tối đa " + MAX_TAGS + " người.");
+        }
+        for (UUID id : ids) {
+            if (!friends.areFriends(authorId, id) || !users.findById(id).filter(User::isActive).isPresent()) {
+                throw new InvalidPostException("Chỉ gắn thẻ được những người đang là bạn bè của bạn.");
+            }
+        }
+        return ids;
     }
 
     private static void applyContent(Post post, String text) {
