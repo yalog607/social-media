@@ -33,6 +33,21 @@ public final class PostTextRenderer {
         }
         matcher.appendTail(out);
 
-        return out.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
+        // Nhắc tên: @username -> liên kết tới trang cá nhân (username chỉ gồm chữ/số/_/. nên an toàn để đưa vào href)
+        Matcher mention = Mentions.PATTERN.matcher(out);
+        StringBuilder withMentions = new StringBuilder(out.length() + 32);
+        while (mention.find()) {
+            String name = Mentions.trimTrailingDots(mention.group(1));
+            String dots = mention.group(1).substring(name.length());
+            if (name.length() < 3) {
+                mention.appendReplacement(withMentions, Matcher.quoteReplacement(mention.group()));
+                continue;
+            }
+            mention.appendReplacement(withMentions, Matcher.quoteReplacement(
+                    "<a class=\"mention\" href=\"/u/" + name.toLowerCase(java.util.Locale.ROOT) + "\">@" + name + "</a>" + dots));
+        }
+        mention.appendTail(withMentions);
+
+        return withMentions.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
     }
 }

@@ -63,6 +63,13 @@ public class Notification {
     @org.hibernate.annotations.Formula("(select b.body from broadcasts b where b.id = broadcast_id)")
     private String broadcastBody;
 
+    /** Chỉ có với thông báo nhắc tên trong nhóm chat. */
+    @Column(name = "conversation_id")
+    private UUID conversationId;
+
+    @org.hibernate.annotations.Formula("(select c.title from conversations c where c.id = conversation_id)")
+    private String conversationTitle;
+
     @Column(name = "read_at")
     private Instant readAt;
 

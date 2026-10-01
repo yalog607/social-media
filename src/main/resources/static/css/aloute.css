@@ -799,3 +799,8 @@ body.lightbox-open { overflow: hidden; }
 .bar--sky { background: var(--sky); }
 .stat-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 .stat-link[hidden], .post-stats[hidden] { display: none; }
+.mention { font-weight: 700; color: var(--ink); background: var(--lemon); border-radius: 4px; padding: 0 .2rem; text-decoration: none; }
+.mention-menu { position: fixed; z-index: 2000; margin: 0; padding: .25rem; list-style: none; background: var(--white); border: var(--line); border-radius: 12px; box-shadow: var(--sh); max-height: 240px; overflow-y: auto; }
+.mention-item { display: flex; justify-content: space-between; gap: .6rem; padding: .45rem .6rem; border-radius: 8px; cursor: pointer; font-size: .9rem; }
+.mention-item span { color: var(--ink-soft); }
+.mention-item.is-active, .mention-item:hover { background: var(--lemon); }

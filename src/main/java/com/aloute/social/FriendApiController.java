@@ -23,7 +23,7 @@ public class FriendApiController {
     @ResponseBody
     public List<Map<String, String>> list(@AuthenticationPrincipal AlouteUserPrincipal me) {
         return friends.friendsOf(me.id()).stream()
-                .map(f -> Map.of("id", f.id().toString(), "displayName", f.displayName()))
+                .map(f -> Map.of("id", f.id().toString(), "displayName", f.displayName(), "username", f.username()))
                 .toList();
     }
 }
