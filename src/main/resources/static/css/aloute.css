@@ -808,3 +808,5 @@ body.lightbox-open { overflow: hidden; }
 .chat-member-head { display: flex; align-items: center; gap: .6rem; }
 .chat-member-actions { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .input-al--sm { padding: .3rem .6rem; font-size: .85rem; max-width: 160px; }
+.streak { display: inline-flex; align-items: center; gap: .25rem; margin: 0; font-size: .85rem; font-weight: 700; }
+.streak--risk { color: var(--danger); }

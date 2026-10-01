@@ -12,6 +12,10 @@
         </span>
         <div>
             <h1 th:text="${header.title}">Tên</h1>
+            <p class="streak" th:if="${streak.active()}" th:classappend="${streak.atRisk()} ? 'streak--risk'"
+               th:title="${streak.atRisk()} ? 'Hôm nay hai bạn chưa cùng nhắn, hãy nhắn để giữ chuỗi!' : 'Hai bạn đã nhắn nhau mỗi ngày liên tiếp'">
+                🔥 <strong th:text="${streak.days()}">3</strong> ngày<span th:if="${streak.atRisk()}"> · nhắn hôm nay để giữ chuỗi!</span>
+            </p>
             <p class="text-soft mb-0" th:if="${header.group}" th:text="${#lists.size(members)} + ' thành viên'">3 thành viên</p>
         </div>
         <div class="chat-header-actions">
@@ -110,7 +114,8 @@
         <button type="button" class="chat-attach-btn" id="chat-attach-btn" aria-label="Đính kèm file">
             <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
         </button>
-        <textarea name="content" rows="1" maxlength="2000" placeholder="Nhắn gì đó..." aria-label="Nội dung tin nhắn"></textarea>
+        <textarea name="content" rows="1" maxlength="2000" placeholder="Nhắn gì đó (nhóm: gõ @ để nhắc tên)..."
+                  th:attr="data-mention-url=${header.group} ? @{/api/conversations/{id}/members(id=${conversation.id})}" aria-label="Nội dung tin nhắn"></textarea>
         <button type="submit" class="chat-send-btn" aria-label="Gửi">
             <svg aria-hidden="true"><use href="#i-send"/></svg>
         </button>

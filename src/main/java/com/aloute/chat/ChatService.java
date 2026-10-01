@@ -35,11 +35,14 @@ public class ChatService {
     private final BlockService blocks;
     private final Clock clock;
     private final ChatAttachmentService attachments;
+    private final StreakService streaks;
 
     public ChatService(ConversationRepository conversations, ConversationMemberRepository members,
                        MessageRepository messages, UserRepository users, FriendService friends,
-                       BlockService blocks, Clock clock, ChatAttachmentService attachments) {
+                       BlockService blocks, Clock clock, ChatAttachmentService attachments,
+                       StreakService streaks) {
         this.attachments = attachments;
+        this.streaks = streaks;
         this.conversations = conversations;
         this.members = members;
         this.messages = messages;
@@ -361,6 +364,8 @@ public class ChatService {
             unreadByConversation.put(row.getConversationId(), row.getUnread());
         }
 
+        Map<UUID, Streak> streakById = streaks.forConversations(mine.stream()
+                .map(ConversationMember::getConversation).filter(c -> !c.isGroup()).map(Conversation::getId).toList());
         List<ConversationSummaryView> views = new ArrayList<>();
         for (ConversationMember membership : mine) {
             Conversation conversation = membership.getConversation();
@@ -372,7 +377,8 @@ public class ChatService {
                     displayAvatar(conversation, userId),
                     preview(latest),
                     latest != null ? latest.getCreatedAt() : conversation.getCreatedAt(),
-                    unreadByConversation.getOrDefault(conversation.getId(), 0L)));
+                    unreadByConversation.getOrDefault(conversation.getId(), 0L),
+                    streakById.getOrDefault(conversation.getId(), Streak.NONE)));
         }
         views.sort((a, b) -> b.lastMessageAt().compareTo(a.lastMessageAt()));
         return views;

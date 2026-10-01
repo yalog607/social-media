@@ -1,6 +1,7 @@
 package com.aloute.chat;
 
 import com.aloute.common.RateAction;
+import com.aloute.mention.MentionService;
 import com.aloute.feed.Cursor;
 import com.aloute.common.RateLimiter;
 import com.aloute.post.PostTextRenderer;
@@ -32,9 +33,12 @@ public class MessageService {
     private final ChatAttachmentService attachments;
     private final RateLimiter rateLimiter;
     private final Clock clock;
+    private final MentionService mentions;
 
     public MessageService(MessageRepository messages, UserRepository users, ChatService chats,
-                          ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock) {
+                          ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock,
+                          MentionService mentions) {
+        this.mentions = mentions;
         this.messages = messages;
         this.users = users;
         this.chats = chats;
@@ -72,6 +76,10 @@ public class MessageService {
             message.setAttachment(entity);
         }
         Message saved = messages.save(message);
+        if (conversation.isGroup() && !text.isEmpty()) {
+            mentions.notifyChat(senderId, conversationId,
+                    chats.memberViews(conversationId).stream().map(MemberView::id).collect(java.util.stream.Collectors.toSet()), text);
+        }
         return toView(saved, chats.nicknames(conversationId));
     }
 

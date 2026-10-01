@@ -29,8 +29,11 @@ public class ChatController {
     private final MessageService messagesService;
     private final FriendService friends;
     private final UserRepository users;
+    private final StreakService streaks;
 
-    public ChatController(ChatService chats, MessageService messagesService, FriendService friends, UserRepository users) {
+    public ChatController(ChatService chats, MessageService messagesService, FriendService friends, UserRepository users,
+                          StreakService streaks) {
+        this.streaks = streaks;
         this.chats = chats;
         this.messagesService = messagesService;
         this.friends = friends;
@@ -59,6 +62,7 @@ public class ChatController {
         model.addAttribute("canManage", conversation.isGroup() && myRole.canManage());
         model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
         model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
+        model.addAttribute("streak", conversation.isGroup() ? Streak.NONE : streaks.forConversation(id));
         model.addAttribute("page", messagesService.history(me.id(), id, null));
         model.addAttribute("friendsNotInGroup", friends.friendsOf(me.id()).stream()
                 .filter(f -> !memberIds.contains(f.id())).toList());
