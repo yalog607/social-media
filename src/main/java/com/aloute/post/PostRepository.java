@@ -28,13 +28,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     /** Nhiều bài cùng lúc, dùng để dựng các bài GỐC được chia sẻ (một truy vấn cho cả trang, không phải một truy vấn mỗi bài). */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
-            where p.id in :ids and p.deletedAt is null""")
+            where p.id in :ids and p.deletedAt is null and p.scheduledAt is null""")
     List<Post> findLiveByIds(@Param("ids") Collection<UUID> ids);
 
     /** Số lượt chia sẻ CÒN SỐNG của mỗi bài, cho cả một trang bài trong một truy vấn. */
     @Query("""
             select p.sharedPost.id as postId, count(p) as total from Post p
-            where p.sharedPost.id in :ids and p.deletedAt is null
+            where p.sharedPost.id in :ids and p.deletedAt is null and p.scheduledAt is null
             group by p.sharedPost.id""")
     List<PostShareCount> shareCountsByPostIds(@Param("ids") Collection<UUID> ids);
 
@@ -53,7 +53,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem. */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
-            where p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
+            where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
               and (p.visibility = com.aloute.user.Visibility.PUBLIC or a.id = :viewerId
                    or (p.visibility = com.aloute.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
               ))
@@ -68,7 +68,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
-            where p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE and a.id = :authorId
+            where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.user.UserStatus.ACTIVE and a.id = :authorId
               and (p.visibility in :visibilities or (p.visibility = com.aloute.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
               ))
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
@@ -80,7 +80,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     /** Bài công khai chứa một hashtag (thẻ đã ở dạng chuẩn hóa), mới nhất trước. */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile join p.hashtags h
-            where h = :tag and p.deletedAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
+            where h = :tag and p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.user.UserStatus.ACTIVE
               and p.visibility = com.aloute.user.Visibility.PUBLIC
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
             order by p.createdAt desc, p.id desc""")
@@ -94,10 +94,17 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      */
     @Query(value = """
             select p.id from posts p join users u on u.id = p.author_id
-            where p.deleted_at is null and p.visibility = 'PUBLIC' and u.status = 'ACTIVE'
+            where p.deleted_at is null and p.scheduled_at is null and p.visibility = 'PUBLIC' and u.status = 'ACTIVE'
               and p.search_text ilike '%' || :escapedQuery || '%' escape '\\'
             order by similarity(p.search_text, :rawQuery) desc, p.created_at desc
             limit :limit""", nativeQuery = true)
     List<UUID> searchPublicIds(@Param("escapedQuery") String escapedQuery, @Param("rawQuery") String rawQuery,
                                @Param("limit") int limit);
+
+    /** Bài hẹn giờ chưa đăng của một tác giả, sớm nhất trước. */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.author.id = :authorId and p.deletedAt is null and p.scheduledAt is not null
+            order by p.scheduledAt, p.id""")
+    List<Post> findScheduledByAuthor(@Param("authorId") UUID authorId);
 }

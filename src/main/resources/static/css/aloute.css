@@ -482,6 +482,9 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 .post-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem .45rem; }
 .post-name { font: 800 1.05rem/1.2 var(--font-display); color: var(--ink); text-decoration: none; }
 .post-name:hover { text-decoration: underline; text-decoration-color: var(--pink); }
+.post-tagged { font-size: .85rem; color: var(--ink-soft); }
+.post-tagged a { font-weight: 700; color: var(--ink); }
+.composer-tags summary { display: inline-block; cursor: pointer; }
 .post-sub { display: flex; flex-wrap: wrap; align-items: center; gap: .1rem .6rem; font-size: .85rem; color: var(--ink-soft); }
 .post-time { color: var(--ink-soft); text-decoration: none; }
 .post-time:hover { color: var(--ink); text-decoration: underline; }
@@ -721,11 +724,27 @@ body.lightbox-open { overflow: hidden; }
 .chat-header .avatar { flex: none; }
 .chat-header-actions { margin-left: auto; display: flex; gap: .5rem; flex-wrap: wrap; }
 
+/* Trang hội thoại cao đúng bằng phần màn hình còn lại: khung chat tự co giãn và cuộn, ô nhập luôn nằm sát đáy */
+#chat-main {
+  display: flex; flex-direction: column;
+  /* 1.5rem + 6rem là phần đệm trên/dưới của .app trên mobile (chừa chỗ cho thanh tab dưới) */
+  height: calc(100vh - var(--topbar-h) - 7.5rem);
+  height: calc(100dvh - var(--topbar-h) - 7.5rem);
+  min-height: 420px;
+}
+@media (min-width: 992px) {
+  #chat-main { height: calc(100vh - var(--topbar-h) - 4.5rem); height: calc(100dvh - var(--topbar-h) - 4.5rem); }
+}
+#chat-main > * { flex: none; }
+#chat-main > .chat-window { flex: 1 1 auto; }
+#chat-main > section details[open] > div { max-height: 30vh; overflow-y: auto; }
 .chat-window {
   display: flex; flex-direction: column; gap: .2rem;
-  max-height: 60vh; min-height: 260px; overflow-y: auto;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   padding: .5rem .2rem; margin-bottom: 1rem;
 }
+.chat-more { flex: none; text-align: center; padding: .4rem; color: var(--ink-soft); font-size: .85rem; min-height: 1.6rem; }
+.chat-more.is-loading::before { content: 'Đang tải tin cũ hơn…'; }
 .msg { display: flex; gap: .6rem; align-items: flex-end; margin-bottom: .5rem; max-width: 100%; }
 .msg.is-mine { flex-direction: row-reverse; }
 .msg .avatar { flex: none; width: 32px; height: 32px; font-size: .85rem; }
@@ -757,3 +776,23 @@ body.lightbox-open { overflow: hidden; }
 .chat-attach-btn svg, .chat-send-btn svg { width: 20px; height: 20px; }
 .chat-attach-preview { font-size: .82rem; color: var(--ink-soft); margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem; }
 .chat-attach-preview button { border: none; background: none; color: var(--danger); font-weight: 800; cursor: pointer; }
+
+/* ---------- Creator Studio ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.stat { display: flex; flex-direction: column; gap: .15rem; margin: 0; }
+.stat-label { font-size: .85rem; font-weight: 700; color: var(--ink-soft); }
+.stat-value { font: 800 2rem/1.1 var(--font-display, inherit); }
+.stat-sub { font-size: .8rem; color: var(--ink-soft); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 160px; }
+.bars--sm { height: 90px; }
+.bar-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 2px; }
+.bar { display: block; background: var(--pink); border: 2px solid var(--ink); border-radius: 4px 4px 0 0; min-height: 0; }
+.bar--mint { background: var(--mint); }
+.bar-label { font-size: .65rem; text-align: center; color: var(--ink-soft); overflow: hidden; }
+.table-al { width: 100%; border-collapse: collapse; }
+.table-al th, .table-al td { padding: .5rem .6rem; border-bottom: 2px solid var(--ink); text-align: left; }
+.table-al th { font-size: .85rem; color: var(--ink-soft); }
+.table-al td:not(:first-child), .table-al th:not(:first-child) { text-align: right; white-space: nowrap; }
+.paywall { margin: .8rem 0; padding: 1rem; text-align: center; background: var(--paper-2); border: var(--line); border-radius: 12px; border-style: dashed; }
+.fan-badge { display: inline-block; margin-left: .4rem; padding: 0 .45rem; font-size: .7rem; font-weight: 800; background: var(--lemon); border: 2px solid var(--ink); border-radius: var(--r-pill); }
+.notification-body { display: block; font-size: .9rem; color: var(--ink); white-space: pre-line; }

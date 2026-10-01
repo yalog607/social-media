@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Mảnh tin nhắn dùng cho cả trang hội thoại lẫn tải thêm tin cũ: dấu "còn tin cũ hơn" rồi các bong bóng theo thứ tự thời gian. -->
+<th:block th:fragment="list">
+    <div class="chat-more" th:if="${page.hasMore()}"
+         th:attr="data-before-url=@{/api/conversations/{id}/messages(id=${conversation.id}, before=${page.nextCursor})}"></div>
+        <div class="msg" th:each="m : ${page.messages}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
+            <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
+            <div class="msg-body">
+                <span class="msg-sender" th:if="${header.group}" th:text="${m.sender.displayName}">Tên</span>
+                <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                       th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                        <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
+                    </a>
+                    <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                           class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
+                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="msg-attachment-file"
+                       th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener">file.pdf</a>
+                    <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                </span>
+                <span class="msg-time" th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
+            </div>
+        </div>
+</th:block>
+</body>
+</html>

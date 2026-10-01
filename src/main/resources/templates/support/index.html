@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Hỗ trợ', ~{::main}, 'none', ~{})}">
+<head><title>Hỗ trợ</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Hỗ trợ</h1></div>
+    <section class="note note--taped mb-4">
+        <h2 class="h4 mb-2">Gửi yêu cầu</h2>
+        <form th:action="@{/support}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="sSubject">Tiêu đề</label>
+                <input id="sSubject" name="subject" class="input-al" required th:maxlength="${maxSubject}" th:value="${draftSubject}">
+            </div>
+            <div class="field">
+                <label for="sBody">Bạn cần giúp gì?</label>
+                <textarea id="sBody" name="body" class="input-al" rows="4" required th:maxlength="${maxBody}" th:text="${draftBody}"></textarea>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Gửi yêu cầu</button>
+        </form>
+    </section>
+    <section class="note" aria-labelledby="mine-title">
+        <h2 id="mine-title" class="h4 mb-3">Yêu cầu của bạn</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(tickets)}">Bạn chưa gửi yêu cầu nào.</p>
+        <article class="mb-3" th:each="tk : ${tickets}">
+            <p class="mb-1"><strong th:text="${tk.subject()}">Tiêu đề</strong>
+                <span class="role-chip" th:text="${tk.open()} ? 'Đang chờ' : 'Đã phản hồi'">Đang chờ</span></p>
+            <p class="mb-1" style="white-space:pre-line" th:text="${tk.body()}">Nội dung</p>
+            <blockquote class="note note--mint mb-0" th:if="${tk.reply() != null}" style="white-space:pre-line" th:text="${tk.reply()}">Phản hồi</blockquote>
+        </article>
+    </section>
+</main>
+</body>
+</html>

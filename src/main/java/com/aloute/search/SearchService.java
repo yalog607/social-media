@@ -106,6 +106,7 @@ public class SearchService {
         return jdbc.query("""
                 select tag, count(*) as total from post_hashtags ph join posts p on p.id = ph.post_id
                 where p.deleted_at is null and p.visibility = 'PUBLIC' and p.created_at > now() - interval '7 days'
+                  and ph.tag not in (select tag from banned_hashtags)
                 group by tag order by count(*) desc, tag asc limit ?""",
                 (rs, rowNum) -> new HashtagResult(rs.getString("tag"), rs.getLong("total")),
                 TRENDING_LIMIT);

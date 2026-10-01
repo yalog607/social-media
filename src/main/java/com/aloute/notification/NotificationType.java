@@ -8,5 +8,9 @@ public enum NotificationType {
     POST_REACTION,
     POST_COMMENT,
     COMMENT_REPLY,
-    POST_SHARED
+    POST_SHARED,
+    POST_TAGGED,
+    DONATION,
+    BROADCAST,
+    WARNING
 }

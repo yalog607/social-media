@@ -1,6 +1,7 @@
 package com.aloute.comment;
 
 import com.aloute.post.PostView;
+import com.aloute.wallet.FanBadge;
 
 import java.time.Instant;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.UUID;
 /**
  * Một bình luận để hiển thị. {@code deleted} là bình luận gốc đã bị xóa nhưng còn trả lời chưa xóa: hiển thị
  * chỗ trống "Bình luận đã bị xóa" để giữ nguyên luồng trả lời (xem {@link CommentService#list}).
+ * {@code badge} là huy hiệu fan của người bình luận đối với chủ bài (null nếu không phải fan).
  */
 public record CommentView(
         UUID id,
@@ -17,7 +19,8 @@ public record CommentView(
         Instant createdAt,
         boolean mine,
         boolean deleted,
-        List<CommentView> replies) {
+        List<CommentView> replies,
+        FanBadge badge) {
 
     public boolean hasReplies() {
         return !replies.isEmpty();

@@ -52,10 +52,21 @@ public class ChatController {
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("members", members);
-        model.addAttribute("history", messagesService.history(me.id(), id));
+        model.addAttribute("page", messagesService.history(me.id(), id, null));
         model.addAttribute("friendsNotInGroup", friends.friendsOf(me.id()).stream()
                 .filter(f -> !memberIds.contains(f.id())).toList());
         return "chat/conversation";
+    }
+
+    /** Mảnh HTML các tin cũ hơn con trỏ {@code before}, để chat.js chèn lên đầu khung chat khi cuộn lên. */
+    @GetMapping("/api/conversations/{id}/messages")
+    public String older(@PathVariable UUID id, @RequestParam(required = false) String before,
+                        @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        Conversation conversation = chats.requireMembership(me.id(), id);
+        model.addAttribute("conversation", conversation);
+        model.addAttribute("header", chats.header(me.id(), conversation));
+        model.addAttribute("page", messagesService.history(me.id(), id, before));
+        return "chat/messages :: list";
     }
 
     @PostMapping("/messages/start")

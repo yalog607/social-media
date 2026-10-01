@@ -127,7 +127,7 @@ class MessageServiceIT extends IntegrationTest {
 
         assertThatThrownBy(() -> messages.send(stranger.getId(), direct.getId(), "xin chào", null))
                 .isInstanceOf(ConversationNotFoundException.class);
-        assertThatThrownBy(() -> messages.history(stranger.getId(), direct.getId()))
+        assertThatThrownBy(() -> messages.history(stranger.getId(), direct.getId(), null))
                 .isInstanceOf(ConversationNotFoundException.class);
     }
 
@@ -142,9 +142,42 @@ class MessageServiceIT extends IntegrationTest {
         clock.advance(Duration.ofSeconds(1));
         messages.send(a.getId(), direct.getId(), "ba", null);
 
-        List<MessageView> history = messages.history(a.getId(), direct.getId());
+        MessagePage page = messages.history(a.getId(), direct.getId(), null);
 
-        assertThat(history).extracting(MessageView::contentHtml).containsExactly("một", "hai", "ba");
+        assertThat(page.messages()).extracting(MessageView::contentHtml).containsExactly("một", "hai", "ba");
+        assertThat(page.hasMore()).isFalse();
+    }
+
+    @Test
+    void historyPagesBackwardsWithoutGapsOrDuplicates() {
+        User a = createUser();
+        User b = createUser();
+        Conversation direct = chats.startDirect(a.getId(), b.getId());
+        int total = MessageService.PAGE_SIZE + 5;
+        for (int i = 1; i <= total; i++) {
+            messages.send(i % 2 == 0 ? a.getId() : b.getId(), direct.getId(), "tin " + i, null);
+            clock.advance(Duration.ofSeconds(1));
+        }
+
+        MessagePage latest = messages.history(a.getId(), direct.getId(), null);
+        assertThat(latest.messages()).hasSize(MessageService.PAGE_SIZE);
+        assertThat(latest.messages().get(latest.messages().size() - 1).contentHtml()).isEqualTo("tin " + total);
+        assertThat(latest.hasMore()).isTrue();
+
+        MessagePage older = messages.history(a.getId(), direct.getId(), latest.nextCursor());
+        assertThat(older.messages()).extracting(MessageView::contentHtml)
+                .containsExactly("tin 1", "tin 2", "tin 3", "tin 4", "tin 5");
+        assertThat(older.hasMore()).isFalse();
+    }
+
+    @Test
+    void historyTreatsABrokenCursorAsTheLatestPage() {
+        User a = createUser();
+        User b = createUser();
+        Conversation direct = chats.startDirect(a.getId(), b.getId());
+        messages.send(a.getId(), direct.getId(), "một", null);
+
+        assertThat(messages.history(a.getId(), direct.getId(), "không-phải-con-trỏ").messages()).hasSize(1);
     }
 
     @Test

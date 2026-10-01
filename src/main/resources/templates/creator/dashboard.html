@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Creator Studio', ~{::main}, 'creator', ~{})}">
+<head><title>Creator Studio</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Creator Studio</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+
+    <div class="d-flex gap-2 mb-3" role="group" aria-label="Khoảng thời gian">
+        <a class="btn-al btn-al--sm" th:classappend="${insights.days() == 7} ? 'btn-al--role' : 'btn-al--white'"
+           th:href="@{/creator(days=7)}">7 ngày</a>
+        <a class="btn-al btn-al--sm" th:classappend="${insights.days() == 30} ? 'btn-al--role' : 'btn-al--white'"
+           th:href="@{/creator(days=30)}">30 ngày</a>
+    </div>
+
+    <p class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/scheduled}">Bài đã hẹn giờ</a>
+        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/fans}">Fan hâm mộ</a>
+        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/broadcasts}">Nhắn hàng loạt</a>
+        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/wallet}">Ví Xu</a>
+    </p>
+
+    <section class="stat-grid mb-4" aria-label="Tổng quan">
+        <div class="note stat">
+            <span class="stat-label">Người theo dõi</span>
+            <strong class="stat-value" th:text="${insights.followers()}">0</strong>
+            <span class="stat-sub">+<span th:text="${insights.newFollowers()}">0</span> trong <span th:text="${insights.days()}">7</span> ngày</span>
+        </div>
+        <div class="note stat">
+            <span class="stat-label">Cảm xúc</span>
+            <strong class="stat-value" th:text="${insights.reactions()}">0</strong>
+        </div>
+        <div class="note stat">
+            <span class="stat-label">Bình luận</span>
+            <strong class="stat-value" th:text="${insights.comments()}">0</strong>
+        </div>
+        <div class="note stat">
+            <span class="stat-label">Lượt chia sẻ</span>
+            <strong class="stat-value" th:text="${insights.shares()}">0</strong>
+        </div>
+    </section>
+
+    <section class="note note--taped mb-4" aria-labelledby="chart-title">
+        <h2 id="chart-title" class="h4 mb-1">Tương tác mỗi ngày</h2>
+        <p class="text-soft small mb-3">Cảm xúc + bình luận + chia sẻ trên bài của bạn. Hệ thống chưa đếm lượt xem.</p>
+        <div class="bars" role="img" th:attr="aria-label='Biểu đồ tương tác ' + ${insights.days()} + ' ngày gần nhất'">
+            <div class="bar-col" th:each="d : ${insights.series()}"
+                 th:title="${#temporals.format(d.date(), 'dd/MM')} + ': ' + ${d.engagement()} + ' tương tác'">
+                <span class="bar" th:style="'height:' + ${T(com.aloute.creator.InsightsView).percent(d.engagement(), insights.maxDailyEngagement())} + '%'"></span>
+                <span class="bar-label" th:text="${#temporals.format(d.date(), 'dd')}">01</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="note mb-4" aria-labelledby="follow-title">
+        <h2 id="follow-title" class="h4 mb-3">Người theo dõi mới mỗi ngày</h2>
+        <div class="bars bars--sm" role="img" th:attr="aria-label='Biểu đồ người theo dõi mới ' + ${insights.days()} + ' ngày gần nhất'">
+            <div class="bar-col" th:each="d : ${insights.series()}"
+                 th:title="${#temporals.format(d.date(), 'dd/MM')} + ': +' + ${d.followers()}">
+                <span class="bar bar--mint" th:style="'height:' + ${T(com.aloute.creator.InsightsView).percent(d.followers(), insights.maxDailyFollowers())} + '%'"></span>
+                <span class="bar-label" th:text="${#temporals.format(d.date(), 'dd')}">01</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="note" aria-labelledby="top-title">
+        <h2 id="top-title" class="h4 mb-3">Bài nổi bật</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(insights.topPosts())}">Chưa có tương tác nào trong khoảng thời gian này.</p>
+        <table class="table-al" th:unless="${#lists.isEmpty(insights.topPosts())}">
+            <thead>
+            <tr><th>Bài viết</th><th>Cảm xúc</th><th>Bình luận</th><th>Chia sẻ</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${insights.topPosts()}">
+                <td><a th:href="@{/posts/{id}(id=${p.id()})}" th:text="${p.snippet()}">Nội dung</a></td>
+                <td th:text="${p.reactions()}">0</td>
+                <td th:text="${p.comments()}">0</td>
+                <td th:text="${p.shares()}">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

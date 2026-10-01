@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Manager', ~{::main}, 'admin', ~{})}">
+<head><title>Manager</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('staff')}"></th:block>
+
+    <form method="post" th:action="@{/admin/staff/grant}" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+        <input name="username" class="input-al" required placeholder="Username người được cấp quyền Manager" aria-label="Username">
+        <button type="submit" class="btn-al btn-al--pink btn-al--sm">Cấp quyền</button>
+    </form>
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(managers)}">Chưa có Manager nào.</p>
+    <table class="table-al" th:unless="${#lists.isEmpty(managers)}">
+        <thead><tr><th>Manager</th><th>Vai trò</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="m : ${managers}">
+            <td><a th:href="@{/u/{u}(u=${m.username()})}" th:text="${m.displayName()}">Tên</a></td>
+            <td th:text="${m.roles()}">MANAGER</td>
+            <td>
+                <form method="post" th:unless="${m.isAdmin()}" th:action="@{/admin/staff/{id}/revoke(id=${m.id()})}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Thu hồi</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

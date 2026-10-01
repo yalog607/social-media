@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Người dùng', ~{::main}, 'admin', ~{})}">
+<head><title>Người dùng</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('users')}"></th:block>
+
+    <form method="get" th:action="@{/admin/users}" class="d-flex gap-2 mb-3">
+        <input name="q" class="input-al" th:value="${q}" placeholder="Tìm theo username, email hoặc tên" aria-label="Tìm người dùng">
+        <button type="submit" class="btn-al btn-al--sm">Tìm</button>
+    </form>
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(users)}">Không tìm thấy ai.</p>
+    <table class="table-al" th:unless="${#lists.isEmpty(users)}">
+        <thead><tr><th>Tài khoản</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${users}">
+            <td><a th:href="@{/u/{u}(u=${u.username()})}" th:text="${u.displayName()}">Tên</a><br>
+                <span class="text-soft small" th:text="${u.email()}">email</span></td>
+            <td th:text="${u.roles()}">USER</td>
+            <td th:text="${u.status()}">ACTIVE</td>
+            <td th:unless="${u.isAdmin() or u.isDeleted()}">
+                <div class="d-flex flex-wrap gap-1">
+                    <form method="post" th:if="${u.isActive()}" th:action="@{/admin/users/{id}/suspend(id=${u.id()})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--white btn-al--sm">Khóa</button>
+                    </form>
+                    <form method="post" th:if="${u.isSuspended()}" th:action="@{/admin/users/{id}/unsuspend(id=${u.id()})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--white btn-al--sm">Mở khóa</button>
+                    </form>
+                    <form method="post" th:action="@{/admin/users/{id}/delete(id=${u.id()})}"
+                          onsubmit="return confirm('Xóa vĩnh viễn tài khoản này và ẩn toàn bộ nội dung của họ? Không hoàn tác được từ giao diện.')">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--ink btn-al--sm">Xóa vĩnh viễn</button>
+                    </form>
+                </div>
+            </td>
+            <td th:if="${u.isAdmin() or u.isDeleted()}" class="text-soft small">—</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

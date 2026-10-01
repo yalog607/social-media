@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Cấu hình', ~{::main}, 'admin', ~{})}">
+<head><title>Cấu hình</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('settings')}"></th:block>
+
+    <form method="post" th:action="@{/admin/settings}" class="note">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+        <label class="d-flex align-items-center gap-2 mb-3">
+            <input type="hidden" name="registrationOpen" value="false">
+            <input type="checkbox" name="registrationOpen" value="true" th:checked="${registrationOpen}">
+            <span>Cho phép đăng ký tài khoản mới (cả Google/Facebook). Người dùng hiện có vẫn đăng nhập bình thường.</span>
+        </label>
+        <button type="submit" class="btn-al btn-al--pink">Lưu cấu hình</button>
+    </form>
+</main>
+</body>
+</html>

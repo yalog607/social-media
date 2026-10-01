@@ -4,10 +4,25 @@
 
   const MB = 1024 * 1024;
 
-  // ---------- Nút "Xem thêm": lấy mảnh HTML của trang kế và thay chỗ nút ----------
-  document.addEventListener('click', async function (event) {
-    const button = event.target.closest('[data-more-url]');
-    if (!button) return;
+  // ---------- Tải thêm bài: tự động khi cuộn gần tới cuối, nút "Xem thêm" là phương án dự phòng ----------
+  // Mảnh HTML của trang kế thay chỗ khối .feed-more và mang theo khối .feed-more mới (nếu còn bài).
+  const autoLoad = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        autoLoad.unobserve(entry.target);
+        loadMore(entry.target.querySelector('[data-more-url]'));
+      }
+    });
+  }, { rootMargin: '400px 0px' }) : null;
+
+  function watch(root) {
+    if (!autoLoad) return;
+    root.querySelectorAll('.feed-more').forEach(function (block) { autoLoad.observe(block); });
+  }
+
+  async function loadMore(button) {
+    if (!button || button.disabled) return;
+    const block = button.closest('.feed-more');
     const label = button.textContent;
     button.disabled = true;
     button.textContent = 'Đang tải…';
@@ -16,11 +31,129 @@
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const template = document.createElement('template');
       template.innerHTML = await response.text();
-      button.closest('.feed-more').replaceWith(template.content);
+      watch(template.content);
+      block.replaceWith(template.content);
     } catch (error) {
+      // Không quan sát lại: nút vẫn bấm được để thử lại, tránh vòng lặp lỗi khi khối còn nằm trong tầm nhìn
       button.disabled = false;
       button.textContent = label;
       window.Aloute.toast('Chưa tải thêm được, thử lại nhé.', 'error');
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    loadMore(event.target.closest('[data-more-url]'));
+  });
+  watch(document);
+
+  // ---------- Hộp thoại báo cáo dùng chung: điền loại/ID đối tượng của nút vừa bấm, gửi bằng fetch ----------
+  document.addEventListener('show.bs.modal', function (event) {
+    const modal = event.target;
+    const trigger = event.relatedTarget;
+    if (modal.id !== 'reportModal' || !trigger || !trigger.dataset.reportId) return;
+    const form = modal.querySelector('[data-report-form]');
+    form.elements.targetType.value = trigger.dataset.reportType;
+    form.elements.targetId.value = trigger.dataset.reportId;
+    form.elements.detail.value = '';
+    modal.querySelector('[data-report-label]').textContent = trigger.dataset.reportLabel || 'nội dung này';
+    const error = form.querySelector('[data-report-error]');
+    error.hidden = true;
+  });
+
+  document.addEventListener('submit', async function (event) {
+    const form = event.target.closest('[data-report-form]');
+    if (!form) return;
+    event.preventDefault();
+    const error = form.querySelector('[data-report-error]');
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const response = await window.Aloute.api('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString(),
+      });
+      if (response.status === 400 || response.status === 429) {
+        let message = 'Chưa gửi được báo cáo, thử lại nhé.';
+        if (response.status === 429) message = 'Bạn gửi báo cáo hơi nhiều, đợi ít phút rồi thử lại nhé.';
+        else try { message = (await response.json()).error || message; } catch (ignored) { /* giữ thông báo chung */ }
+        error.textContent = message;
+        error.hidden = false;
+        return;
+      }
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      bootstrap.Modal.getInstance(form.closest('.modal')).hide();
+      window.Aloute.toast('Đã gửi báo cáo, cảm ơn bạn.', 'success');
+    } catch (failure) {
+      error.textContent = 'Chưa gửi được báo cáo, thử lại nhé.';
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  // ---------- Tặng Xu cho Creator và mở khóa bài trả phí ----------
+  document.addEventListener('show.bs.modal', function (event) {
+    const modal = event.target;
+    const trigger = event.relatedTarget;
+    if (modal.id !== 'donateModal' || !trigger || !trigger.dataset.donateUser) return;
+    const form = modal.querySelector('[data-donate-form]');
+    form.elements.toUserId.value = trigger.dataset.donateUser;
+    modal.querySelector('[data-donate-name]').textContent = trigger.dataset.donateName || 'Creator';
+    form.querySelector('[data-donate-error]').hidden = true;
+  });
+
+  // Gửi một form/nút tới API Xu; trả {ok, data} và hiển thị thông báo lỗi tiếng Việt do máy chủ trả về
+  async function postCoins(url, bodyText) {
+    const response = await window.Aloute.api(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: bodyText,
+    });
+    let data = {};
+    try { data = await response.json(); } catch (ignored) { /* không có nội dung JSON */ }
+    return { ok: response.ok, data: data };
+  }
+
+  document.addEventListener('submit', async function (event) {
+    const form = event.target.closest('[data-donate-form]');
+    if (!form) return;
+    event.preventDefault();
+    const error = form.querySelector('[data-donate-error]');
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const result = await postCoins('/api/donations', new URLSearchParams(new FormData(form)).toString());
+      if (!result.ok) {
+        error.textContent = result.data.error || 'Chưa tặng được Xu, thử lại nhé.';
+        error.hidden = false;
+        return;
+      }
+      bootstrap.Modal.getInstance(form.closest('.modal')).hide();
+      window.Aloute.toast('Đã tặng Xu, cảm ơn bạn!', 'success');
+    } catch (failure) {
+      error.textContent = 'Chưa tặng được Xu, thử lại nhé.';
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  document.addEventListener('click', async function (event) {
+    const button = event.target.closest('[data-unlock-post]');
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    try {
+      const result = await postCoins('/api/posts/' + button.dataset.unlockPost + '/unlock', '');
+      if (!result.ok) {
+        window.Aloute.toast(result.data.error || 'Chưa mở khóa được, thử lại nhé.', 'error');
+        button.disabled = false;
+        return;
+      }
+      window.location.reload();
+    } catch (failure) {
+      window.Aloute.toast('Chưa mở khóa được, thử lại nhé.', 'error');
+      button.disabled = false;
     }
   });
 
@@ -196,6 +329,9 @@
     const previews = form.querySelector('[data-previews]');
     const errorBox = form.querySelector('[data-composer-error]');
     const submit = form.querySelector('[data-composer-submit]');
+
+    const tzField = form.querySelector('[data-tz-offset]');
+    if (tzField) tzField.value = String(new Date().getTimezoneOffset()); // để máy chủ hiểu đúng giờ hẹn theo múi giờ của bạn
 
     const maxChars = Number(form.dataset.maxChars);
     const maxImages = Number(form.dataset.maxImages);

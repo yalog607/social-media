@@ -114,6 +114,8 @@ public class AuthController {
             errors.rejectValue(e.field(), "exists", e.getMessage());
         } catch (IllegalArgumentException e) {
             errors.rejectValue("password", "weak", e.getMessage());
+        } catch (com.aloute.user.RegistrationClosedException e) {
+            errors.reject("registration.closed", e.getMessage());
         }
         return REGISTER_VIEW;
     }

@@ -24,8 +24,11 @@ public class SettingsController {
     private final UserRepository users;
     private final ProfileService profiles;
     private final SessionService sessions;
+    private final UserService userService;
 
-    public SettingsController(UserRepository users, ProfileService profiles, SessionService sessions) {
+    public SettingsController(UserRepository users, ProfileService profiles, SessionService sessions,
+                              UserService userService) {
+        this.userService = userService;
         this.users = users;
         this.profiles = profiles;
         this.sessions = sessions;
@@ -108,6 +111,16 @@ public class SettingsController {
                 form.getDefaultPostVisibility(), form.getMessagePermission(), form.isPhotoZoomEnabled());
         redirect.addFlashAttribute("notice", "Đã lưu quyền riêng tư!");
         return "redirect:/settings";
+    }
+
+    /** Trở thành Creator: nâng quyền rồi cấp lại phiên để menu và quyền Creator có hiệu lực ngay. */
+    @PostMapping("/settings/creator")
+    public String becomeCreator(@AuthenticationPrincipal AlouteUserPrincipal principal,
+                                HttpServletRequest request, HttpServletResponse response, RedirectAttributes redirect) {
+        User user = userService.becomeCreator(principal.id());
+        sessions.start(user, request, response);
+        redirect.addFlashAttribute("notice", "Chào mừng bạn đến với Creator Studio!");
+        return "redirect:/creator";
     }
 
     /** Điền các form chưa có trong model rồi trả về view. Tham số không null là form đang có lỗi cần giữ lại. */

@@ -21,13 +21,65 @@
   function scrollToBottom() {
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
+  function nearBottom() {
+    return chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight < 120;
+  }
   scrollToBottom();
+  // Ảnh/video tải sau lần cuộn đầu làm khung cao thêm: cuộn lại để vẫn dừng ở tin mới nhất, chừng nào người dùng chưa cuộn lên.
+  var stickToBottom = true;
+  chatWindow.addEventListener('scroll', function () { stickToBottom = nearBottom(); });
+  chatWindow.addEventListener('load', function () { if (stickToBottom) scrollToBottom(); }, true);
+  window.addEventListener('load', scrollToBottom);
+
+  // ---------- Tải tin cũ khi cuộn lên đầu: chèn lên trên và giữ nguyên vị trí đang đọc ----------
+  var loadingOlder = false;
+  async function loadOlder() {
+    var marker = chatWindow.querySelector('.chat-more');
+    if (!marker || loadingOlder) return false;
+    loadingOlder = true;
+    marker.classList.add('is-loading');
+    try {
+      var response = await window.Aloute.api(marker.dataset.beforeUrl, { headers: { Accept: 'text/html' } });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      var template = document.createElement('template');
+      template.innerHTML = await response.text();
+      // Bỏ tin đã có sẵn (vừa tới qua WebSocket trong lúc tải) để không bị lặp
+      template.content.querySelectorAll('.msg[data-id]').forEach(function (el) {
+        if (chatWindow.querySelector('.msg[data-id="' + el.dataset.id + '"]')) el.remove();
+      });
+      var previousHeight = chatWindow.scrollHeight;
+      var previousTop = chatWindow.scrollTop;
+      marker.replaceWith(template.content);
+      chatWindow.scrollTop = previousTop + (chatWindow.scrollHeight - previousHeight);
+      return true;
+    } catch (error) {
+      marker.classList.remove('is-loading');
+      window.Aloute.toast('Chưa tải được tin cũ hơn, cuộn lên để thử lại.', 'error');
+      return false;
+    } finally {
+      loadingOlder = false;
+    }
+  }
+  chatWindow.addEventListener('scroll', function () {
+    if (chatWindow.scrollTop < 80) loadOlder();
+  });
+  // Khung chưa đủ dài để cuộn thì không có sự kiện cuộn nào: tải tiếp cho tới khi đầy
+  function fillIfShort() {
+    if (chatWindow.querySelector('.chat-more') && chatWindow.scrollHeight <= chatWindow.clientHeight + 80) {
+      loadOlder().then(function (ok) { if (ok) fillIfShort(); });
+    }
+  }
+  window.addEventListener('load', fillIfShort);
 
   // ---------- Nhận tin nhắn realtime ----------
   function appendMessage(m) {
     var mine = String(m.sender.id) === String(myId);
     var msg = document.createElement('div');
     msg.className = 'msg' + (mine ? ' is-mine' : '');
+    if (m.id) {
+      if (chatWindow.querySelector('.msg[data-id="' + m.id + '"]')) return;
+      msg.dataset.id = m.id;
+    }
 
     var avatar = document.createElement('span');
     avatar.className = 'avatar';
@@ -65,8 +117,9 @@
     msg.appendChild(body);
     var empty = chatWindow.querySelector('p');
     if (empty) empty.remove();
+    var follow = mine || nearBottom();
     chatWindow.appendChild(msg);
-    scrollToBottom();
+    if (follow) scrollToBottom();
   }
 
   function attachmentHtml(a) {

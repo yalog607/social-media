@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Hỗ trợ', ~{::main}, 'manage', ~{})}">
+<head><title>Hỗ trợ</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Kiểm duyệt</h1></div>
+    <th:block th:replace="~{manage/nav :: tabs('support')}"></th:block>
+
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(tickets)}">Không có phiếu hỗ trợ nào đang chờ.</p>
+    <article class="note mb-3" th:each="tk : ${tickets}">
+        <p class="mb-1"><strong th:text="${tk.subject()}">Tiêu đề</strong>
+            <span class="text-soft small">— <a th:href="@{/u/{u}(u=${tk.userId()})}" th:text="${tk.userName()}">A</a>,
+                <span th:text="${@timeAgo.format(tk.createdAt())}">vừa xong</span></span></p>
+        <p class="mb-2" style="white-space:pre-line" th:text="${tk.body()}">Nội dung</p>
+        <form method="post" class="d-flex flex-wrap gap-2" th:action="@{/manage/support/{id}(id=${tk.id()})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <textarea name="reply" class="input-al" rows="2" maxlength="1000" required placeholder="Phản hồi cho người dùng" style="flex:1; min-width:220px"></textarea>
+            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Phản hồi &amp; đóng</button>
+        </form>
+    </article>
+</main>
+</body>
+</html>

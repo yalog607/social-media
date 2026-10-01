@@ -1,11 +1,13 @@
 package com.aloute.user;
 
+import com.aloute.admin.SystemSettings;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.UUID;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -19,8 +21,10 @@ public class UserService {
 
     private final UserRepository users;
     private final PasswordEncoder encoder;
+    private final SystemSettings settings;
 
-    public UserService(UserRepository users, PasswordEncoder encoder) {
+    public UserService(UserRepository users, PasswordEncoder encoder, SystemSettings settings) {
+        this.settings = settings;
         this.users = users;
         this.encoder = encoder;
     }
@@ -33,6 +37,7 @@ public class UserService {
      */
     @Transactional
     public User registerLocal(String displayName, String username, String email, String rawPassword) {
+        requireRegistrationOpen();
         String error = PasswordPolicy.validate(rawPassword);
         if (error != null) {
             throw new IllegalArgumentException(error);
@@ -59,6 +64,7 @@ public class UserService {
     @Transactional
     public User registerSocial(String displayName, String email, AuthProvider provider,
                                String firebaseUid, String avatarUrl) {
+        requireRegistrationOpen();
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
         User user = newUser(displayName, uniqueUsernameFrom(normalizedEmail), normalizedEmail);
         user.setAuthProvider(provider);
@@ -76,6 +82,24 @@ public class UserService {
         }
         user.setPasswordHash(encoder.encode(rawPassword));
         users.save(user);
+    }
+
+    private void requireRegistrationOpen() {
+        if (!settings.registrationOpen()) {
+            throw new RegistrationClosedException();
+        }
+    }
+
+    /**
+     * Tự nâng cấp lên Creator (không cần duyệt). Quyền nằm trong JWT nên người gọi phải cấp lại phiên để có hiệu lực ngay.
+     *
+     * @return người dùng sau khi cập nhật
+     */
+    @Transactional
+    public User becomeCreator(UUID userId) {
+        User user = users.findById(userId).filter(User::isActive).orElseThrow();
+        user.getRoles().add(Role.CREATOR);
+        return users.save(user);
     }
 
     /** Sinh username duy nhất từ phần trước dấu @ của email, thêm hậu tố số nếu trùng. */

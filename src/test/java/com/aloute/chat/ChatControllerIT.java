@@ -21,6 +21,7 @@ class ChatControllerIT extends IntegrationTest {
 
     @Autowired ChatService chats;
     @Autowired FriendService friends;
+    @Autowired MessageService messages;
 
     private void makeFriends(User a, User b) {
         friends.sendRequest(a.getId(), b.getId());
@@ -63,6 +64,27 @@ class ChatControllerIT extends IntegrationTest {
         mvc.perform(get("/messages/" + direct.getId()).with(asUser(me)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(friend.getProfile().getDisplayName())));
+    }
+
+    @Test
+    void olderMessagesEndpointReturnsTheFragmentBeforeTheCursorAndRejectsStrangers() throws Exception {
+        User me = createUser();
+        User friend = createUser();
+        User stranger = createUser();
+        makeFriends(me, friend);
+        Conversation direct = chats.startDirect(me.getId(), friend.getId());
+        for (int i = 1; i <= MessageService.PAGE_SIZE + 2; i++) {
+            messages.send(me.getId(), direct.getId(), "tin số " + i, null);
+            clock.advance(java.time.Duration.ofSeconds(1));
+        }
+        String cursor = messages.history(me.getId(), direct.getId(), null).nextCursor();
+
+        mvc.perform(get("/api/conversations/" + direct.getId() + "/messages").param("before", cursor).with(asUser(me)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("tin số 1<")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("chat-more"))));
+        mvc.perform(get("/api/conversations/" + direct.getId() + "/messages").param("before", cursor).with(asUser(stranger)))
+                .andExpect(status().isNotFound());
     }
 
     /**

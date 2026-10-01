@@ -4,6 +4,7 @@ import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
 import com.aloute.common.TextNormalizer;
 import com.aloute.media.MediaService;
+import com.aloute.moderation.BannedHashtags;
 import com.aloute.notification.NotificationService;
 import com.aloute.social.FriendService;
 import com.aloute.user.User;
@@ -16,6 +17,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,13 +32,21 @@ public class PostService {
     private final PostRepository posts;
     private final UserRepository users;
     private final MediaService media;
+    public static final int MAX_TAGS = 10;
+    public static final int MAX_UNLOCK_PRICE = 1000;
+    public static final int MAX_SCHEDULE_DAYS = 30;
+
     private final RateLimiter rateLimiter;
     private final Clock clock;
     private final FriendService friends;
     private final NotificationService notifications;
+    private final PostTagRepository tags;
+    private final BannedHashtags bannedHashtags;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
-                       RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications) {
+                       RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
+                       PostTagRepository tags, BannedHashtags bannedHashtags) {
+        this.bannedHashtags = bannedHashtags;
         this.posts = posts;
         this.users = users;
         this.media = media;
@@ -43,6 +54,7 @@ public class PostService {
         this.clock = clock;
         this.friends = friends;
         this.notifications = notifications;
+        this.tags = tags;
     }
 
     /**
@@ -54,8 +66,44 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video) {
+        return create(authorId, content, visibility, images, video, List.of(), null);
+    }
+
+    /**
+     * Như {@link #create(UUID, String, Visibility, List, MultipartFile)} và gắn thẻ thêm {@code taggedUserIds}.
+     *
+     * @throws InvalidPostException thẻ không hợp lệ: quá {@value #MAX_TAGS} người, không phải bạn bè, hoặc bài "Chỉ mình tôi"
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility,
+                       List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, null, null);
+    }
+
+    /**
+     * Như trên, thêm {@code unlockPrice}: giá (Xu) để xem bài. Chỉ Creator đặt được, từ 1 đến
+     * {@value #MAX_UNLOCK_PRICE}; null là bài miễn phí.
+     *
+     * @throws InvalidPostException giá không hợp lệ hoặc người đăng chưa phải Creator
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility,
+                       List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, null);
+    }
+
+    /**
+     * Như trên, thêm {@code scheduledAt}: giờ hẹn đăng. Bài hẹn giờ chỉ chủ bài thấy cho tới khi đến giờ; thông báo
+     * gắn thẻ cũng hoãn tới lúc đó. Chỉ Creator hẹn giờ được, trong khoảng từ bây giờ tới {@value #MAX_SCHEDULE_DAYS} ngày.
+     *
+     * @throws InvalidPostException giờ hẹn không hợp lệ hoặc người đăng chưa phải Creator
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
+                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
+        rejectBannedHashtags(text);
         boolean hasMedia = hasContent(video) || (images != null && images.stream().anyMatch(PostService::hasContent));
         if (text.isEmpty() && !hasMedia) {
             throw new InvalidPostException("Hãy viết gì đó hoặc thêm ảnh/video nhé.");
@@ -63,11 +111,25 @@ public class PostService {
         User author = users.findById(authorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
+        if (unlockPrice != null) {
+            if (!author.hasRole(com.aloute.user.Role.CREATOR)) {
+                throw new InvalidPostException("Chỉ Creator mới đặt giá cho bài viết được.");
+            }
+            if (unlockPrice < 1 || unlockPrice > MAX_UNLOCK_PRICE) {
+                throw new InvalidPostException("Giá mở khóa từ 1 đến " + MAX_UNLOCK_PRICE + " Xu.");
+            }
+        }
+        validateSchedule(author, scheduledAt);
+        Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
+        List<UUID> tagIds = validTagIds(authorId, taggedUserIds, chosen);
+
         List<MediaService.StoredMedia> stored = media.storeAll(images, video);
         try {
             Post post = new Post();
             post.setAuthor(author);
-            post.setVisibility(visibility != null ? visibility : author.getProfile().getDefaultPostVisibility());
+            post.setVisibility(chosen);
+            post.setUnlockPrice(unlockPrice);
+            post.setScheduledAt(scheduledAt);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();
@@ -78,6 +140,15 @@ public class PostService {
                 post.addMedia(entity);
             }
             Post saved = posts.save(post);
+            for (UUID tagId : tagIds) {
+                PostTag tag = new PostTag();
+                tag.setPost(saved);
+                tag.setTaggedUser(users.getReferenceById(tagId));
+                tags.save(tag);
+                if (scheduledAt == null) {
+                    notifications.postTagged(authorId, tagId, saved);
+                }
+            }
             discardMediaUnlessCommitted(stored);
             return saved;
         } catch (RuntimeException e) {
@@ -94,6 +165,7 @@ public class PostService {
     public Post edit(UUID actorId, UUID postId, String content, Visibility visibility) {
         Post post = ownedLivePost(actorId, postId);
         String text = cleanContent(content);
+        rejectBannedHashtags(text);
         if (text.isEmpty() && post.getMedia().isEmpty()) {
             throw new InvalidPostException("Bài không có ảnh/video thì cần có chữ nhé.");
         }
@@ -118,11 +190,12 @@ public class PostService {
     public Post share(UUID actorId, UUID postId, String caption) {
         rateLimiter.check(RateAction.POST, actorId);
         String text = cleanCaption(caption);
+        rejectBannedHashtags(text);
         User author = users.findById(actorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
         Post source = posts.findLive(postId).orElseThrow(PostNotFoundException::new);
-        if (source.getVisibility() != Visibility.PUBLIC) {
+        if (source.getVisibility() != Visibility.PUBLIC || source.isScheduled()) {
             throw new PostNotFoundException();
         }
         Post original = source.isShare() ? source.getSharedPost() : source;
@@ -138,6 +211,28 @@ public class PostService {
         Post saved = posts.save(share);
         notifications.postShared(actorId, original);
         return saved;
+    }
+
+    /**
+     * Đổi giờ hẹn của một bài chưa đăng.
+     *
+     * @throws PostNotFoundException bài không tồn tại, không phải của {@code actorId}, hoặc không còn là bài hẹn giờ
+     */
+    @Transactional
+    public Post reschedule(UUID actorId, UUID postId, Instant scheduledAt) {
+        Post post = ownedLivePost(actorId, postId);
+        if (!post.isScheduled()) {
+            throw new PostNotFoundException();
+        }
+        validateSchedule(post.getAuthor(), scheduledAt);
+        post.setScheduledAt(scheduledAt);
+        return post;
+    }
+
+    /** Các bài hẹn giờ chưa đăng của {@code authorId}, sớm nhất trước. */
+    @Transactional(readOnly = true)
+    public List<Post> scheduledOf(UUID authorId) {
+        return posts.findScheduledByAuthor(authorId);
     }
 
     /** Xóa mềm: bài biến mất khỏi mọi nơi nhưng dữ liệu còn (phục vụ kiểm duyệt ở giai đoạn sau). */
@@ -164,6 +259,9 @@ public class PostService {
         if (viewerId != null && viewerId.equals(post.getAuthor().getId())) {
             return true;
         }
+        if (post.isScheduled()) {
+            return false;
+        }
         return switch (post.getVisibility()) {
             case PUBLIC -> true;
             case FRIENDS -> viewerId != null && friends.areFriends(post.getAuthor().getId(), viewerId);
@@ -179,6 +277,52 @@ public class PostService {
             throw new PostNotFoundException();
         }
         return post;
+    }
+
+    /** Bỏ trùng và chính tác giả; chỉ bạn bè mới gắn thẻ được, và người được gắn phải xem được bài. */
+    private List<UUID> validTagIds(UUID authorId, List<UUID> requested, Visibility visibility) {
+        if (requested == null || requested.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = requested.stream().filter(id -> id != null && !id.equals(authorId)).distinct().toList();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        if (visibility == Visibility.PRIVATE) {
+            throw new InvalidPostException("Bài \"Chỉ mình tôi\" không gắn thẻ bạn bè được.");
+        }
+        if (ids.size() > MAX_TAGS) {
+            throw new InvalidPostException("Mỗi bài gắn thẻ tối đa " + MAX_TAGS + " người.");
+        }
+        for (UUID id : ids) {
+            if (!friends.areFriends(authorId, id) || !users.findById(id).filter(User::isActive).isPresent()) {
+                throw new InvalidPostException("Chỉ gắn thẻ được những người đang là bạn bè của bạn.");
+            }
+        }
+        return ids;
+    }
+
+    private void rejectBannedHashtags(String text) {
+        List<String> banned = bannedHashtags.bannedIn(text);
+        if (!banned.isEmpty()) {
+            throw new InvalidPostException("Hashtag #" + banned.get(0) + " không được phép sử dụng.");
+        }
+    }
+
+    private void validateSchedule(User author, Instant scheduledAt) {
+        if (scheduledAt == null) {
+            return;
+        }
+        if (!author.hasRole(com.aloute.user.Role.CREATOR)) {
+            throw new InvalidPostException("Chỉ Creator mới hẹn giờ đăng bài được.");
+        }
+        Instant now = clock.instant();
+        if (!scheduledAt.isAfter(now)) {
+            throw new InvalidPostException("Giờ hẹn phải ở tương lai.");
+        }
+        if (scheduledAt.isAfter(now.plus(Duration.ofDays(MAX_SCHEDULE_DAYS)))) {
+            throw new InvalidPostException("Chỉ hẹn giờ được trong vòng " + MAX_SCHEDULE_DAYS + " ngày.");
+        }
     }
 
     private static void applyContent(Post post, String text) {

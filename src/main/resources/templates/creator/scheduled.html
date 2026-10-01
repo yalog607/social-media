@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Bài đã hẹn giờ', ~{::main}, 'creator', ~{})}">
+<head><title>Bài đã hẹn giờ</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Bài đã hẹn giờ</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <p class="note" th:if="${#lists.isEmpty(items)}">
+        Chưa có bài nào hẹn giờ. Hãy chọn "Hẹn giờ đăng" ở ô đăng bài trên <a th:href="@{/}">bảng tin</a>.
+    </p>
+
+    <div class="mb-4" th:each="item : ${items}">
+        <p class="stat-label mb-1">Sẽ đăng lúc <span th:text="${@timeAgo.full(item.scheduledAt())}">giờ</span></p>
+        <th:block th:replace="~{fragments/post :: card(${item.post()})}"></th:block>
+        <form class="d-flex flex-wrap gap-2 align-items-center mt-2" method="post"
+              th:action="@{/creator/scheduled/{id}/reschedule(id=${item.post().id()})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <input type="hidden" name="tzOffset" data-tz-offset>
+            <label class="visually-hidden" th:for="'when-' + ${item.post().id()}">Giờ hẹn mới</label>
+            <input type="datetime-local" name="scheduledAt" class="input-al" required th:id="'when-' + ${item.post().id()}">
+            <button type="submit" class="btn-al btn-al--sm btn-al--white">Đổi giờ</button>
+            <button type="submit" class="btn-al btn-al--sm btn-al--ink"
+                    th:formaction="@{/creator/scheduled/{id}/cancel(id=${item.post().id()})}" formnovalidate>Hủy bài hẹn</button>
+        </form>
+    </div>
+    <script>
+        document.querySelectorAll('[data-tz-offset]').forEach(function (el) { el.value = String(new Date().getTimezoneOffset()); });
+    </script>
+    <div th:replace="~{fragments/post-modals :: modals}"></div>
+</main>
+</body>
+</html>

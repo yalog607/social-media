@@ -49,6 +49,28 @@
             <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
         </div>
 
+        <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
+            <label for="composerPrice" class="field-hint">Bài trả phí (không bắt buộc): giá mở khóa bằng Xu</label>
+            <input id="composerPrice" name="unlockPrice" type="number" class="input-al" min="1" max="1000"
+                   placeholder="Để trống nếu bài miễn phí" th:value="${composerUnlockPrice}">
+        </div>
+
+        <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
+            <label for="composerSchedule" class="field-hint">Hẹn giờ đăng (không bắt buộc)</label>
+            <input id="composerSchedule" name="scheduledAt" type="datetime-local" class="input-al" th:value="${composerScheduledAt}">
+            <input type="hidden" name="tzOffset" data-tz-offset>
+        </div>
+
+        <details class="composer-tags mt-2" th:if="${!#lists.isEmpty(tagFriends)}" th:with="picked=${composerTagged != null ? composerTagged : T(java.util.List).of()}">
+            <summary class="btn-al btn-al--sm btn-al--white">Gắn thẻ bạn bè (tối đa <span th:text="${maxTags}">10</span>)</summary>
+            <div class="chat-group-picker">
+                <label th:each="f : ${tagFriends}">
+                    <input type="checkbox" name="taggedUserIds" th:value="${f.id}" th:checked="${#lists.contains(picked, f.id)}">
+                    <span th:text="${f.displayName}">Bạn</span>
+                </label>
+            </div>
+        </details>
+
         <p class="field-hint mt-2 mb-0">
             Tối đa <span th:text="${mediaLimits.maxImages}">4</span> ảnh (mỗi ảnh
             <span th:text="${mediaLimits.maxImageMb}">8</span> MB) hoặc 1 video MP4/WEBM

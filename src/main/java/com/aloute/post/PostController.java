@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,14 +40,22 @@ public class PostController {
                          @RequestParam(required = false) Visibility visibility,
                          @RequestParam(required = false) List<MultipartFile> images,
                          @RequestParam(required = false) MultipartFile video,
+                         @RequestParam(required = false) List<UUID> taggedUserIds,
+                         @RequestParam(required = false) Integer unlockPrice,
+                         @RequestParam(required = false) String scheduledAt,
+                         @RequestParam(required = false) Integer tzOffset,
                          RedirectAttributes flash) {
         try {
-            posts.create(me.id(), content, visibility, images, video);
-            flash.addFlashAttribute("notice", "Đã đăng bài!");
+            Instant when = ScheduleTime.parse(scheduledAt, tzOffset);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when);
+            flash.addFlashAttribute("notice", when == null ? "Đã đăng bài!" : "Đã hẹn giờ đăng bài!");
         } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
             flash.addFlashAttribute("composerError", e.getMessage());
             flash.addFlashAttribute("composerContent", content);
             flash.addFlashAttribute("composerVisibility", visibility == null ? null : visibility.name());
+            flash.addFlashAttribute("composerUnlockPrice", unlockPrice);
+            flash.addFlashAttribute("composerScheduledAt", scheduledAt);
+            flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);
         }
         return "redirect:/";
     }

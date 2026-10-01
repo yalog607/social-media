@@ -73,6 +73,14 @@ public class Post {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /** Giờ hẹn đăng; khác null nghĩa là bài chưa đăng, chỉ chủ bài thấy. Xem {@code ScheduledPostPublisher}. */
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
+
+    /** Giá (Xu) để mở khóa nội dung; null nghĩa là bài miễn phí. Chỉ Creator đặt được. */
+    @Column(name = "unlock_price")
+    private Integer unlockPrice;
+
     /**
      * Khác null nghĩa là bài này là một lượt CHIA SẺ của bài gốc (luôn trỏ thẳng tới bài gốc thật sự, không bao
      * giờ trỏ qua một bài chia sẻ khác — {@code PostService#share} tự rút gọn). {@code content} khi đó là lời
@@ -90,6 +98,10 @@ public class Post {
     @CollectionTable(name = "post_hashtags", joinColumns = @JoinColumn(name = "post_id"))
     @Column(name = "tag", nullable = false, length = 50)
     private Set<String> hashtags = new LinkedHashSet<>();
+
+    public boolean isScheduled() {
+        return scheduledAt != null;
+    }
 
     public boolean isDeleted() {
         return deletedAt != null;

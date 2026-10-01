@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Kiểm duyệt', ~{::main}, 'manage', ~{})}">
+<head><title>Kiểm duyệt</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Kiểm duyệt</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{manage/nav :: tabs('queue')}"></th:block>
+
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(reports)}">Không có báo cáo nào đang chờ. 🎉</p>
+
+    <article class="note mb-3" th:each="r : ${reports}">
+        <p class="mb-1">
+            <span class="role-chip" th:text="${r.targetType()}">POST</span>
+            <strong th:text="${r.reason()}">SPAM</strong>
+            <span class="text-soft small">— báo cáo bởi <span th:text="${r.reporterName()}">A</span>,
+                <span th:text="${@timeAgo.format(r.createdAt())}">vừa xong</span></span>
+        </p>
+        <p class="mb-1" th:if="${r.detail() != null}"><em th:text="${r.detail()}">Chi tiết</em></p>
+        <blockquote class="note note--lemon mb-2" th:text="${r.preview()}">Nội dung bị báo cáo</blockquote>
+        <p class="text-soft small mb-2">
+            Người đăng: <strong th:text="${r.ownerName()}">Tên</strong>
+            <span th:if="${r.contentRemoved()}">· nội dung đã bị xóa</span>
+            <a th:if="${r.targetType() == 'POST'}" th:href="@{/posts/{id}(id=${r.targetId()})}">· xem bài</a>
+        </p>
+        <form method="post" class="d-flex flex-wrap gap-2 align-items-center" th:action="@{/manage/reports/{id}(id=${r.id()})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <select name="action" class="input-al" aria-label="Cách xử lý">
+                <option th:each="a : ${actions}" th:value="${a.name()}" th:text="${a.label()}"
+                        th:disabled="${a.name() == 'REMOVE_CONTENT' and !r.canRemoveContent()}">Bác bỏ</option>
+            </select>
+            <input name="note" class="input-al" maxlength="300" placeholder="Lý do (bắt buộc khi cảnh cáo/khóa)" style="flex:1; min-width:200px">
+            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Xử lý</button>
+        </form>
+    </article>
+</main>
+</body>
+</html>
