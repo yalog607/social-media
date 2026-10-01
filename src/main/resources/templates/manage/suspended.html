@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Đang bị khóa', ~{::main}, 'manage', ~{})}">
+<head><title>Đang bị khóa</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Kiểm duyệt</h1></div>
+    <th:block th:replace="~{manage/nav :: tabs('suspended')}"></th:block>
+
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(users)}">Không có tài khoản nào đang bị khóa.</p>
+    <table class="table-al" th:unless="${#lists.isEmpty(users)}">
+        <thead><tr><th>Tài khoản</th><th>Lý do</th><th>Từ</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${users}">
+            <td><a th:href="@{/u/{u}(u=${u.username()})}" th:text="${u.displayName()}">Tên</a></td>
+            <td th:text="${u.reason()}">Lý do</td>
+            <td th:text="${u.since() != null} ? ${@timeAgo.format(u.since())} : '—'">—</td>
+            <td>
+                <form method="post" th:action="@{/manage/users/{id}/lift(id=${u.userId()})}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Gỡ khóa</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

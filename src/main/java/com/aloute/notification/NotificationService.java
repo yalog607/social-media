@@ -77,6 +77,11 @@ public class NotificationService {
         notify(recipientId, actorId, NotificationType.DONATION, null);
     }
 
+    @Transactional
+    public void warned(UUID managerId, UUID recipientId) {
+        notify(recipientId, managerId, NotificationType.WARNING, null);
+    }
+
     private void notify(UUID recipientId, UUID actorId, NotificationType type, Post post) {
         if (recipientId.equals(actorId)) {
             return;
@@ -131,6 +136,7 @@ public class NotificationService {
             case POST_COMMENT -> name + " đã bình luận về bài viết của bạn";
             case COMMENT_REPLY -> name + " đã trả lời bình luận của bạn";
             case POST_SHARED -> name + " đã chia sẻ bài viết của bạn";
+            case WARNING -> "Quản trị viên đã gửi cho bạn một cảnh báo vì vi phạm quy tắc cộng đồng";
             case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
             case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";

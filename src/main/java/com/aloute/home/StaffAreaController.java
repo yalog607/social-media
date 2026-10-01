@@ -11,12 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class StaffAreaController {
 
-    @GetMapping("/manage")
-    public String manage(Model model) {
-        return area(model, "manage", "Kiểm duyệt",
-                "Xử lý báo cáo, ẩn/xóa nội dung vi phạm, cảnh báo hoặc khóa tài khoản và hỗ trợ người dùng.", "5");
-    }
-
     @GetMapping("/admin")
     public String admin(Model model) {
         return area(model, "admin", "Quản trị",
