@@ -46,6 +46,44 @@
   });
   watch(document);
 
+  // ---------- Lượt xem: báo cho máy chủ khi một bài hiện đủ lâu trên màn hình (mỗi bài một lần mỗi lần mở trang) ----------
+  if ('IntersectionObserver' in window && document.body.dataset.auth === 'true') {
+    const seen = new Set();
+    const timers = new Map();
+    const viewObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        const card = entry.target;
+        const id = card.id.replace('post-', '');
+        if (entry.isIntersecting && !seen.has(id)) {
+          // Phải ở trong tầm nhìn ~1 giây mới tính, để cuộn lướt qua không bị đếm
+          timers.set(card, setTimeout(function () {
+            seen.add(id);
+            viewObserver.unobserve(card);
+            window.Aloute.api('/api/posts/' + id + '/view', { method: 'POST' }).catch(function () { /* số liệu phụ, bỏ qua lỗi */ });
+          }, 1000));
+        } else if (timers.has(card)) {
+          clearTimeout(timers.get(card));
+          timers.delete(card);
+        }
+      });
+    }, { threshold: 0.5 });
+    const observeCards = function (root) {
+      root.querySelectorAll('article.post[id^="post-"]').forEach(function (card) { viewObserver.observe(card); });
+    };
+    observeCards(document);
+    // Bài tải thêm khi cuộn cũng được theo dõi
+    new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType === 1) {
+            if (node.matches && node.matches('article.post[id^="post-"]')) viewObserver.observe(node);
+            observeCards(node);
+          }
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
   // ---------- Hộp thoại báo cáo dùng chung: điền loại/ID đối tượng của nút vừa bấm, gửi bằng fetch ----------
   document.addEventListener('show.bs.modal', function (event) {
     const modal = event.target;
@@ -157,6 +195,63 @@
     }
   });
 
+  // ---------- Hộp thoại sửa bài: danh mục và thẻ bạn bè ----------
+  let friendsPromise = null;
+  function loadFriends() {
+    if (!friendsPromise) {
+      friendsPromise = window.Aloute.api('/api/friends', { headers: { Accept: 'application/json' } })
+        .then(function (response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
+        .catch(function (error) { friendsPromise = null; throw error; });
+    }
+    return friendsPromise;
+  }
+
+  function fillEditCategory(form, trigger) {
+    const select = form.elements.categoryId;
+    if (!select) return;
+    const id = trigger.dataset.category || '';
+    // Danh mục đã ngưng dùng không có trong danh sách: thêm tạm để sửa bài không làm mất nhãn của nó
+    if (id && !Array.from(select.options).some(function (option) { return option.value === id; })) {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = trigger.dataset.categoryName || 'Danh mục hiện tại';
+      select.appendChild(option);
+    }
+    select.value = id;
+  }
+
+  async function fillEditTags(form, trigger) {
+    const box = form.querySelector('[data-edit-tags]');
+    const loaded = form.querySelector('[data-tags-loaded]');
+    if (!box || !loaded) return;
+    loaded.value = 'false'; // chưa nạp xong thì máy chủ giữ nguyên thẻ cũ
+    box.textContent = 'Đang tải danh sách bạn bè…';
+    try {
+      const friends = await loadFriends();
+      const picked = (trigger.dataset.tagged || '').split(',').filter(Boolean);
+      box.textContent = '';
+      if (!friends.length) {
+        box.textContent = 'Bạn chưa có bạn bè nào để gắn thẻ.';
+      }
+      friends.forEach(function (friend) {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'taggedUserIds';
+        input.value = friend.id;
+        input.checked = picked.indexOf(friend.id) >= 0;
+        const span = document.createElement('span');
+        span.textContent = friend.displayName;
+        label.appendChild(input);
+        label.appendChild(span);
+        box.appendChild(label);
+      });
+      loaded.value = 'true';
+    } catch (error) {
+      box.textContent = 'Chưa tải được danh sách bạn bè, thẻ hiện tại sẽ được giữ nguyên.';
+    }
+  }
+
   // ---------- Hộp thoại sửa/xóa/chia sẻ dùng chung: điền dữ liệu của bài vừa bấm ----------
   document.addEventListener('show.bs.modal', function (event) {
     const modal = event.target;
@@ -173,6 +268,8 @@
       form.action = '/posts/' + trigger.dataset.postId + '/edit';
       form.elements.content.value = trigger.dataset.content || '';
       form.elements.visibility.value = trigger.dataset.visibility || 'PUBLIC';
+      fillEditCategory(form, trigger);
+      fillEditTags(form, trigger);
     } else if (modal.id === 'deletePostModal') {
       form.action = '/posts/' + trigger.dataset.postId + '/delete';
     } else if (modal.id === 'sharePostModal') {

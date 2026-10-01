@@ -26,6 +26,20 @@
                         <option value="FRIENDS">Bạn bè</option>
                     </select>
                 </div>
+                <th:block th:with="cats=${@categoryService.active()}">
+                    <div class="field" th:if="${!#lists.isEmpty(cats)}">
+                        <label for="editPostCategory">Danh mục</label>
+                        <select id="editPostCategory" name="categoryId" class="input-al">
+                            <option value="">Không chọn danh mục</option>
+                            <option th:each="c : ${cats}" th:value="${c.id}" th:text="${c.name}">Danh mục</option>
+                        </select>
+                    </div>
+                </th:block>
+                <div class="field">
+                    <p class="mb-1 field-hint">Gắn thẻ bạn bè</p>
+                    <div class="chat-group-picker" data-edit-tags><span class="text-soft small">Đang tải danh sách bạn bè…</span></div>
+                    <input type="hidden" name="tagsLoaded" value="false" data-tags-loaded>
+                </div>
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
                     <button type="submit" class="btn-al btn-al--pink">Lưu chỉnh sửa</button>

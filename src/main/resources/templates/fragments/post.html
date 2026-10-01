@@ -20,6 +20,7 @@
                 <a class="post-time" th:href="@{/posts/{id}(id=${post.id})}"
                    th:title="${@timeAgo.full(post.createdAt)}" th:text="${@timeAgo.format(post.createdAt)}">vừa xong</a>
                 <span class="post-edited" th:if="${post.edited}">(đã chỉnh sửa)</span>
+                <a class="visibility-chip" th:if="${post.category != null}" th:href="@{/categories/{s}(s=${post.category.slug})}" th:text="${post.category.name}">Danh mục</a>
                 <span class="visibility-chip" th:if="${post.paid and !post.locked}" th:text="'Trả phí ' + ${post.unlockPrice} + ' Xu'">Trả phí</span>
                 <span class="visibility-chip" th:if="${post.visibility.name() != 'PUBLIC'}"
                       th:text="${post.visibility.name() == 'PRIVATE'} ? 'Chỉ mình tôi' : 'Bạn bè'">Chỉ mình tôi</span>
@@ -50,7 +51,9 @@
             <ul class="dropdown-menu dropdown-menu-end menu-al">
                 <li>
                     <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editPostModal"
-                            th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()}">Sửa bài</button>
+                            th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()},
+                                     data-category=${post.category != null ? post.category.id : ''}, data-category-name=${post.category != null ? post.category.name : ''},
+                                     data-tagged=${#strings.listJoin(post.tagged.![id], ',')}">Sửa bài</button>
                 </li>
                 <li>
                     <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deletePostModal"

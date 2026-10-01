@@ -49,6 +49,17 @@
             <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
         </div>
 
+        <th:block th:with="cats=${@categoryService.active()}">
+            <div class="field mt-2" th:if="${!#lists.isEmpty(cats)}">
+                <label for="composerCategory" class="field-hint">Danh mục (không bắt buộc)</label>
+                <select id="composerCategory" name="categoryId" class="input-al">
+                    <option value="">Không chọn danh mục</option>
+                    <option th:each="c : ${cats}" th:value="${c.id}" th:text="${c.name}"
+                            th:selected="${composerCategoryId != null and composerCategoryId == c.id}">Danh mục</option>
+                </select>
+            </div>
+        </th:block>
+
         <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
             <label for="composerPrice" class="field-hint">Bài trả phí (không bắt buộc): giá mở khóa bằng Xu</label>
             <input id="composerPrice" name="unlockPrice" type="number" class="input-al" min="1" max="1000"

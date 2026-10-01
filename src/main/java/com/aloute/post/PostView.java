@@ -1,5 +1,6 @@
 package com.aloute.post;
 
+import com.aloute.category.CategoryView;
 import com.aloute.media.MediaKind;
 import com.aloute.reaction.ReactionSummary;
 import com.aloute.user.Role;
@@ -37,7 +38,8 @@ public record PostView(
         PostView sharedPost,
         List<AuthorView> tagged,
         Integer unlockPrice,
-        boolean locked) {
+        boolean locked,
+        CategoryView category) {
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
     }

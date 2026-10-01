@@ -30,6 +30,10 @@
             <span class="stat-sub">+<span th:text="${insights.newFollowers()}">0</span> trong <span th:text="${insights.days()}">7</span> ngày</span>
         </div>
         <div class="note stat">
+            <span class="stat-label">Lượt xem</span>
+            <strong class="stat-value" th:text="${insights.views()}">0</strong>
+        </div>
+        <div class="note stat">
             <span class="stat-label">Cảm xúc</span>
             <strong class="stat-value" th:text="${insights.reactions()}">0</strong>
         </div>
@@ -45,11 +49,23 @@
 
     <section class="note note--taped mb-4" aria-labelledby="chart-title">
         <h2 id="chart-title" class="h4 mb-1">Tương tác mỗi ngày</h2>
-        <p class="text-soft small mb-3">Cảm xúc + bình luận + chia sẻ trên bài của bạn. Hệ thống chưa đếm lượt xem.</p>
+        <p class="text-soft small mb-3">Cảm xúc + bình luận + chia sẻ trên bài của bạn.</p>
         <div class="bars" role="img" th:attr="aria-label='Biểu đồ tương tác ' + ${insights.days()} + ' ngày gần nhất'">
             <div class="bar-col" th:each="d : ${insights.series()}"
                  th:title="${#temporals.format(d.date(), 'dd/MM')} + ': ' + ${d.engagement()} + ' tương tác'">
                 <span class="bar" th:style="'height:' + ${T(com.aloute.creator.InsightsView).percent(d.engagement(), insights.maxDailyEngagement())} + '%'"></span>
+                <span class="bar-label" th:text="${#temporals.format(d.date(), 'dd')}">01</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="note mb-4" aria-labelledby="views-title">
+        <h2 id="views-title" class="h4 mb-1">Lượt xem mỗi ngày</h2>
+        <p class="text-soft small mb-3">Chỉ tính người đã đăng nhập, mỗi người một lượt cho mỗi bài mỗi ngày, không tính bạn.</p>
+        <div class="bars bars--sm" role="img" th:attr="aria-label='Biểu đồ lượt xem ' + ${insights.days()} + ' ngày gần nhất'">
+            <div class="bar-col" th:each="d : ${insights.series()}"
+                 th:title="${#temporals.format(d.date(), 'dd/MM')} + ': ' + ${d.views()} + ' lượt xem'">
+                <span class="bar bar--sky" th:style="'height:' + ${T(com.aloute.creator.InsightsView).percent(d.views(), insights.maxDailyViews())} + '%'"></span>
                 <span class="bar-label" th:text="${#temporals.format(d.date(), 'dd')}">01</span>
             </div>
         </div>
@@ -71,11 +87,12 @@
         <p class="text-soft mb-0" th:if="${#lists.isEmpty(insights.topPosts())}">Chưa có tương tác nào trong khoảng thời gian này.</p>
         <table class="table-al" th:unless="${#lists.isEmpty(insights.topPosts())}">
             <thead>
-            <tr><th>Bài viết</th><th>Cảm xúc</th><th>Bình luận</th><th>Chia sẻ</th></tr>
+            <tr><th>Bài viết</th><th>Lượt xem</th><th>Cảm xúc</th><th>Bình luận</th><th>Chia sẻ</th></tr>
             </thead>
             <tbody>
             <tr th:each="p : ${insights.topPosts()}">
                 <td><a th:href="@{/posts/{id}(id=${p.id()})}" th:text="${p.snippet()}">Nội dung</a></td>
+                <td th:text="${p.views()}">0</td>
                 <td th:text="${p.reactions()}">0</td>
                 <td th:text="${p.comments()}">0</td>
                 <td th:text="${p.shares()}">0</td>

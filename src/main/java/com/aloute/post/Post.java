@@ -77,6 +77,10 @@ public class Post {
     @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
+    /** Danh mục do người đăng chọn (không bắt buộc); xem {@code CategoryService}. */
+    @Column(name = "category_id")
+    private UUID categoryId;
+
     /** Giá (Xu) để mở khóa nội dung; null nghĩa là bài miễn phí. Chỉ Creator đặt được. */
     @Column(name = "unlock_price")
     private Integer unlockPrice;

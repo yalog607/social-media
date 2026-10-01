@@ -796,3 +796,4 @@ body.lightbox-open { overflow: hidden; }
 .paywall { margin: .8rem 0; padding: 1rem; text-align: center; background: var(--paper-2); border: var(--line); border-radius: 12px; border-style: dashed; }
 .fan-badge { display: inline-block; margin-left: .4rem; padding: 0 .45rem; font-size: .7rem; font-weight: 800; background: var(--lemon); border: 2px solid var(--ink); border-radius: var(--r-pill); }
 .notification-body { display: block; font-size: .9rem; color: var(--ink); white-space: pre-line; }
+.bar--sky { background: var(--sky); }

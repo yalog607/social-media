@@ -75,4 +75,47 @@ class PostTagIT extends IntegrationTest {
         assertThatThrownBy(() -> posts.create(author.getId(), "x", Visibility.PUBLIC, List.of(), null, tooMany))
                 .isInstanceOf(InvalidPostException.class);
     }
+
+    @Test
+    void editingReplacesTagsNotifiesOnlyNewPeopleAndNullKeepsThem() {
+        User author = createUser();
+        User a = createUser();
+        User b = createUser();
+        makeFriends(author, a);
+        makeFriends(author, b);
+        Post post = posts.create(author.getId(), "đi chơi", Visibility.PUBLIC, List.of(), null, List.of(a.getId()));
+
+        posts.edit(author.getId(), post.getId(), "đi chơi", null, null, null);
+        assertThat(assembler.assemble(List.of(post), author.getId()).get(0).tagged()).extracting(PostView.AuthorView::id)
+                .as("null = giữ nguyên").containsExactly(a.getId());
+
+        posts.edit(author.getId(), post.getId(), "đi chơi", null, List.of(a.getId(), b.getId()), null);
+        assertThat(assembler.assemble(List.of(post), author.getId()).get(0).tagged()).extracting(PostView.AuthorView::id)
+                .containsExactlyInAnyOrder(a.getId(), b.getId());
+        assertThat(notifications.listRecent(a.getId())).filteredOn(n -> n.text().contains("gắn thẻ")).as("không báo lại người cũ").hasSize(1);
+        assertThat(notifications.listRecent(b.getId())).filteredOn(n -> n.text().contains("gắn thẻ")).hasSize(1);
+
+        posts.edit(author.getId(), post.getId(), "đi chơi", null, List.of(b.getId()), null);
+        assertThat(assembler.assemble(List.of(post), author.getId()).get(0).tagged()).extracting(PostView.AuthorView::id)
+                .containsExactly(b.getId());
+
+        posts.edit(author.getId(), post.getId(), "đi chơi", null, List.of(), null);
+        assertThat(assembler.assemble(List.of(post), author.getId()).get(0).tagged()).isEmpty();
+    }
+
+    @Test
+    void editingTagsFollowsTheSameRulesAsCreating() {
+        User author = createUser();
+        User friend = createUser();
+        User stranger = createUser();
+        makeFriends(author, friend);
+        Post post = posts.create(author.getId(), "x", Visibility.PUBLIC, List.of(), null);
+
+        assertThatThrownBy(() -> posts.edit(author.getId(), post.getId(), "x", null, List.of(stranger.getId()), null))
+                .isInstanceOf(InvalidPostException.class);
+        posts.edit(author.getId(), post.getId(), "x", null, List.of(friend.getId()), null);
+
+        posts.edit(author.getId(), post.getId(), "x", Visibility.PRIVATE, List.of(friend.getId()), null);
+        assertThat(assembler.assemble(List.of(post), author.getId()).get(0).tagged()).as("chuyển riêng tư thì gỡ hết thẻ").isEmpty();
+    }
 }
