@@ -72,6 +72,15 @@
     </section>
 
     <!-- Mật khẩu -->
+    <section class="note note--lemon mb-4" aria-labelledby="s-creator" th:unless="${caps.contains('CREATOR')}">
+        <h2 id="s-creator" class="h3 mb-2">Trở thành Creator</h2>
+        <p>Mở Creator Studio để xem thống kê tương tác, hẹn giờ đăng bài và nhận donate từ người theo dõi. Bạn có thể nâng cấp ngay, không cần chờ duyệt.</p>
+        <form th:action="@{/settings/creator}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <button type="submit" class="btn-al btn-al--role">Trở thành Creator</button>
+        </form>
+    </section>
+
     <section class="note" aria-labelledby="s-password">
         <h2 id="s-password" class="h3 mb-3" th:text="${hasPassword} ? 'Đổi mật khẩu' : 'Tạo mật khẩu'">Đổi mật khẩu</h2>
         <p class="text-soft" th:unless="${hasPassword}">Bạn đang đăng nhập bằng Google/Facebook. Tạo mật khẩu để có thêm cách đăng nhập.</p>

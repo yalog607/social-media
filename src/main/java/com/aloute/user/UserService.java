@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.UUID;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -76,6 +77,18 @@ public class UserService {
         }
         user.setPasswordHash(encoder.encode(rawPassword));
         users.save(user);
+    }
+
+    /**
+     * Tự nâng cấp lên Creator (không cần duyệt). Quyền nằm trong JWT nên người gọi phải cấp lại phiên để có hiệu lực ngay.
+     *
+     * @return người dùng sau khi cập nhật
+     */
+    @Transactional
+    public User becomeCreator(UUID userId) {
+        User user = users.findById(userId).filter(User::isActive).orElseThrow();
+        user.getRoles().add(Role.CREATOR);
+        return users.save(user);
     }
 
     /** Sinh username duy nhất từ phần trước dấu @ của email, thêm hậu tố số nếu trùng. */

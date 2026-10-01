@@ -11,12 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class StaffAreaController {
 
-    @GetMapping("/creator")
-    public String creator(Model model) {
-        return area(model, "creator", "Creator Studio",
-                "Thống kê lượt tiếp cận, hẹn giờ đăng bài, nhận donate và tặng huy hiệu cho fan cứng.", "4");
-    }
-
     @GetMapping("/manage")
     public String manage(Model model) {
         return area(model, "manage", "Kiểm duyệt",

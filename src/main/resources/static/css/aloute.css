@@ -776,3 +776,20 @@ body.lightbox-open { overflow: hidden; }
 .chat-attach-btn svg, .chat-send-btn svg { width: 20px; height: 20px; }
 .chat-attach-preview { font-size: .82rem; color: var(--ink-soft); margin-bottom: .4rem; display: flex; align-items: center; gap: .5rem; }
 .chat-attach-preview button { border: none; background: none; color: var(--danger); font-weight: 800; cursor: pointer; }
+
+/* ---------- Creator Studio ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.stat { display: flex; flex-direction: column; gap: .15rem; margin: 0; }
+.stat-label { font-size: .85rem; font-weight: 700; color: var(--ink-soft); }
+.stat-value { font: 800 2rem/1.1 var(--font-display, inherit); }
+.stat-sub { font-size: .8rem; color: var(--ink-soft); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 160px; }
+.bars--sm { height: 90px; }
+.bar-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 2px; }
+.bar { display: block; background: var(--pink); border: 2px solid var(--ink); border-radius: 4px 4px 0 0; min-height: 0; }
+.bar--mint { background: var(--mint); }
+.bar-label { font-size: .65rem; text-align: center; color: var(--ink-soft); overflow: hidden; }
+.table-al { width: 100%; border-collapse: collapse; }
+.table-al th, .table-al td { padding: .5rem .6rem; border-bottom: 2px solid var(--ink); text-align: left; }
+.table-al th { font-size: .85rem; color: var(--ink-soft); }
+.table-al td:not(:first-child), .table-al th:not(:first-child) { text-align: right; white-space: nowrap; }
