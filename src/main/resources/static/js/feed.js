@@ -258,6 +258,7 @@
     const trigger = event.relatedTarget;
     if (!trigger || !trigger.dataset.postId) return;
     const form = modal.querySelector('form');
+    if (!form) return; // hộp thoại không có biểu mẫu (ví dụ danh sách người thả cảm xúc) có handler riêng
     // Đọc lại cookie CSRF ngay lúc mở hộp thoại: trang có thể đã mở từ lâu, và giá trị in sẵn khi tải trang
     // đôi khi bị các request tài nguyên tĩnh chạy song song ghi đè ngay sau đó (xem CsrfCookieFilter).
     const csrfInput = form.querySelector('input[name="_csrf"]');

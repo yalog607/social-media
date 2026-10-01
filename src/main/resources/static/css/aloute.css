@@ -737,7 +737,7 @@ body.lightbox-open { overflow: hidden; }
 }
 #chat-main > * { flex: none; }
 #chat-main > .chat-window { flex: 1 1 auto; }
-#chat-main > section details[open] > div { max-height: 30vh; overflow-y: auto; }
+#chat-main > section details[open] > div { max-height: 40vh; overflow-y: auto; }
 .chat-window {
   display: flex; flex-direction: column; gap: .2rem;
   min-height: 0; overflow-y: auto; overscroll-behavior: contain;
@@ -810,3 +810,7 @@ body.lightbox-open { overflow: hidden; }
 .input-al--sm { padding: .3rem .6rem; font-size: .85rem; max-width: 160px; }
 .streak { display: inline-flex; align-items: center; gap: .25rem; margin: 0; font-size: .85rem; font-weight: 700; }
 .streak--risk { color: var(--danger); }
+.chat-group-forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: .4rem 1rem; }
+.chat-group-forms .chat-new-form { margin-bottom: .4rem; }
+.composer-more > summary { display: inline-block; cursor: pointer; }
+.table-al .btn-al { white-space: nowrap; }

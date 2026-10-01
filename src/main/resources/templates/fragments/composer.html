@@ -49,6 +49,10 @@
             <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
         </div>
 
+        <details class="composer-more mt-2" th:with="hasExtras=${composerCategoryId != null or composerUnlockPrice != null or composerScheduledAt != null or (composerTagged != null and !#lists.isEmpty(composerTagged))}"
+                 th:attr="open=${hasExtras} ? 'open'">
+            <summary class="btn-al btn-al--sm btn-al--white">Tùy chọn thêm</summary>
+            <div class="mt-2">
         <th:block th:with="cats=${@categoryService.active()}">
             <div class="field mt-2" th:if="${!#lists.isEmpty(cats)}">
                 <label for="composerCategory" class="field-hint">Danh mục (không bắt buộc)</label>
@@ -79,6 +83,9 @@
                     <input type="checkbox" name="taggedUserIds" th:value="${f.id}" th:checked="${#lists.contains(picked, f.id)}">
                     <span th:text="${f.displayName}">Bạn</span>
                 </label>
+            </div>
+        </details>
+
             </div>
         </details>
 
