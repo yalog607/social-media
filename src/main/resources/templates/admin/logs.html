@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Nhật ký hệ thống', ~{::main}, 'admin', ~{})}">
+<head><title>Nhật ký hệ thống</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('logs')}"></th:block>
+
+    <form method="get" th:action="@{/admin/logs}" class="d-flex gap-2 mb-3">
+        <input name="action" class="input-al" th:value="${action}" placeholder="Lọc theo hành động, ví dụ USER_DELETED" aria-label="Lọc theo hành động">
+        <button type="submit" class="btn-al btn-al--sm">Lọc</button>
+    </form>
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(entries)}">Chưa có dòng nhật ký nào.</p>
+    <table class="table-al" th:unless="${#lists.isEmpty(entries)}">
+        <thead><tr><th>Lúc</th><th>Ai</th><th>Hành động</th><th>Chi tiết</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${entries}">
+            <td th:title="${@timeAgo.full(e.createdAt())}" th:text="${@timeAgo.format(e.createdAt())}">vừa xong</td>
+            <td th:text="${e.actorName() != null} ? ${e.actorName()} : '—'">Tên</td>
+            <td th:text="${e.action()}">ACTION</td>
+            <td th:text="${e.detail() != null} ? ${e.detail()} : ''">Chi tiết</td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="d-flex gap-2 mt-3">
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${page > 0}" th:href="@{/admin/logs(page=${page - 1}, action=${action})}">← Mới hơn</a>
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${hasMore}" th:href="@{/admin/logs(page=${page + 1}, action=${action})}">Cũ hơn →</a>
+    </div>
+</main>
+</body>
+</html>

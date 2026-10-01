@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Thanh điều hướng con của khu Quản trị. Tham số: trang đang mở. -->
+<nav th:fragment="tabs(current)" class="d-flex flex-wrap gap-2 mb-3" aria-label="Quản trị">
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'dashboard'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/admin}">Tổng quan</a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'staff'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/admin/staff}">Manager</a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'users'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/admin/users}">Người dùng</a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'logs'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/admin/logs}">Nhật ký</a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'settings'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/admin/settings}">Cấu hình</a>
+</nav>
+</body>
+</html>

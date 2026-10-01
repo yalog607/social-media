@@ -47,6 +47,8 @@ public class SocialAuthController {
         } catch (SocialLoginService.UnverifiedEmailException e) {
             return error(HttpStatus.UNPROCESSABLE_ENTITY,
                     "Tài khoản này chưa có email đã xác minh nên không đăng nhập được");
+        } catch (com.aloute.user.RegistrationClosedException e) {
+            return error(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (AuthService.AccountSuspendedException e) {
             return error(HttpStatus.FORBIDDEN, "Tài khoản của bạn đang bị khóa");
         } catch (AuthService.InvalidCredentialsException e) {

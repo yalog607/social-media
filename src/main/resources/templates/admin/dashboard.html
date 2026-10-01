@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Quản trị', ~{::main}, 'admin', ~{})}">
+<head><title>Quản trị</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('dashboard')}"></th:block>
+
+    <section class="stat-grid">
+        <div class="note stat" th:each="e : ${overview}">
+            <span class="stat-label" th:text="${e.key}">Nhãn</span>
+            <strong class="stat-value" th:text="${e.value}">0</strong>
+        </div>
+    </section>
+</main>
+</body>
+</html>
