@@ -22,6 +22,8 @@ import java.util.UUID;
 public class ReactionService {
 
     private final ReactionRepository reactions;
+    public static final int MAX_REACTORS = 200;
+
     private final PostService posts;
     private final UserRepository users;
     private final RateLimiter rateLimiter;
@@ -56,6 +58,18 @@ public class ReactionService {
             notifications.postReacted(userId, post);
         }
         return summarize(postId, userId);
+    }
+
+    /**
+     * Những người đã thả cảm xúc cho bài (tối đa {@value #MAX_REACTORS}, mới nhất trước).
+     *
+     * @throws com.aloute.post.PostNotFoundException bài không tồn tại hoặc {@code viewerId} không được xem
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<Reactor> reactors(UUID postId, UUID viewerId) {
+        posts.getVisible(postId, viewerId);
+        return reactions.findReactors(postId, org.springframework.data.domain.PageRequest.of(0, MAX_REACTORS)).stream()
+                .map(r -> new Reactor(com.aloute.chat.AuthorViews.of(r.getUser()), r.getType())).toList();
     }
 
     @Transactional(readOnly = true)

@@ -98,8 +98,11 @@
         <p class="note note--sky post-shared-gone" th:unless="${post.sharedPost != null}">Bài gốc không còn hiển thị.</p>
     </th:block>
 
-    <div class="post-stats" th:if="${post.reactions.total() > 0 or post.commentCount > 0 or post.shareCount > 0}">
-        <span th:if="${post.reactions.total() > 0}" th:text="${post.reactions.total()} + ' cảm xúc'">0 cảm xúc</span>
+    <div class="post-stats" th:hidden="${post.reactions.total() == 0 and post.commentCount == 0 and post.shareCount == 0}">
+        <button type="button" class="stat-link" data-show-reactors th:if="${me != null}" th:hidden="${post.reactions.total() == 0}"
+                data-bs-toggle="modal" data-bs-target="#reactorsModal" th:attr="data-post-id=${post.id}">
+            <span data-reactions-total th:text="${post.reactions.total()}">0</span> cảm xúc</button>
+        <span th:if="${me == null and post.reactions.total() > 0}" th:text="${post.reactions.total()} + ' cảm xúc'">0 cảm xúc</span>
         <span th:if="${post.commentCount > 0}" th:text="${post.commentCount} + ' bình luận'">0 bình luận</span>
         <span th:if="${post.shareCount > 0}" th:text="${post.shareCount} + ' lượt chia sẻ'">0 lượt chia sẻ</span>
     </div>

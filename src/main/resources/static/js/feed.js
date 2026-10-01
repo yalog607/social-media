@@ -289,6 +289,37 @@
       .catch(function () { window.Aloute.toast('Chưa sao chép được, thử lại nhé.', 'error'); });
   });
 
+  // Cập nhật dòng "N cảm xúc" (và ẩn/hiện cả dòng thống kê) sau khi thả hoặc bỏ cảm xúc
+  function updateReactionStats(post, total) {
+    if (!post) return;
+    const stats = post.querySelector('.post-stats');
+    const button = post.querySelector('[data-show-reactors]');
+    if (button) {
+      button.querySelector('[data-reactions-total]').textContent = String(total);
+      button.hidden = total === 0;
+    }
+    if (stats) {
+      const others = Array.from(stats.children).some(function (child) { return child !== button && !child.hidden; });
+      stats.hidden = total === 0 && !others;
+    }
+  }
+
+  // ---------- Xem ai đã thả cảm xúc ----------
+  document.addEventListener('show.bs.modal', async function (event) {
+    const modal = event.target;
+    const trigger = event.relatedTarget;
+    if (modal.id !== 'reactorsModal' || !trigger || !trigger.dataset.postId) return;
+    const box = modal.querySelector('[data-reactors-list]');
+    box.textContent = 'Đang tải…';
+    try {
+      const response = await window.Aloute.api('/api/posts/' + trigger.dataset.postId + '/reactions', { headers: { Accept: 'text/html' } });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      box.innerHTML = await response.text();
+    } catch (error) {
+      box.textContent = 'Chưa tải được danh sách, thử lại nhé.';
+    }
+  });
+
   // ---------- Cảm xúc: bấm để thả/đổi/bỏ, cập nhật số đếm ngay không cần tải lại trang ----------
   document.addEventListener('click', async function (event) {
     const chip = event.target.closest('.reaction-chip');
@@ -307,6 +338,7 @@
         item.classList.toggle('is-active', active);
         item.setAttribute('aria-pressed', String(active));
       });
+      updateReactionStats(actions.closest('.post'), data.total);
     } catch (error) {
       window.Aloute.toast('Chưa thả được cảm xúc, thử lại nhé.', 'error');
     }

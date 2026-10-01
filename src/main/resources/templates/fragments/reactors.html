@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Danh sách người đã thả cảm xúc. Model: reactors (List&lt;Reactor&gt;). -->
+<th:block th:fragment="list">
+    <p class="text-soft mb-0" th:if="${#lists.isEmpty(reactors)}">Chưa có ai thả cảm xúc.</p>
+    <a class="search-user" th:each="r : ${reactors}" th:href="@{/u/{u}(u=${r.user.username})}">
+        <span th:replace="~{fragments/ui :: avatar(${r.user}, '')}"></span>
+        <span class="search-user-info">
+            <span class="search-user-name" th:text="${r.user.displayName}">Tên</span>
+        </span>
+        <span class="ms-auto fs-4" th:text="${r.type.emoji()}" th:title="${r.type.label()}">❤️</span>
+    </a>
+</th:block>
+</body>
+</html>

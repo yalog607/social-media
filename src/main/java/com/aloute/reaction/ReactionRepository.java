@@ -24,6 +24,13 @@ public interface ReactionRepository extends JpaRepository<Reaction, UUID> {
     @Query("select r.post.id as postId, r.type as type from Reaction r where r.post.id in :postIds and r.user.id = :userId")
     List<MyPostReaction> myReactions(@Param("postIds") Collection<UUID> postIds, @Param("userId") UUID userId);
 
+    /** Người đã thả cảm xúc cho một bài (còn hoạt động), mới nhất trước. */
+    @Query("""
+            select r from Reaction r join fetch r.user u join fetch u.profile
+            where r.post.id = :postId and u.status = com.aloute.user.UserStatus.ACTIVE
+            order by r.createdAt desc, r.id desc""")
+    List<Reaction> findReactors(@Param("postId") UUID postId, org.springframework.data.domain.Pageable pageable);
+
     interface PostReactionCount {
         UUID getPostId();
 
