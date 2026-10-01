@@ -72,6 +72,11 @@ public class NotificationService {
         notify(recipientId, actorId, NotificationType.POST_TAGGED, post);
     }
 
+    @Transactional
+    public void donated(UUID actorId, UUID recipientId) {
+        notify(recipientId, actorId, NotificationType.DONATION, null);
+    }
+
     private void notify(UUID recipientId, UUID actorId, NotificationType type, Post post) {
         if (recipientId.equals(actorId)) {
             return;
@@ -125,6 +130,7 @@ public class NotificationService {
             case POST_COMMENT -> name + " đã bình luận về bài viết của bạn";
             case COMMENT_REPLY -> name + " đã trả lời bình luận của bạn";
             case POST_SHARED -> name + " đã chia sẻ bài viết của bạn";
+            case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
         };
     }

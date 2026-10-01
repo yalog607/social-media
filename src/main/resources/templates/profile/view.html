@@ -32,6 +32,9 @@
                     </form>
 
                     <th:block th:unless="${blockedEitherWay}">
+                        <button type="button" class="btn-al btn-al--role btn-al--sm" th:if="${owner.hasRole(T(com.aloute.user.Role).CREATOR)}"
+                                data-bs-toggle="modal" data-bs-target="#donateModal"
+                                th:attr="data-donate-user=${owner.id}, data-donate-name=${owner.profile.displayName}">Tặng Xu</button>
                         <form method="post" th:if="${friendState.name() == 'NONE'}" th:action="@{/u/{u}/friend-request(u=${owner.username})}">
                             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                             <input type="hidden" name="next" th:value="${currentPath}">

@@ -20,6 +20,7 @@
                 <a class="post-time" th:href="@{/posts/{id}(id=${post.id})}"
                    th:title="${@timeAgo.full(post.createdAt)}" th:text="${@timeAgo.format(post.createdAt)}">vừa xong</a>
                 <span class="post-edited" th:if="${post.edited}">(đã chỉnh sửa)</span>
+                <span class="visibility-chip" th:if="${post.paid and !post.locked}" th:text="'Trả phí ' + ${post.unlockPrice} + ' Xu'">Trả phí</span>
                 <span class="visibility-chip" th:if="${post.visibility.name() != 'PUBLIC'}"
                       th:text="${post.visibility.name() == 'PRIVATE'} ? 'Chỉ mình tôi' : 'Bạn bè'">Chỉ mình tôi</span>
             </div>
@@ -58,6 +59,13 @@
             </ul>
         </div>
     </header>
+
+    <div class="paywall" th:if="${post.locked}">
+        <p class="mb-2"><strong>Nội dung trả phí</strong> — mở khóa bằng <span th:text="${post.unlockPrice}">10</span> Xu để xem.</p>
+        <button type="button" class="btn-al btn-al--role btn-al--sm" th:if="${me != null}"
+                th:attr="data-unlock-post=${post.id}">Mở khóa <span th:text="${post.unlockPrice}">10</span> Xu</button>
+        <a class="btn-al btn-al--role btn-al--sm" th:unless="${me != null}" th:href="@{/login}">Đăng nhập để mở khóa</a>
+    </div>
 
     <div class="post-text" th:if="${post.hasText()}" th:utext="${post.contentHtml}"></div>
 
@@ -105,6 +113,9 @@
         </div>
         <button type="button" class="post-action-btn" data-toggle-comments
                 th:attr="data-comments-url=@{/api/posts/{id}/comments(id=${post.id})}">Bình luận</button>
+        <button type="button" class="post-action-btn" th:if="${me != null and !post.mine and post.author.primaryRole.name() == 'CREATOR'}"
+                data-bs-toggle="modal" data-bs-target="#donateModal"
+                th:attr="data-donate-user=${post.author.id}, data-donate-name=${post.author.displayName}">Tặng Xu</button>
         <button type="button" class="post-action-btn" th:if="${me != null}"
                 data-bs-toggle="modal" data-bs-target="#sharePostModal" th:attr="data-post-id=${post.id}">Chia sẻ</button>
     </div>

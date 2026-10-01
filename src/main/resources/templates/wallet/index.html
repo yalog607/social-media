@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Ví Xu', ~{::main}, 'none', ~{})}">
+<head><title>Ví Xu</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Ví Xu</h1></div>
+
+    <section class="note note--taped mb-4">
+        <p class="stat-label mb-1">Số dư</p>
+        <p class="stat-value mb-3"><span th:text="${wallet.balance()}">0</span> Xu</p>
+        <form method="post" th:action="@{/wallet/daily}" th:if="${wallet.canClaimDaily()}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <button type="submit" class="btn-al btn-al--role">Nhận <span th:text="${dailyBonus}">20</span> Xu hôm nay</button>
+        </form>
+        <p class="text-soft mb-0" th:unless="${wallet.canClaimDaily()}">Hôm nay bạn đã nhận Xu rồi, mai quay lại nhé.</p>
+        <p class="field-hint mt-3 mb-0">Xu là tiền ảo trong ALOUTE, không quy đổi ra tiền thật. Dùng để tặng Creator và mở khóa bài trả phí.</p>
+    </section>
+
+    <section class="note" aria-labelledby="history-title">
+        <h2 id="history-title" class="h4 mb-3">Giao dịch gần đây</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(wallet.recent())}">Chưa có giao dịch nào.</p>
+        <table class="table-al" th:unless="${#lists.isEmpty(wallet.recent())}">
+            <thead><tr><th>Giao dịch</th><th>Với</th><th>Xu</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${wallet.recent()}">
+                <td th:text="${e.type().label()}">Loại</td>
+                <td th:text="${e.counterparty() != null} ? ${e.counterparty()} : '—'">—</td>
+                <td th:text="${e.signedAmount()}">+10</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

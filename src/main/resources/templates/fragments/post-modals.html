@@ -78,6 +78,25 @@
         </div>
     </div>
 
+    <div class="modal fade" id="donateModal" tabindex="-1" aria-labelledby="donateTitle" aria-hidden="true" th:if="${me != null}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" novalidate data-donate-form>
+                <input type="hidden" name="toUserId">
+                <h2 class="h4 mb-3" id="donateTitle">Tặng Xu cho <span data-donate-name>Creator</span></h2>
+                <div class="field">
+                    <label for="donateAmount">Số Xu</label>
+                    <input id="donateAmount" name="amount" type="number" class="input-al" min="1" max="1000" value="10" required>
+                    <p class="field-hint">Xu ảo, nhận miễn phí ở <a th:href="@{/wallet}">Ví Xu</a>.</p>
+                </div>
+                <p class="field-error" data-donate-error role="alert" hidden></p>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Tặng Xu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal fade" id="sharePostModal" tabindex="-1" aria-labelledby="sharePostTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form class="modal-content note" method="post" novalidate>

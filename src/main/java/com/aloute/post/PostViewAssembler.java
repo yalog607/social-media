@@ -5,6 +5,7 @@ import com.aloute.reaction.ReactionService;
 import com.aloute.reaction.ReactionSummary;
 import com.aloute.user.Profile;
 import com.aloute.user.User;
+import com.aloute.wallet.PaidContentAccess;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -28,15 +30,17 @@ public class PostViewAssembler {
     private final ReactionService reactions;
     private final CommentRepository commentRepository;
     private final PostTagRepository tagRepository;
+    private final PaidContentAccess paidAccess;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
                              ReactionService reactions, CommentRepository commentRepository,
-                             PostTagRepository tagRepository) {
+                             PostTagRepository tagRepository, PaidContentAccess paidAccess) {
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
         this.reactions = reactions;
         this.commentRepository = commentRepository;
         this.tagRepository = tagRepository;
+        this.paidAccess = paidAccess;
     }
 
     /** @param viewerId người xem, null nếu là khách (để đánh dấu bài "của tôi") */
@@ -69,11 +73,12 @@ public class PostViewAssembler {
         Map<UUID, Long> commentCountByPost = loadCommentCounts(allIds);
         Map<UUID, Long> shareCountByPost = loadShareCounts(allIds);
         Map<UUID, List<PostView.AuthorView>> taggedByPost = loadTagged(allIds);
+        Set<UUID> unlocked = paidAccess.unlockedAmong(viewerId, allIds);
 
         // Bước 1: dựng bài GỐC trước (sharedPost luôn null ở bước này — bài gốc không bao giờ tự nó là một chia sẻ khác)
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
-            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost, taggedByPost, null));
+            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost, taggedByPost, unlocked, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -138,20 +143,22 @@ public class PostViewAssembler {
     private static PostView toView(Post post, UUID viewerId, Map<UUID, List<PostView.MediaView>> mediaByPost,
                                    Map<UUID, ReactionSummary> reactionsByPost, Map<UUID, Long> commentCountByPost,
                                    Map<UUID, Long> shareCountByPost,
-                                   Map<UUID, List<PostView.AuthorView>> taggedByPost, PostView sharedPost) {
+                                   Map<UUID, List<PostView.AuthorView>> taggedByPost, Set<UUID> unlocked,
+                                   PostView sharedPost) {
         User author = post.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
         UUID sharedId = sharedPost != null ? sharedPost.id() : null;
+        boolean locked = post.getUnlockPrice() != null && !mine && !unlocked.contains(post.getId());
         return new PostView(
                 post.getId(),
                 new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
                         profile.getAvatarUrl(), author.primaryRole()),
-                PostTextRenderer.toSafeHtml(post.getContent()),
+                locked ? "" : PostTextRenderer.toSafeHtml(post.getContent()),
                 post.getVisibility(),
                 post.getCreatedAt(),
                 post.getEditedAt() != null,
-                mediaByPost.getOrDefault(post.getId(), List.of()),
+                locked ? List.of() : mediaByPost.getOrDefault(post.getId(), List.of()),
                 mine,
                 mine ? post.getContent() : null,
                 reactionsByPost.getOrDefault(post.getId(), ReactionSummary.EMPTY),
@@ -159,13 +166,16 @@ public class PostViewAssembler {
                 shareCountByPost.getOrDefault(post.getId(), 0L),
                 sharedId,
                 sharedPost,
-                taggedByPost.getOrDefault(post.getId(), List.of()));
+                taggedByPost.getOrDefault(post.getId(), List.of()),
+                post.getUnlockPrice(),
+                locked);
     }
 
     /** Bản sao của {@code view} với {@code sharedPost} được gắn (bản thân {@code view} được dựng như bài thường ở bước 1). */
     private static PostView withShared(PostView view, UUID sharedPostId, PostView sharedPost) {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
-                view.shareCount(), sharedPostId, sharedPost, view.tagged());
+                view.shareCount(), sharedPostId, sharedPost, view.tagged(),
+                view.unlockPrice(), view.locked());
     }
 }

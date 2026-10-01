@@ -30,6 +30,7 @@ public class PostService {
     private final UserRepository users;
     private final MediaService media;
     public static final int MAX_TAGS = 10;
+    public static final int MAX_UNLOCK_PRICE = 1000;
 
     private final RateLimiter rateLimiter;
     private final Clock clock;
@@ -59,7 +60,7 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video) {
-        return create(authorId, content, visibility, images, video, List.of());
+        return create(authorId, content, visibility, images, video, List.of(), null);
     }
 
     /**
@@ -70,6 +71,18 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, null);
+    }
+
+    /**
+     * Như trên, thêm {@code unlockPrice}: giá (Xu) để xem bài. Chỉ Creator đặt được, từ 1 đến
+     * {@value #MAX_UNLOCK_PRICE}; null là bài miễn phí.
+     *
+     * @throws InvalidPostException giá không hợp lệ hoặc người đăng chưa phải Creator
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility,
+                       List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
         boolean hasMedia = hasContent(video) || (images != null && images.stream().anyMatch(PostService::hasContent));
@@ -79,6 +92,14 @@ public class PostService {
         User author = users.findById(authorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
 
+        if (unlockPrice != null) {
+            if (!author.hasRole(com.aloute.user.Role.CREATOR)) {
+                throw new InvalidPostException("Chỉ Creator mới đặt giá cho bài viết được.");
+            }
+            if (unlockPrice < 1 || unlockPrice > MAX_UNLOCK_PRICE) {
+                throw new InvalidPostException("Giá mở khóa từ 1 đến " + MAX_UNLOCK_PRICE + " Xu.");
+            }
+        }
         Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
         List<UUID> tagIds = validTagIds(authorId, taggedUserIds, chosen);
 
@@ -87,6 +108,7 @@ public class PostService {
             Post post = new Post();
             post.setAuthor(author);
             post.setVisibility(chosen);
+            post.setUnlockPrice(unlockPrice);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();

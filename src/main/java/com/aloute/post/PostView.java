@@ -17,7 +17,8 @@ import java.util.UUID;
  * {@code sharedPostId} khác null nghĩa là bài này là một lượt CHIA SẺ. {@code sharedPost} là bài gốc đã dựng
  * sẵn, hoặc {@code null} nếu bài gốc không còn xem được (đã xóa/chuyển riêng tư) — khi đó template hiện khung
  * "Bài gốc không còn hiển thị" thay vì nội dung. {@code sharedPost} không bao giờ tự nó là một bài chia sẻ khác.
- * {@code tagged} là các bạn bè được gắn thẻ (chỉ những người còn hoạt động).
+ * {@code unlockPrice} khác null là bài trả phí; {@code locked} nghĩa là người xem CHƯA được xem nội dung — khi đó
+ * chữ và media đã bị bỏ khỏi view (không chỉ ẩn bằng CSS). {@code tagged} là các bạn bè được gắn thẻ (chỉ những người còn hoạt động).
  */
 public record PostView(
         UUID id,
@@ -34,7 +35,9 @@ public record PostView(
         long shareCount,
         UUID sharedPostId,
         PostView sharedPost,
-        List<AuthorView> tagged) {
+        List<AuthorView> tagged,
+        Integer unlockPrice,
+        boolean locked) {
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
     }
@@ -61,6 +64,10 @@ public record PostView(
 
     public boolean isPublic() {
         return visibility == Visibility.PUBLIC;
+    }
+
+    public boolean isPaid() {
+        return unlockPrice != null;
     }
 
     public boolean isShare() {

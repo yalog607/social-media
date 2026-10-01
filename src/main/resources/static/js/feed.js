@@ -92,6 +92,71 @@
     }
   });
 
+  // ---------- Tặng Xu cho Creator và mở khóa bài trả phí ----------
+  document.addEventListener('show.bs.modal', function (event) {
+    const modal = event.target;
+    const trigger = event.relatedTarget;
+    if (modal.id !== 'donateModal' || !trigger || !trigger.dataset.donateUser) return;
+    const form = modal.querySelector('[data-donate-form]');
+    form.elements.toUserId.value = trigger.dataset.donateUser;
+    modal.querySelector('[data-donate-name]').textContent = trigger.dataset.donateName || 'Creator';
+    form.querySelector('[data-donate-error]').hidden = true;
+  });
+
+  // Gửi một form/nút tới API Xu; trả {ok, data} và hiển thị thông báo lỗi tiếng Việt do máy chủ trả về
+  async function postCoins(url, bodyText) {
+    const response = await window.Aloute.api(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: bodyText,
+    });
+    let data = {};
+    try { data = await response.json(); } catch (ignored) { /* không có nội dung JSON */ }
+    return { ok: response.ok, data: data };
+  }
+
+  document.addEventListener('submit', async function (event) {
+    const form = event.target.closest('[data-donate-form]');
+    if (!form) return;
+    event.preventDefault();
+    const error = form.querySelector('[data-donate-error]');
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const result = await postCoins('/api/donations', new URLSearchParams(new FormData(form)).toString());
+      if (!result.ok) {
+        error.textContent = result.data.error || 'Chưa tặng được Xu, thử lại nhé.';
+        error.hidden = false;
+        return;
+      }
+      bootstrap.Modal.getInstance(form.closest('.modal')).hide();
+      window.Aloute.toast('Đã tặng Xu, cảm ơn bạn!', 'success');
+    } catch (failure) {
+      error.textContent = 'Chưa tặng được Xu, thử lại nhé.';
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+
+  document.addEventListener('click', async function (event) {
+    const button = event.target.closest('[data-unlock-post]');
+    if (!button || button.disabled) return;
+    button.disabled = true;
+    try {
+      const result = await postCoins('/api/posts/' + button.dataset.unlockPost + '/unlock', '');
+      if (!result.ok) {
+        window.Aloute.toast(result.data.error || 'Chưa mở khóa được, thử lại nhé.', 'error');
+        button.disabled = false;
+        return;
+      }
+      window.location.reload();
+    } catch (failure) {
+      window.Aloute.toast('Chưa mở khóa được, thử lại nhé.', 'error');
+      button.disabled = false;
+    }
+  });
+
   // ---------- Hộp thoại sửa/xóa/chia sẻ dùng chung: điền dữ liệu của bài vừa bấm ----------
   document.addEventListener('show.bs.modal', function (event) {
     const modal = event.target;
