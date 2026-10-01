@@ -23,14 +23,67 @@
         </div>
     </div>
 
-    <section class="mb-4" th:if="${header.group}">
-        <details>
-            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer">Thành viên &amp; thêm người</summary>
+    <section class="mb-3" aria-label="Cài đặt hội thoại">
+        <details class="chat-settings">
+            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer"
+                     th:text="${header.group} ? 'Thành viên & cài đặt nhóm' : 'Biệt danh'">Cài đặt</summary>
             <div class="mt-3">
-                <p class="d-flex flex-wrap gap-2 mb-3">
-                    <span class="role-chip" th:each="m : ${members}" th:text="${m.displayName}">Tên</span>
-                </p>
-                <form method="post" th:if="${!#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
+                <th:block th:if="${canManage}">
+                    <form method="post" th:action="@{/messages/{id}/title(id=${conversation.id})}" class="chat-new-form">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input class="input-al" name="title" required maxlength="100" th:value="${header.title}" aria-label="Tên nhóm">
+                        <button type="submit" class="btn-al btn-al--pink btn-al--sm">Đổi tên nhóm</button>
+                    </form>
+                    <form method="post" enctype="multipart/form-data" th:action="@{/messages/{id}/avatar(id=${conversation.id})}" class="chat-new-form">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input class="input-al" type="file" name="avatar" required accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Ảnh nhóm">
+                        <button type="submit" class="btn-al btn-al--sky btn-al--sm">Đổi ảnh nhóm</button>
+                    </form>
+                </th:block>
+
+                <ul class="list-unstyled chat-members">
+                    <li class="chat-member" th:each="m : ${memberViews}">
+                        <div class="chat-member-head">
+                            <span th:replace="~{fragments/ui :: avatar(${m}, 'avatar--sm')}"></span>
+                            <span>
+                                <strong th:text="${m.shownName()}">Tên</strong>
+                                <span class="text-soft small" th:if="${m.nickname != null}" th:text="'(' + ${m.displayName} + ')'">(tên thật)</span>
+                                <span class="role-chip" th:if="${header.group}" th:text="${m.role.label()}">Thành viên</span>
+                            </span>
+                        </div>
+                        <div class="chat-member-actions">
+                            <form method="post" class="d-flex gap-1"
+                                  th:if="${!header.group or m.id == me.id or (canManage and myRole.outranks(m.role))}"
+                                  th:action="@{/messages/{id}/members/{uid}/nickname(id=${conversation.id}, uid=${m.id})}">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <input class="input-al input-al--sm" name="nickname" th:maxlength="${maxNickname}" th:value="${m.nickname}"
+                                       placeholder="Biệt danh" th:attr="aria-label='Biệt danh của ' + ${m.displayName}">
+                                <button type="submit" class="btn-al btn-al--white btn-al--sm">Lưu</button>
+                            </form>
+                            <th:block th:if="${isOwner and m.id != me.id}">
+                                <form method="post" th:action="@{/messages/{id}/members/{uid}/role(id=${conversation.id}, uid=${m.id})}">
+                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                    <input type="hidden" name="role" th:value="${m.role.name() == 'ADMIN'} ? 'MEMBER' : 'ADMIN'">
+                                    <button type="submit" class="btn-al btn-al--white btn-al--sm"
+                                            th:text="${m.role.name() == 'ADMIN'} ? 'Gỡ quản trị viên' : 'Làm quản trị viên'">Quản trị viên</button>
+                                </form>
+                                <form method="post" th:action="@{/messages/{id}/members/{uid}/owner(id=${conversation.id}, uid=${m.id})}"
+                                      onsubmit="return confirm('Nhường quyền chủ nhóm cho người này? Bạn sẽ trở thành quản trị viên.')">
+                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Nhường chủ nhóm</button>
+                                </form>
+                            </th:block>
+                            <form method="post" th:if="${header.group and canManage and m.id != me.id and myRole.outranks(m.role)}"
+                                  th:action="@{/messages/{id}/members/{uid}/remove(id=${conversation.id}, uid=${m.id})}"
+                                  onsubmit="return confirm('Xóa người này khỏi nhóm?')">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <button type="submit" class="btn-al btn-al--ink btn-al--sm">Xóa khỏi nhóm</button>
+                            </form>
+                        </div>
+                    </li>
+                </ul>
+
+                <form method="post" th:if="${canManage and !#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
                       class="chat-new-form">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <select class="input-al" name="memberId" required data-custom-select>

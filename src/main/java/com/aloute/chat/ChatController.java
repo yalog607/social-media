@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -52,6 +53,12 @@ public class ChatController {
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("members", members);
+        model.addAttribute("memberViews", chats.memberViews(id));
+        GroupRole myRole = chats.roleOf(me.id(), id);
+        model.addAttribute("myRole", myRole);
+        model.addAttribute("canManage", conversation.isGroup() && myRole.canManage());
+        model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
+        model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
         model.addAttribute("page", messagesService.history(me.id(), id, null));
         model.addAttribute("friendsNotInGroup", friends.friendsOf(me.id()).stream()
                 .filter(f -> !memberIds.contains(f.id())).toList());
@@ -116,5 +123,53 @@ public class ChatController {
             return "redirect:/messages/" + id;
         }
         return "redirect:" + SafeRedirect.sanitize("/messages");
+    }
+
+    // ---------- Quản lý nhóm ----------
+
+    @PostMapping("/messages/{id}/title")
+    public String rename(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                         @RequestParam String title, RedirectAttributes flash) {
+        return manage(id, flash, "Đã đổi tên nhóm.", () -> chats.rename(me.id(), id, title));
+    }
+
+    @PostMapping("/messages/{id}/avatar")
+    public String avatar(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                         @RequestParam MultipartFile avatar, RedirectAttributes flash) {
+        return manage(id, flash, "Đã đổi ảnh nhóm.", () -> chats.setAvatar(me.id(), id, avatar));
+    }
+
+    @PostMapping("/messages/{id}/members/{userId}/role")
+    public String role(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                       @RequestParam GroupRole role, RedirectAttributes flash) {
+        return manage(id, flash, "Đã cập nhật vai trò.", () -> chats.setRole(me.id(), id, userId, role));
+    }
+
+    @PostMapping("/messages/{id}/members/{userId}/owner")
+    public String owner(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        RedirectAttributes flash) {
+        return manage(id, flash, "Đã nhường quyền chủ nhóm.", () -> chats.transferOwnership(me.id(), id, userId));
+    }
+
+    @PostMapping("/messages/{id}/members/{userId}/remove")
+    public String removeMember(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                               RedirectAttributes flash) {
+        return manage(id, flash, "Đã xóa thành viên khỏi nhóm.", () -> chats.removeMember(me.id(), id, userId));
+    }
+
+    @PostMapping("/messages/{id}/members/{userId}/nickname")
+    public String nickname(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                           @RequestParam(required = false) String nickname, RedirectAttributes flash) {
+        return manage(id, flash, "Đã lưu biệt danh.", () -> chats.setNickname(me.id(), id, userId, nickname));
+    }
+
+    private static String manage(UUID id, RedirectAttributes flash, String success, Runnable action) {
+        try {
+            action.run();
+            flash.addFlashAttribute("notice", success);
+        } catch (ChatActionException | com.aloute.media.InvalidMediaException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/messages/" + id;
     }
 }

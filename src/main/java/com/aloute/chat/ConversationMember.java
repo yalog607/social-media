@@ -43,4 +43,13 @@ public class ConversationMember {
 
     @Column(name = "last_read_at")
     private Instant lastReadAt;
+
+    /** Vai trò trong nhóm; hội thoại 1-1 luôn là {@code MEMBER}. */
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(nullable = false)
+    private GroupRole role = GroupRole.MEMBER;
+
+    /** Biệt danh do người khác (hoặc chính mình) đặt trong hội thoại này; null = dùng tên thật. */
+    @Column(length = 40)
+    private String nickname;
 }
