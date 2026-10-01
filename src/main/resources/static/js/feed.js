@@ -4,10 +4,25 @@
 
   const MB = 1024 * 1024;
 
-  // ---------- Nút "Xem thêm": lấy mảnh HTML của trang kế và thay chỗ nút ----------
-  document.addEventListener('click', async function (event) {
-    const button = event.target.closest('[data-more-url]');
-    if (!button) return;
+  // ---------- Tải thêm bài: tự động khi cuộn gần tới cuối, nút "Xem thêm" là phương án dự phòng ----------
+  // Mảnh HTML của trang kế thay chỗ khối .feed-more và mang theo khối .feed-more mới (nếu còn bài).
+  const autoLoad = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        autoLoad.unobserve(entry.target);
+        loadMore(entry.target.querySelector('[data-more-url]'));
+      }
+    });
+  }, { rootMargin: '400px 0px' }) : null;
+
+  function watch(root) {
+    if (!autoLoad) return;
+    root.querySelectorAll('.feed-more').forEach(function (block) { autoLoad.observe(block); });
+  }
+
+  async function loadMore(button) {
+    if (!button || button.disabled) return;
+    const block = button.closest('.feed-more');
     const label = button.textContent;
     button.disabled = true;
     button.textContent = 'Đang tải…';
@@ -16,13 +31,20 @@
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const template = document.createElement('template');
       template.innerHTML = await response.text();
-      button.closest('.feed-more').replaceWith(template.content);
+      watch(template.content);
+      block.replaceWith(template.content);
     } catch (error) {
+      // Không quan sát lại: nút vẫn bấm được để thử lại, tránh vòng lặp lỗi khi khối còn nằm trong tầm nhìn
       button.disabled = false;
       button.textContent = label;
       window.Aloute.toast('Chưa tải thêm được, thử lại nhé.', 'error');
     }
+  }
+
+  document.addEventListener('click', function (event) {
+    loadMore(event.target.closest('[data-more-url]'));
   });
+  watch(document);
 
   // ---------- Hộp thoại sửa/xóa/chia sẻ dùng chung: điền dữ liệu của bài vừa bấm ----------
   document.addEventListener('show.bs.modal', function (event) {

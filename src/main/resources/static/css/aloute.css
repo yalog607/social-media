@@ -721,11 +721,27 @@ body.lightbox-open { overflow: hidden; }
 .chat-header .avatar { flex: none; }
 .chat-header-actions { margin-left: auto; display: flex; gap: .5rem; flex-wrap: wrap; }
 
+/* Trang hội thoại cao đúng bằng phần màn hình còn lại: khung chat tự co giãn và cuộn, ô nhập luôn nằm sát đáy */
+#chat-main {
+  display: flex; flex-direction: column;
+  /* 1.5rem + 6rem là phần đệm trên/dưới của .app trên mobile (chừa chỗ cho thanh tab dưới) */
+  height: calc(100vh - var(--topbar-h) - 7.5rem);
+  height: calc(100dvh - var(--topbar-h) - 7.5rem);
+  min-height: 420px;
+}
+@media (min-width: 992px) {
+  #chat-main { height: calc(100vh - var(--topbar-h) - 4.5rem); height: calc(100dvh - var(--topbar-h) - 4.5rem); }
+}
+#chat-main > * { flex: none; }
+#chat-main > .chat-window { flex: 1 1 auto; }
+#chat-main > section details[open] > div { max-height: 30vh; overflow-y: auto; }
 .chat-window {
   display: flex; flex-direction: column; gap: .2rem;
-  max-height: 60vh; min-height: 260px; overflow-y: auto;
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
   padding: .5rem .2rem; margin-bottom: 1rem;
 }
+.chat-more { flex: none; text-align: center; padding: .4rem; color: var(--ink-soft); font-size: .85rem; min-height: 1.6rem; }
+.chat-more.is-loading::before { content: 'Đang tải tin cũ hơn…'; }
 .msg { display: flex; gap: .6rem; align-items: flex-end; margin-bottom: .5rem; max-width: 100%; }
 .msg.is-mine { flex-direction: row-reverse; }
 .msg .avatar { flex: none; width: 32px; height: 32px; font-size: .85rem; }

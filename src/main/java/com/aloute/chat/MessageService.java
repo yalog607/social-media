@@ -1,23 +1,29 @@
 package com.aloute.chat;
 
 import com.aloute.common.RateAction;
+import com.aloute.feed.Cursor;
 import com.aloute.common.RateLimiter;
 import com.aloute.post.PostTextRenderer;
 import com.aloute.post.PostView;
 import com.aloute.user.Profile;
 import com.aloute.user.User;
 import com.aloute.user.UserRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 /** Gửi và liệt kê tin nhắn trong một hội thoại. Tạo/rời hội thoại thuộc {@link ChatService}. */
 @Service
 public class MessageService {
+
+    static final int PAGE_SIZE = 30;
 
     private final MessageRepository messages;
     private final UserRepository users;
@@ -68,11 +74,25 @@ public class MessageService {
         return toView(saved);
     }
 
-    /** @throws ConversationNotFoundException {@code viewerId} không phải thành viên hội thoại */
+    /**
+     * Một trang tin nhắn theo thứ tự thời gian: trang mới nhất khi {@code cursor} rỗng, ngược lại là trang cũ hơn con trỏ.
+     * Con trỏ hỏng coi như trang mới nhất.
+     *
+     * @throws ConversationNotFoundException {@code viewerId} không phải thành viên hội thoại
+     */
     @Transactional(readOnly = true)
-    public List<MessageView> history(UUID viewerId, UUID conversationId) {
+    public MessagePage history(UUID viewerId, UUID conversationId, String cursor) {
         chats.requireMembership(viewerId, conversationId);
-        return messages.findByConversation(conversationId).stream().map(MessageService::toView).toList();
+        Cursor from = Cursor.decode(cursor).orElse(Cursor.START);
+        List<Message> rows = new ArrayList<>(messages.findOlder(conversationId, from.createdAt(), from.id(),
+                PageRequest.of(0, PAGE_SIZE + 1)));
+        boolean hasMore = rows.size() > PAGE_SIZE;
+        if (hasMore) {
+            rows.remove(rows.size() - 1);
+        }
+        String next = hasMore ? new Cursor(rows.get(rows.size() - 1).getCreatedAt(), rows.get(rows.size() - 1).getId()).encode() : null;
+        Collections.reverse(rows);
+        return new MessagePage(rows.stream().map(MessageService::toView).toList(), next);
     }
 
     private static MessageView toView(Message m) {
