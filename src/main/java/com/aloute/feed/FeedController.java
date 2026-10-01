@@ -1,5 +1,6 @@
 package com.aloute.feed;
 
+import com.aloute.category.CategoryService;
 import com.aloute.common.TextNormalizer;
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.user.ProfileVisibilityRules;
@@ -28,8 +29,11 @@ public class FeedController {
     private final FeedService feed;
     private final UserRepository users;
     private final ProfileVisibilityRules visibility;
+    private final CategoryService categories;
 
-    public FeedController(FeedService feed, UserRepository users, ProfileVisibilityRules visibility) {
+    public FeedController(FeedService feed, UserRepository users, ProfileVisibilityRules visibility,
+                          CategoryService categories) {
+        this.categories = categories;
         this.feed = feed;
         this.users = users;
         this.visibility = visibility;
@@ -55,6 +59,15 @@ public class FeedController {
         }
         model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, cursor));
         model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
+        return LIST_FRAGMENT;
+    }
+
+    @GetMapping("/categories/{slug}/posts")
+    public String categoryPosts(@PathVariable String slug, @AuthenticationPrincipal AlouteUserPrincipal viewer,
+                                @RequestParam(required = false) String cursor, Model model) {
+        var category = categories.bySlug(slug).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("page", feed.byCategory(category.id(), viewer == null ? null : viewer.id(), cursor));
+        model.addAttribute("moreUrl", "/categories/" + category.slug() + "/posts");
         return LIST_FRAGMENT;
     }
 

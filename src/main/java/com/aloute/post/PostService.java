@@ -1,5 +1,7 @@
 package com.aloute.post;
 
+import com.aloute.category.CategoryService;
+import com.aloute.category.InvalidCategoryException;
 import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
 import com.aloute.common.TextNormalizer;
@@ -42,10 +44,12 @@ public class PostService {
     private final NotificationService notifications;
     private final PostTagRepository tags;
     private final BannedHashtags bannedHashtags;
+    private final CategoryService categories;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
                        RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
-                       PostTagRepository tags, BannedHashtags bannedHashtags) {
+                       PostTagRepository tags, BannedHashtags bannedHashtags, CategoryService categories) {
+        this.categories = categories;
         this.bannedHashtags = bannedHashtags;
         this.posts = posts;
         this.users = users;
@@ -101,6 +105,18 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
                        MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, null);
+    }
+
+    /**
+     * Như trên, thêm {@code categoryId}: danh mục (không bắt buộc) do Manager quản lý.
+     *
+     * @throws InvalidPostException danh mục không tồn tại hoặc đã ngưng dùng
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
+                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       UUID categoryId) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
         rejectBannedHashtags(text);
@@ -120,6 +136,7 @@ public class PostService {
             }
         }
         validateSchedule(author, scheduledAt);
+        requireUsableCategory(categoryId);
         Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
         List<UUID> tagIds = validTagIds(authorId, taggedUserIds, chosen);
 
@@ -130,6 +147,7 @@ public class PostService {
             post.setVisibility(chosen);
             post.setUnlockPrice(unlockPrice);
             post.setScheduledAt(scheduledAt);
+            post.setCategoryId(categoryId);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();
@@ -177,6 +195,71 @@ public class PostService {
             post.setVisibility(visibility);
         }
         return post;
+    }
+
+    /**
+     * Như {@link #edit(UUID, UUID, String, Visibility)} và cập nhật thêm thẻ bạn bè, danh mục.
+     *
+     * @param taggedUserIds null = giữ nguyên thẻ hiện có; ngược lại là DANH SÁCH THẺ MỚI (thay thế hoàn toàn): người
+     *                      mới được gắn nhận thông báo, người bị bỏ thì mất thẻ. Chuyển bài sang "Chỉ mình tôi" thì
+     *                      xóa hết thẻ vì người được gắn không còn xem được bài.
+     * @param categoryId    danh mục mới, null = bỏ danh mục. Giữ nguyên danh mục cũ (kể cả đã ngưng dùng) cũng được.
+     * @throws InvalidPostException thẻ hoặc danh mục không hợp lệ
+     */
+    @Transactional
+    public Post edit(UUID actorId, UUID postId, String content, Visibility visibility,
+                     List<UUID> taggedUserIds, UUID categoryId) {
+        Post post = ownedLivePost(actorId, postId);
+        if (categoryId != null && !categoryId.equals(post.getCategoryId())) {
+            requireUsableCategory(categoryId);
+        }
+        Visibility finalVisibility = visibility != null ? visibility : post.getVisibility();
+        // Bài "Chỉ mình tôi" luôn không có thẻ (xem bên dưới), nên không cần kiểm tra danh sách người dùng gửi lên
+        List<UUID> wanted = taggedUserIds == null || finalVisibility == Visibility.PRIVATE
+                ? null : validTagIds(actorId, taggedUserIds, finalVisibility);
+        edit(actorId, postId, content, visibility);
+        post.setCategoryId(categoryId);
+        if (finalVisibility == Visibility.PRIVATE) {
+            wanted = List.of();
+        }
+        if (wanted != null) {
+            syncTags(post, wanted);
+        }
+        return post;
+    }
+
+    /** Đưa danh sách thẻ của bài về đúng {@code wanted}: thêm người mới (kèm thông báo), xóa người bị bỏ. */
+    private void syncTags(Post post, List<UUID> wanted) {
+        List<PostTag> current = tags.findByPostId(post.getId());
+        for (PostTag tag : current) {
+            if (!wanted.contains(tag.getTaggedUser().getId())) {
+                tags.delete(tag);
+            }
+        }
+        List<UUID> existing = current.stream().map(t -> t.getTaggedUser().getId()).toList();
+        for (UUID id : wanted) {
+            if (existing.contains(id)) {
+                continue;
+            }
+            PostTag tag = new PostTag();
+            tag.setPost(post);
+            tag.setTaggedUser(users.getReferenceById(id));
+            tags.save(tag);
+            if (!post.isScheduled()) {
+                notifications.postTagged(post.getAuthor().getId(), id, post);
+            }
+        }
+    }
+
+    private void requireUsableCategory(UUID categoryId) {
+        if (categoryId == null) {
+            return;
+        }
+        try {
+            categories.requireActive(categoryId);
+        } catch (InvalidCategoryException e) {
+            throw new InvalidPostException(e.getMessage());
+        }
     }
 
     /**

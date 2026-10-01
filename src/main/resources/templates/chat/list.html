@@ -46,6 +46,8 @@
             </span>
             <span class="search-user-info">
                 <span class="search-user-name" th:text="${c.title}">Tên</span>
+                <span class="streak" th:if="${c.streak.active()}" th:classappend="${c.streak.atRisk()} ? 'streak--risk'"
+                      th:title="${c.streak.atRisk()} ? 'Nhắn hôm nay để giữ chuỗi!' : 'Chuỗi nhắn tin hằng ngày'">🔥 <span th:text="${c.streak.days()}">3</span></span>
                 <span class="chat-preview" th:text="${#strings.isEmpty(c.lastMessagePreview)} ? 'Chưa có tin nhắn nào' : ${c.lastMessagePreview}">Xem trước</span>
             </span>
             <span class="chat-row-meta">

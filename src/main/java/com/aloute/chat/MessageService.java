@@ -1,6 +1,7 @@
 package com.aloute.chat;
 
 import com.aloute.common.RateAction;
+import com.aloute.mention.MentionService;
 import com.aloute.feed.Cursor;
 import com.aloute.common.RateLimiter;
 import com.aloute.post.PostTextRenderer;
@@ -17,6 +18,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Gửi và liệt kê tin nhắn trong một hội thoại. Tạo/rời hội thoại thuộc {@link ChatService}. */
@@ -31,9 +33,12 @@ public class MessageService {
     private final ChatAttachmentService attachments;
     private final RateLimiter rateLimiter;
     private final Clock clock;
+    private final MentionService mentions;
 
     public MessageService(MessageRepository messages, UserRepository users, ChatService chats,
-                          ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock) {
+                          ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock,
+                          MentionService mentions) {
+        this.mentions = mentions;
         this.messages = messages;
         this.users = users;
         this.chats = chats;
@@ -71,7 +76,11 @@ public class MessageService {
             message.setAttachment(entity);
         }
         Message saved = messages.save(message);
-        return toView(saved);
+        if (conversation.isGroup() && !text.isEmpty()) {
+            mentions.notifyChat(senderId, conversationId,
+                    chats.memberViews(conversationId).stream().map(MemberView::id).collect(java.util.stream.Collectors.toSet()), text);
+        }
+        return toView(saved, chats.nicknames(conversationId));
     }
 
     /**
@@ -92,10 +101,12 @@ public class MessageService {
         }
         String next = hasMore ? new Cursor(rows.get(rows.size() - 1).getCreatedAt(), rows.get(rows.size() - 1).getId()).encode() : null;
         Collections.reverse(rows);
-        return new MessagePage(rows.stream().map(MessageService::toView).toList(), next);
+        Map<UUID, String> nicknames = chats.nicknames(conversationId);
+        return new MessagePage(rows.stream().map(m -> toView(m, nicknames)).toList(), next);
     }
 
-    private static MessageView toView(Message m) {
+    /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
+    private static MessageView toView(Message m, Map<UUID, String> nicknames) {
         User sender = m.getSender();
         Profile profile = sender.getProfile();
         AttachmentView attachmentView = m.getAttachment() == null ? null : new AttachmentView(
@@ -104,7 +115,8 @@ public class MessageService {
         return new MessageView(
                 m.getId(),
                 m.getConversation().getId(),
-                new PostView.AuthorView(sender.getId(), sender.getUsername(), profile.getDisplayName(),
+                new PostView.AuthorView(sender.getId(), sender.getUsername(),
+                        nicknames.getOrDefault(sender.getId(), profile.getDisplayName()),
                         profile.getAvatarUrl(), sender.primaryRole()),
                 m.getContent() == null ? "" : PostTextRenderer.toSafeHtml(m.getContent()),
                 attachmentView,

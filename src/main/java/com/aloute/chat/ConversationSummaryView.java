@@ -14,5 +14,6 @@ public record ConversationSummaryView(
         String avatarUrl,
         String lastMessagePreview,
         Instant lastMessageAt,
-        long unread) {
+        long unread,
+        Streak streak) {
 }

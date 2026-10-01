@@ -28,8 +28,10 @@ public class PostController {
 
     private final PostService posts;
     private final PostViewAssembler assembler;
+    private final PostViewService views;
 
-    public PostController(PostService posts, PostViewAssembler assembler) {
+    public PostController(PostService posts, PostViewAssembler assembler, PostViewService views) {
+        this.views = views;
         this.posts = posts;
         this.assembler = assembler;
     }
@@ -44,10 +46,11 @@ public class PostController {
                          @RequestParam(required = false) Integer unlockPrice,
                          @RequestParam(required = false) String scheduledAt,
                          @RequestParam(required = false) Integer tzOffset,
+                         @RequestParam(required = false) UUID categoryId,
                          RedirectAttributes flash) {
         try {
             Instant when = ScheduleTime.parse(scheduledAt, tzOffset);
-            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when, categoryId);
             flash.addFlashAttribute("notice", when == null ? "Đã đăng bài!" : "Đã hẹn giờ đăng bài!");
         } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
             flash.addFlashAttribute("composerError", e.getMessage());
@@ -55,6 +58,7 @@ public class PostController {
             flash.addFlashAttribute("composerVisibility", visibility == null ? null : visibility.name());
             flash.addFlashAttribute("composerUnlockPrice", unlockPrice);
             flash.addFlashAttribute("composerScheduledAt", scheduledAt);
+            flash.addFlashAttribute("composerCategoryId", categoryId);
             flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);
         }
         return "redirect:/";
@@ -65,6 +69,9 @@ public class PostController {
     public String detail(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         UUID viewerId = viewer == null ? null : viewer.id();
         Post post = posts.getVisible(id, viewerId);
+        if (viewerId != null) {
+            views.record(viewerId, id);
+        }
         model.addAttribute("post", assembler.assemble(List.of(post), viewerId).get(0));
         return "post/detail";
     }
@@ -74,9 +81,14 @@ public class PostController {
                        @RequestParam(required = false) String content,
                        @RequestParam(required = false) Visibility visibility,
                        @RequestParam(required = false) String next,
+                       @RequestParam(required = false) List<UUID> taggedUserIds,
+                       @RequestParam(defaultValue = "false") boolean tagsLoaded,
+                       @RequestParam(required = false) UUID categoryId,
                        RedirectAttributes flash) {
         try {
-            posts.edit(me.id(), id, content, visibility);
+            // Danh sách thẻ chỉ có giá trị khi JS đã nạp được danh sách bạn bè (tagsLoaded); nếu không thì giữ nguyên thẻ cũ
+            List<UUID> tagsToSet = tagsLoaded ? (taggedUserIds == null ? List.of() : taggedUserIds) : null;
+            posts.edit(me.id(), id, content, visibility, tagsToSet, categoryId);
             flash.addFlashAttribute("notice", "Đã lưu chỉnh sửa!");
         } catch (InvalidPostException e) {
             flash.addFlashAttribute("error", e.getMessage());

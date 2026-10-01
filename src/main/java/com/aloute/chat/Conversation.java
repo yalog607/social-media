@@ -43,6 +43,10 @@ public class Conversation {
     @Column(length = MAX_TITLE_LENGTH)
     private String title;
 
+    /** Ảnh đại diện nhóm (chỉ GROUP); null = dùng ảnh mặc định. */
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(name = "direct_key", length = 80, updatable = false)
     private String directKey;
 

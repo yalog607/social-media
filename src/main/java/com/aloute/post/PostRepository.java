@@ -87,6 +87,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> byHashtag(@Param("tag") String tag, @Param("cursorTime") Instant cursorTime,
                         @Param("cursorId") UUID cursorId, Pageable pageable);
 
+    /** Bài công khai thuộc một danh mục, mới nhất trước. */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.categoryId = :categoryId and p.deletedAt is null and p.scheduledAt is null
+              and a.status = com.aloute.user.UserStatus.ACTIVE and p.visibility = com.aloute.user.Visibility.PUBLIC
+              and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
+            order by p.createdAt desc, p.id desc""")
+    List<Post> byCategory(@Param("categoryId") UUID categoryId, @Param("cursorTime") Instant cursorTime,
+                          @Param("cursorId") UUID cursorId, Pageable pageable);
+
     /**
      * ID bài công khai khớp {@code escapedQuery} (đã escape ký tự đặc biệt của ILIKE), gần đúng nhất trước
      * (điểm giống nhau theo trigram), rồi tới mới nhất. Chỉ trả về ID: nội dung đầy đủ được nạp theo lô ở

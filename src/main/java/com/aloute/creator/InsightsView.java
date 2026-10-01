@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Số liệu tương tác của một Creator trong {@code days} ngày gần nhất (tính theo ngày UTC). Không có "lượt xem":
- * hệ thống chưa ghi nhận lượt xem, chỉ có cảm xúc, bình luận, chia sẻ và người theo dõi mới.
+ * Số liệu tương tác của một Creator trong {@code days} ngày gần nhất (tính theo ngày UTC). Lượt xem chỉ tính người đã
+ * đăng nhập (mỗi người một lượt mỗi bài mỗi ngày, không tính chính chủ bài).
  */
 public record InsightsView(
         int days,
@@ -15,10 +15,11 @@ public record InsightsView(
         long reactions,
         long comments,
         long shares,
+        long views,
         List<DayPoint> series,
         List<TopPost> topPosts) {
 
-    public record DayPoint(LocalDate date, long reactions, long comments, long shares, long followers) {
+    public record DayPoint(LocalDate date, long reactions, long comments, long shares, long followers, long views) {
 
         public long engagement() {
             return reactions + comments + shares;
@@ -26,7 +27,7 @@ public record InsightsView(
     }
 
     /** {@code snippet} là chữ thuần (đã cắt ngắn), không phải HTML. */
-    public record TopPost(UUID id, String snippet, long reactions, long comments, long shares) {
+    public record TopPost(UUID id, String snippet, long reactions, long comments, long shares, long views) {
 
         public long total() {
             return reactions + comments + shares;
@@ -39,6 +40,10 @@ public record InsightsView(
 
     public long maxDailyEngagement() {
         return series.stream().mapToLong(DayPoint::engagement).max().orElse(0);
+    }
+
+    public long maxDailyViews() {
+        return series.stream().mapToLong(DayPoint::views).max().orElse(0);
     }
 
     public long maxDailyFollowers() {

@@ -55,6 +55,10 @@ public class InsightsService {
                 join posts p on p.id = s.shared_post_id
                 where p.author_id = ? and p.deleted_at is null and s.deleted_at is null and s.created_at >= ? group by d""",
                 creatorId, from);
+        Map<LocalDate, Long> views = perDay("""
+                select v.day d, count(*) from post_views v join posts p on p.id = v.post_id
+                where p.author_id = ? and p.deleted_at is null and v.day >= ((?)::timestamptz at time zone 'UTC')::date group by d""",
+                creatorId, from);
         Map<LocalDate, Long> followers = perDay("""
                 select (f.created_at at time zone 'UTC')::date d, count(*) from follows f
                 where f.followee_id = ? and f.created_at >= ? group by d""", creatorId, from);
@@ -64,20 +68,23 @@ public class InsightsService {
         long sumComments = 0;
         long sumShares = 0;
         long sumFollowers = 0;
+        long sumViews = 0;
         for (LocalDate day = first; !day.isAfter(today); day = day.plusDays(1)) {
             long r = reactions.getOrDefault(day, 0L);
             long c = comments.getOrDefault(day, 0L);
             long s = shares.getOrDefault(day, 0L);
             long f = followers.getOrDefault(day, 0L);
-            series.add(new InsightsView.DayPoint(day, r, c, s, f));
+            long v = views.getOrDefault(day, 0L);
+            series.add(new InsightsView.DayPoint(day, r, c, s, f, v));
             sumReactions += r;
             sumComments += c;
             sumShares += s;
             sumFollowers += f;
+            sumViews += v;
         }
         Long totalFollowers = jdbc.queryForObject("select count(*) from follows where followee_id = ?", Long.class, creatorId);
         return new InsightsView(range, totalFollowers == null ? 0 : totalFollowers, sumFollowers,
-                sumReactions, sumComments, sumShares, series, topPosts(creatorId, from));
+                sumReactions, sumComments, sumShares, sumViews, series, topPosts(creatorId, from));
     }
 
     private List<InsightsView.TopPost> topPosts(UUID creatorId, java.sql.Timestamp from) {
@@ -85,7 +92,8 @@ public class InsightsService {
                 select p.id, p.content,
                        (select count(*) from reactions r where r.post_id = p.id and r.created_at >= ?) as reactions,
                        (select count(*) from comments c where c.post_id = p.id and c.deleted_at is null and c.created_at >= ?) as comments,
-                       (select count(*) from posts s where s.shared_post_id = p.id and s.deleted_at is null and s.created_at >= ?) as shares
+                       (select count(*) from posts s where s.shared_post_id = p.id and s.deleted_at is null and s.created_at >= ?) as shares,
+                       (select count(*) from post_views v where v.post_id = p.id and v.day >= ((?)::timestamptz at time zone 'UTC')::date) as views
                 from posts p
                 where p.author_id = ? and p.deleted_at is null and p.shared_post_id is null
                 order by (select count(*) from reactions r where r.post_id = p.id and r.created_at >= ?)
@@ -94,8 +102,8 @@ public class InsightsService {
                        p.created_at desc, p.id desc
                 limit ?""",
                 (rs, i) -> new InsightsView.TopPost(rs.getObject("id", UUID.class), snippet(rs.getString("content")),
-                        rs.getLong("reactions"), rs.getLong("comments"), rs.getLong("shares")),
-                from, from, from, creatorId, from, from, from, TOP_POSTS).stream()
+                        rs.getLong("reactions"), rs.getLong("comments"), rs.getLong("shares"), rs.getLong("views")),
+                from, from, from, from, creatorId, from, from, from, TOP_POSTS).stream()
                 .filter(post -> post.total() > 0).toList();
     }
 

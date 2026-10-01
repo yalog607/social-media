@@ -7,7 +7,7 @@
     <div class="page-title"><h1>Thông báo</h1></div>
 
     <a class="search-user notification-row" th:each="n : ${items}" th:classappend="${!n.read} ? 'is-unread'"
-       th:href="${n.postId != null} ? @{/posts/{id}(id=${n.postId})} : @{/u/{u}(u=${n.actor.username})}">
+       th:href="${n.conversationId != null} ? @{/messages/{id}(id=${n.conversationId})} : (${n.postId != null} ? @{/posts/{id}(id=${n.postId})} : @{/u/{u}(u=${n.actor.username})})">
         <span th:replace="~{fragments/ui :: avatar(${n.actor}, '')}"></span>
         <span class="search-user-info">
             <span class="notification-text" th:text="${n.text}">Ai đó đã làm gì đó</span>

@@ -2,6 +2,7 @@ package com.aloute.comment;
 
 import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
+import com.aloute.mention.MentionService;
 import com.aloute.notification.NotificationService;
 import com.aloute.post.Post;
 import com.aloute.post.PostService;
@@ -38,11 +39,13 @@ public class CommentService {
     private final NotificationService notifications;
     private final Clock clock;
     private final FanService fans;
+    private final MentionService mentions;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
-                          FanService fans) {
+                          FanService fans, MentionService mentions) {
         this.fans = fans;
+        this.mentions = mentions;
         this.comments = comments;
         this.posts = posts;
         this.users = users;
@@ -77,11 +80,15 @@ public class CommentService {
         comment.setParent(parent);
         comment.setContent(text);
         Comment saved = comments.save(comment);
+        java.util.Set<UUID> notified = new java.util.HashSet<>();
         if (parent == null) {
             notifications.postCommented(authorId, post);
+            notified.add(post.getAuthor().getId());
         } else {
             notifications.commentReplied(authorId, parent.getAuthor().getId(), post);
+            notified.add(parent.getAuthor().getId());
         }
+        mentions.notifyComment(authorId, post, text, notified);
         return saved;
     }
 

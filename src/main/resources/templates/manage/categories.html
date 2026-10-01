@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Danh mục', ~{::main}, 'manage', ~{})}">
+<head><title>Danh mục</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Kiểm duyệt</h1></div>
+    <th:block th:replace="~{manage/nav :: tabs('categories')}"></th:block>
+
+    <form method="post" th:action="@{/manage/categories}" class="d-flex gap-2 mb-3">
+        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+        <input name="name" class="input-al" required th:maxlength="${maxName}" placeholder="Tên danh mục mới" aria-label="Tên danh mục mới">
+        <button type="submit" class="btn-al btn-al--pink btn-al--sm">Thêm</button>
+    </form>
+
+    <p class="note note--sky empty" th:if="${#lists.isEmpty(categories)}">Chưa có danh mục nào.</p>
+    <table class="table-al" th:unless="${#lists.isEmpty(categories)}">
+        <thead><tr><th>Danh mục</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${categories}">
+            <td>
+                <form method="post" class="d-flex gap-2" th:action="@{/manage/categories/{id}/rename(id=${c.id()})}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input name="name" class="input-al" required th:maxlength="${maxName}" th:value="${c.name()}" th:aria-label="'Tên danh mục ' + ${c.name()}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Đổi tên</button>
+                </form>
+            </td>
+            <td th:text="${c.active()} ? 'Đang dùng' : 'Đã ngưng'">Đang dùng</td>
+            <td>
+                <form method="post" th:action="@{/manage/categories/{id}/active(id=${c.id()})}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input type="hidden" name="active" th:value="${!c.active()}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm" th:text="${c.active()} ? 'Ngưng dùng' : 'Bật lại'">Ngưng dùng</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

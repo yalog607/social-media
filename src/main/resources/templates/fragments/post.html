@@ -20,6 +20,7 @@
                 <a class="post-time" th:href="@{/posts/{id}(id=${post.id})}"
                    th:title="${@timeAgo.full(post.createdAt)}" th:text="${@timeAgo.format(post.createdAt)}">vừa xong</a>
                 <span class="post-edited" th:if="${post.edited}">(đã chỉnh sửa)</span>
+                <a class="visibility-chip" th:if="${post.category != null}" th:href="@{/categories/{s}(s=${post.category.slug})}" th:text="${post.category.name}">Danh mục</a>
                 <span class="visibility-chip" th:if="${post.paid and !post.locked}" th:text="'Trả phí ' + ${post.unlockPrice} + ' Xu'">Trả phí</span>
                 <span class="visibility-chip" th:if="${post.visibility.name() != 'PUBLIC'}"
                       th:text="${post.visibility.name() == 'PRIVATE'} ? 'Chỉ mình tôi' : 'Bạn bè'">Chỉ mình tôi</span>
@@ -50,7 +51,9 @@
             <ul class="dropdown-menu dropdown-menu-end menu-al">
                 <li>
                     <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editPostModal"
-                            th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()}">Sửa bài</button>
+                            th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()},
+                                     data-category=${post.category != null ? post.category.id : ''}, data-category-name=${post.category != null ? post.category.name : ''},
+                                     data-tagged=${#strings.listJoin(post.tagged.![id], ',')}">Sửa bài</button>
                 </li>
                 <li>
                     <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deletePostModal"
@@ -95,8 +98,11 @@
         <p class="note note--sky post-shared-gone" th:unless="${post.sharedPost != null}">Bài gốc không còn hiển thị.</p>
     </th:block>
 
-    <div class="post-stats" th:if="${post.reactions.total() > 0 or post.commentCount > 0 or post.shareCount > 0}">
-        <span th:if="${post.reactions.total() > 0}" th:text="${post.reactions.total()} + ' cảm xúc'">0 cảm xúc</span>
+    <div class="post-stats" th:hidden="${post.reactions.total() == 0 and post.commentCount == 0 and post.shareCount == 0}">
+        <button type="button" class="stat-link" data-show-reactors th:if="${me != null}" th:hidden="${post.reactions.total() == 0}"
+                data-bs-toggle="modal" data-bs-target="#reactorsModal" th:attr="data-post-id=${post.id}">
+            <span data-reactions-total th:text="${post.reactions.total()}">0</span> cảm xúc</button>
+        <span th:if="${me == null and post.reactions.total() > 0}" th:text="${post.reactions.total()} + ' cảm xúc'">0 cảm xúc</span>
         <span th:if="${post.commentCount > 0}" th:text="${post.commentCount} + ' bình luận'">0 bình luận</span>
         <span th:if="${post.shareCount > 0}" th:text="${post.shareCount} + ' lượt chia sẻ'">0 lượt chia sẻ</span>
     </div>
@@ -130,7 +136,7 @@
                 <button type="button" data-cancel-reply aria-label="Thôi trả lời">×</button>
             </p>
             <div class="comment-form-row">
-                <textarea name="content" class="input-al" rows="1" maxlength="1000" placeholder="Viết bình luận..." aria-label="Viết bình luận"></textarea>
+                <textarea name="content" class="input-al" rows="1" maxlength="1000" data-mention-url="/api/friends" placeholder="Viết bình luận (gõ @ để nhắc tên)..." aria-label="Viết bình luận"></textarea>
                 <button type="submit" class="btn-al btn-al--sm btn-al--pink">Gửi</button>
             </div>
         </form>

@@ -66,6 +66,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(csrfHandler)
+                        // Mặc định Spring xóa cookie CSRF mỗi khi "xác thực mới" (ở đây là MỌI request, vì JWT được dựng lại từ
+                        // cookie), khiến POST fetch thứ hai liên tiếp gửi header rỗng và bị 403 rồi mới thử lại. Phiên không
+                        // có trạng thái nên không có gì cần xoay vòng: giữ nguyên token.
+                        .sessionAuthenticationStrategy((authentication, request, response) -> { })
                         // SockJS tự quản lý phiên truyền tải riêng (xhr-streaming, polling...) không gắn được header CSRF
                         .ignoringRequestMatchers("/ws/**"))
                 .formLogin(AbstractHttpConfigurer::disable)

@@ -16,7 +16,7 @@
     <link rel="stylesheet" th:href="@{/css/fonts.css}">
     <link rel="stylesheet" th:href="@{/css/aloute.css}">
 </head>
-<body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}">
+<body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}, data-auth=${me != null}">
 <th:block th:replace="~{fragments/icons :: sprite}"></th:block>
 <a class="skip-link" href="#main">Bỏ qua, tới nội dung chính</a>
 
@@ -134,6 +134,7 @@
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/js/aloute.js}"></script>
 <script th:src="@{/js/feed.js}"></script>
+<script th:src="@{/js/mention.js}"></script>
 <script th:src="@{/js/lightbox.js}"></script>
 </body>
 </html>

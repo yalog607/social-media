@@ -58,6 +58,14 @@ public class FeedService {
         return toPage(rows, viewerId);
     }
 
+    /** Bài công khai thuộc danh mục {@code categoryId}, mới nhất trước. */
+    @Transactional(readOnly = true)
+    public FeedPage byCategory(UUID categoryId, UUID viewerId, String cursor) {
+        Cursor from = Cursor.decode(cursor).orElse(Cursor.START);
+        List<Post> rows = posts.byCategory(categoryId, from.createdAt(), from.id(), PageRequest.of(0, PAGE_SIZE + 1));
+        return toPage(rows, viewerId);
+    }
+
     private FeedPage toPage(List<Post> rows, UUID viewerId) {
         boolean hasMore = rows.size() > PAGE_SIZE;
         List<Post> page = hasMore ? rows.subList(0, PAGE_SIZE) : rows;

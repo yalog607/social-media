@@ -12,5 +12,6 @@ public enum NotificationType {
     POST_TAGGED,
     DONATION,
     BROADCAST,
-    WARNING
+    WARNING,
+    MENTION
 }

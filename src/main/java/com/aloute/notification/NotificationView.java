@@ -15,6 +15,7 @@ public record NotificationView(
         String text,
         UUID postId,
         String detail,
+        UUID conversationId,
         Instant createdAt,
         boolean read) {
 }
