@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Fan hâm mộ', ~{::main}, 'creator', ~{})}">
+<head><title>Fan hâm mộ</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Fan hâm mộ</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <p class="note note--lemon">
+        Người tặng Xu cho bạn nhận huy hiệu hiện cạnh tên họ trong bình luận:
+        <th:block th:each="b, st : ${badges}"><strong th:text="${b.emoji()} + ' ' + ${b.label()}"></strong>
+            (từ <span th:text="${b.threshold()}">10</span> Xu)<th:block th:unless="${st.last}">, </th:block></th:block>.
+    </p>
+
+    <section class="note" aria-labelledby="fans-title">
+        <h2 id="fans-title" class="h4 mb-3">Bảng xếp hạng</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(fans)}">Chưa có ai tặng Xu cho bạn.</p>
+        <table class="table-al" th:unless="${#lists.isEmpty(fans)}">
+            <thead><tr><th>Fan</th><th>Huy hiệu</th><th>Tổng Xu</th></tr></thead>
+            <tbody>
+            <tr th:each="f : ${fans}">
+                <td><a th:href="@{/u/{u}(u=${f.username()})}" th:text="${f.displayName()}">Tên</a></td>
+                <td th:text="${f.badge() != null} ? ${f.badge().emoji()} + ' ' + ${f.badge().label()} : '—'">—</td>
+                <td th:text="${f.totalDonated()}">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>

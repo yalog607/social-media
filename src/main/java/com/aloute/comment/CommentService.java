@@ -10,6 +10,8 @@ import com.aloute.post.PostView;
 import com.aloute.user.Profile;
 import com.aloute.user.User;
 import com.aloute.user.UserRepository;
+import com.aloute.wallet.FanBadge;
+import com.aloute.wallet.FanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +37,12 @@ public class CommentService {
     private final RateLimiter rateLimiter;
     private final NotificationService notifications;
     private final Clock clock;
+    private final FanService fans;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
-                          RateLimiter rateLimiter, NotificationService notifications, Clock clock) {
+                          RateLimiter rateLimiter, NotificationService notifications, Clock clock,
+                          FanService fans) {
+        this.fans = fans;
         this.comments = comments;
         this.posts = posts;
         this.users = users;
@@ -96,8 +101,10 @@ public class CommentService {
     /** @throws com.aloute.post.PostNotFoundException bài không tồn tại hoặc không xem được */
     @Transactional(readOnly = true)
     public List<CommentView> list(UUID postId, UUID viewerId) {
-        posts.getVisible(postId, viewerId);
+        Post post = posts.getVisible(postId, viewerId);
         List<Comment> flat = comments.findByPostId(postId);
+        Map<UUID, FanBadge> badges = fans.badgesFor(post.getAuthor().getId(),
+                flat.stream().map(c -> c.getAuthor().getId()).distinct().toList());
 
         Map<UUID, List<Comment>> repliesByParent = new LinkedHashMap<>();
         List<Comment> roots = new ArrayList<>();
@@ -117,14 +124,15 @@ public class CommentService {
             }
             List<CommentView> replyViews = replies.stream()
                     .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
-                    .map(reply -> toView(reply, viewerId, List.of()))
+                    .map(reply -> toView(reply, viewerId, List.of(), badges))
                     .toList();
-            views.add(toView(root, viewerId, replyViews));
+            views.add(toView(root, viewerId, replyViews, badges));
         }
         return views;
     }
 
-    private static CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies) {
+    private static CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
+                                      Map<UUID, FanBadge> badges) {
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
@@ -137,7 +145,8 @@ public class CommentService {
                 comment.getCreatedAt(),
                 mine,
                 deleted,
-                replies);
+                replies,
+                badges.get(author.getId()));
     }
 
     /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra rỗng và độ dài. */

@@ -7,6 +7,8 @@ import com.aloute.post.PostView;
 import com.aloute.post.PostViewAssembler;
 import com.aloute.post.ScheduleTime;
 import com.aloute.security.AlouteUserPrincipal;
+import com.aloute.wallet.FanBadge;
+import com.aloute.wallet.FanService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,8 +29,11 @@ public class CreatorController {
     private final InsightsService insights;
     private final PostService posts;
     private final PostViewAssembler assembler;
+    private final FanService fans;
 
-    public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler) {
+    public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
+                             FanService fans) {
+        this.fans = fans;
         this.insights = insights;
         this.posts = posts;
         this.assembler = assembler;
@@ -40,6 +45,14 @@ public class CreatorController {
         model.addAttribute("active", "creator");
         model.addAttribute("insights", insights.insights(me.id(), days == 30 ? 30 : 7));
         return "creator/dashboard";
+    }
+
+    @GetMapping("/creator/fans")
+    public String fans(@AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("fans", fans.topFans(me.id()));
+        model.addAttribute("badges", FanBadge.values());
+        return "creator/fans";
     }
 
     @GetMapping("/creator/scheduled")
