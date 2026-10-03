@@ -8,7 +8,7 @@
         <div class="msg" th:each="m : ${page.messages}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
             <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
             <div class="msg-body">
-                <span class="msg-sender" th:if="${header.group}" th:text="${m.sender.displayName}">Tên</span>
+                <span class="msg-sender" th:if="${header.group}" th:text="${m.sender.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
                 <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
                     <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
                        th:href="${m.attachment.url}" target="_blank" rel="noopener">

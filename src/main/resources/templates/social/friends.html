@@ -11,7 +11,7 @@
         <div class="search-user" th:each="r : ${incoming}">
             <span th:replace="~{fragments/ui :: avatar(${r.person}, '')}"></span>
             <span class="search-user-info">
-                <a class="search-user-name" th:href="@{/u/{u}(u=${r.person.username})}" th:text="${r.person.displayName}">Tên</a>
+                <a class="search-user-name" th:href="@{/u/{u}(u=${r.person.username})}" th:text="${r.person.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${r.person.primaryRole})}"></svg>
                 <span class="search-user-handle" th:text="'@' + ${r.person.username}">@username</span>
             </span>
             <form method="post" th:action="@{/u/{u}/friend-accept(u=${r.person.username})}">
@@ -32,7 +32,7 @@
         <div class="search-user" th:each="r : ${outgoing}">
             <span th:replace="~{fragments/ui :: avatar(${r.person}, '')}"></span>
             <span class="search-user-info">
-                <a class="search-user-name" th:href="@{/u/{u}(u=${r.person.username})}" th:text="${r.person.displayName}">Tên</a>
+                <a class="search-user-name" th:href="@{/u/{u}(u=${r.person.username})}" th:text="${r.person.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${r.person.primaryRole})}"></svg>
                 <span class="search-user-handle" th:text="'@' + ${r.person.username}">@username</span>
             </span>
             <form method="post" th:action="@{/u/{u}/friend-cancel(u=${r.person.username})}">
@@ -48,7 +48,7 @@
         <a class="search-user" th:each="f : ${friends}" th:href="@{/u/{u}(u=${f.username})}">
             <span th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
             <span class="search-user-info">
-                <span class="search-user-name" th:text="${f.displayName}">Tên</span>
+                <span class="search-user-name" th:text="${f.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${f.primaryRole})}"></svg>
                 <span class="search-user-handle" th:text="'@' + ${f.username}">@username</span>
             </span>
         </a>

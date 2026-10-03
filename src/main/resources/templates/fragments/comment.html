@@ -7,7 +7,7 @@
     <span th:replace="~{fragments/ui :: avatar(${c.author}, 'avatar--sm')}"></span>
     <div class="comment-content">
         <div class="comment-bubble" th:classappend="${c.deleted} ? 'is-deleted' : ''">
-            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a>
+            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${c.author.primaryRole})}"></svg>
             <span class="fan-badge" th:if="${c.badge != null and !c.deleted}" th:text="${c.badge.emoji()} + ' ' + ${c.badge.label()}">🥇 Fan vàng</span>
             <div th:unless="${c.deleted}" class="comment-text" th:utext="${c.contentHtml}"></div>
             <div th:if="${c.deleted}" class="comment-text text-soft">Bình luận đã bị xóa.</div>

@@ -11,7 +11,7 @@
         </a>
         <div class="post-meta">
             <div class="post-name-row">
-                <a class="post-name" th:href="@{/u/{u}(u=${post.author.username})}" th:text="${post.author.displayName}">Tên hiển thị</a>
+                <a class="post-name" th:href="@{/u/{u}(u=${post.author.username})}" th:text="${post.author.displayName}">Tên hiển thị</a><svg th:replace="~{fragments/ui :: verified(${post.author.primaryRole})}"></svg>
                 <th:block th:if="${post.author.primaryRole.name() != 'USER'}">
                     <span th:replace="~{fragments/ui :: roleChip(${post.author.primaryRole})}"></span>
                 </th:block>

@@ -590,7 +590,7 @@ body[data-role="admin"] .logo { background: var(--lavender); }
   background: var(--paper-2); border: 2px solid var(--ink); border-radius: 14px;
 }
 .comment-bubble.is-deleted { border-style: dashed; background: transparent; }
-.comment-name { display: block; font: 800 .88rem/1.2 var(--font-display); color: var(--ink); text-decoration: none; }
+.comment-name { display: inline-block; font: 800 .88rem/1.2 var(--font-display); color: var(--ink); text-decoration: none; }
 .comment-name:hover { text-decoration: underline; }
 .comment-text { font-size: .92rem; overflow-wrap: anywhere; }
 .comment-meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .25rem; font-size: .8rem; color: var(--ink-soft); }
@@ -814,3 +814,6 @@ body.lightbox-open { overflow: hidden; }
 .chat-group-forms .chat-new-form { margin-bottom: .4rem; }
 .composer-more > summary { display: inline-block; cursor: pointer; }
 .table-al .btn-al { white-space: nowrap; }
+.verified-badge { width: 1.05em; height: 1.05em; margin-left: .25rem; vertical-align: -0.16em; flex: none; display: inline-block; }
+.comment-bubble .verified-badge { margin-left: .2rem; margin-bottom: .1rem; }
+.comment-bubble .comment-text { margin-top: .1rem; }

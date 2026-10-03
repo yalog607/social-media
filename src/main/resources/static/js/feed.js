@@ -530,9 +530,9 @@
       return box;
     }
 
-    imageInput.addEventListener('change', function () {
+    // Thêm ảnh vào bài (dùng chung cho chọn file và dán Ctrl+V), có kiểm tra như nhau
+    function addImages(chosen) {
       showError('');
-      const chosen = Array.from(imageInput.files);
       if (video && chosen.length) {
         showError('Mỗi bài chỉ đăng ảnh hoặc video. Hãy bỏ video trước nếu muốn đăng ảnh.');
       } else {
@@ -544,6 +544,27 @@
         }
       }
       refresh();
+    }
+
+    imageInput.addEventListener('change', function () {
+      addImages(Array.from(imageInput.files));
+    });
+
+    // Ctrl+V: dán ảnh từ bộ nhớ tạm (ảnh chụp màn hình, ảnh sao chép từ web...) vào ô đăng bài như khi chọn file.
+    // Chỉ chặn hành vi mặc định khi trong clipboard thật sự có ảnh; dán chữ vẫn bình thường.
+    form.addEventListener('paste', function (event) {
+      const items = event.clipboardData ? Array.from(event.clipboardData.items) : [];
+      const pictures = items.filter(function (item) { return item.kind === 'file' && item.type.indexOf('image/') === 0; })
+        .map(function (item) { return item.getAsFile(); })
+        .filter(Boolean)
+        .map(function (file, index) {
+          // Ảnh dán thường tên chung chung ("image.png"); đặt tên riêng để dễ phân biệt khi dán nhiều ảnh
+          const extension = (file.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+          return new File([file], 'anh-dan-' + Date.now() + '-' + index + '.' + extension, { type: file.type });
+        });
+      if (!pictures.length) return;
+      event.preventDefault();
+      addImages(pictures);
     });
 
     videoInput.addEventListener('change', function () {
