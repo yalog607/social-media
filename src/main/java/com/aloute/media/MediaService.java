@@ -20,6 +20,7 @@ public class MediaService {
 
     private static final Logger log = LoggerFactory.getLogger(MediaService.class);
     private static final String FOLDER = "posts";
+    private static final String COMMENT_FOLDER = "comments";
 
     public record StoredMedia(MediaKind kind, String url, String contentType, long sizeBytes) {
     }
@@ -70,6 +71,22 @@ public class MediaService {
         }
     }
 
+    /**
+     * Lưu MỘT ảnh cho bình luận (xử lý như ảnh bài đăng: xóa metadata, thu nhỏ).
+     *
+     * @return ảnh đã lưu, hoặc null nếu {@code image} rỗng/không có
+     * @throws InvalidMediaException file không phải ảnh hợp lệ hoặc quá lớn
+     */
+    public StoredMedia storeCommentImage(MultipartFile image) {
+        if (!hasContent(image)) {
+            return null;
+        }
+        if (image.getSize() > MediaLimits.MAX_IMAGE_BYTES) {
+            throw new InvalidMediaException("Mỗi ảnh tối đa " + megabytes(MediaLimits.MAX_IMAGE_BYTES) + " MB.");
+        }
+        return storeImage(image, COMMENT_FOLDER);
+    }
+
     /** Xóa file của những media đã lưu (dùng khi tạo bài thất bại). Lỗi xóa chỉ ghi log. */
     public void discard(List<StoredMedia> media) {
         for (StoredMedia item : media) {
@@ -82,6 +99,10 @@ public class MediaService {
     }
 
     private StoredMedia storeImage(MultipartFile file) {
+        return storeImage(file, FOLDER);
+    }
+
+    private StoredMedia storeImage(MultipartFile file, String folder) {
         byte[] bytes;
         try {
             bytes = file.getBytes();
@@ -89,7 +110,7 @@ public class MediaService {
             throw new InvalidMediaException("Không đọc được file ảnh, hãy thử lại.");
         }
         ImageProcessor.ProcessedImage processed = ImageProcessor.process(bytes);
-        String url = storage.storeBytes(processed.data(), FOLDER, processed.extension());
+        String url = storage.storeBytes(processed.data(), folder, processed.extension());
         return new StoredMedia(MediaKind.IMAGE, url, processed.contentType(), processed.data().length);
     }
 

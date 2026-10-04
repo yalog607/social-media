@@ -50,6 +50,10 @@ public class Comment {
     @Column(nullable = false, length = MAX_CONTENT_LENGTH)
     private String content;
 
+    /** Ảnh đính kèm (tối đa một); null = bình luận chỉ có chữ. */
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

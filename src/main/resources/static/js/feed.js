@@ -420,29 +420,83 @@
     }
   });
 
+  // ---------- Ảnh trong bình luận: dán Ctrl+V (hoặc chọn file), xem trước, gửi kèm bình luận ----------
+  const COMMENT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const COMMENT_IMAGE_MAX_BYTES = 8 * MB; // khớp MediaLimits.MAX_IMAGE_BYTES; máy chủ vẫn kiểm lại
+  const commentImages = new WeakMap(); // form -> File đang chờ gửi
+
+  function setCommentImage(form, file) {
+    clearCommentImage(form);
+    commentImages.set(form, file);
+    const box = form.querySelector('[data-comment-attach]');
+    const thumb = form.querySelector('[data-comment-thumb]');
+    thumb.src = URL.createObjectURL(file);
+    box.hidden = false;
+  }
+
+  function clearCommentImage(form) {
+    commentImages.delete(form);
+    const box = form.querySelector('[data-comment-attach]');
+    const thumb = form.querySelector('[data-comment-thumb]');
+    if (!box || !thumb) return;
+    if (thumb.src) URL.revokeObjectURL(thumb.src);
+    thumb.removeAttribute('src');
+    box.hidden = true;
+  }
+
+  document.addEventListener('paste', function (event) {
+    const textarea = event.target;
+    const form = textarea.closest && textarea.closest('.comment-form');
+    if (!form || textarea.name !== 'content') return;
+    const items = event.clipboardData ? Array.from(event.clipboardData.items) : [];
+    const item = items.find(function (candidate) { return candidate.kind === 'file' && candidate.type.indexOf('image/') === 0; });
+    const picture = item ? item.getAsFile() : null;
+    if (!picture) return; // dán chữ: giữ hành vi mặc định
+    event.preventDefault();
+    if (COMMENT_IMAGE_TYPES.indexOf(picture.type) < 0) { window.Aloute.toast('Chỉ nhận ảnh JPG, PNG, GIF hoặc WEBP.', 'error'); return; }
+    if (picture.size > COMMENT_IMAGE_MAX_BYTES) { window.Aloute.toast('Mỗi ảnh tối đa ' + (COMMENT_IMAGE_MAX_BYTES / MB) + ' MB.', 'error'); return; }
+    const extension = (picture.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    setCommentImage(form, new File([picture], 'anh-dan-' + Date.now() + '.' + extension, { type: picture.type }));
+  });
+
+  document.addEventListener('click', function (event) {
+    const clear = event.target.closest('[data-comment-attach-clear]');
+    if (clear) clearCommentImage(clear.closest('.comment-form'));
+  });
+
   document.addEventListener('submit', async function (event) {
     const form = event.target.closest('.comment-form');
     if (!form) return;
     event.preventDefault();
     const textarea = form.elements.content;
     const content = textarea.value.trim();
-    if (!content) return;
+    const image = commentImages.get(form);
+    if (!content && !image) return;
     const section = form.closest('.post-comments');
-    const body = new URLSearchParams({ content: content });
+    const body = new FormData();
+    if (content) body.append('content', content);
+    if (image) body.append('image', image);
     if (form.dataset.parentId) {
-      body.set('parentId', form.dataset.parentId);
+      body.append('parentId', form.dataset.parentId);
     }
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
     try {
-      const response = await window.Aloute.api(form.dataset.commentsUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString(),
-      });
+      const response = await window.Aloute.api(form.dataset.commentsUrl, { method: 'POST', body: body });
+      if (response.status === 400) {
+        let message = 'Chưa gửi được bình luận, thử lại nhé.';
+        try { message = (await response.json()).error || message; } catch (ignored) { /* giữ thông báo chung */ }
+        window.Aloute.toast(message, 'error');
+        return;
+      }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       clearReplyContext(form);
+      clearCommentImage(form);
       await loadComments(section, form.dataset.commentsUrl);
     } catch (error) {
       window.Aloute.toast('Chưa gửi được bình luận, thử lại nhé.', 'error');
+    } finally {
+      submit.disabled = false;
     }
   });
 

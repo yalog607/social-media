@@ -2,6 +2,7 @@ package com.aloute.comment;
 
 import com.aloute.common.RateAction;
 import com.aloute.common.RateLimiter;
+import com.aloute.media.MediaService;
 import com.aloute.mention.MentionService;
 import com.aloute.notification.NotificationService;
 import com.aloute.post.Post;
@@ -16,6 +17,9 @@ import com.aloute.wallet.FanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
@@ -40,10 +44,12 @@ public class CommentService {
     private final Clock clock;
     private final FanService fans;
     private final MentionService mentions;
+    private final MediaService media;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
-                          FanService fans, MentionService mentions) {
+                          FanService fans, MentionService mentions, MediaService media) {
+        this.media = media;
         this.fans = fans;
         this.mentions = mentions;
         this.comments = comments;
@@ -61,9 +67,21 @@ public class CommentService {
      */
     @Transactional
     public Comment create(UUID authorId, UUID postId, UUID parentId, String content) {
+        return create(authorId, postId, parentId, content, null);
+    }
+
+    /**
+     * Như {@link #create(UUID, UUID, UUID, String)}, thêm một ảnh đính kèm (không bắt buộc). Bình luận hợp lệ khi có chữ
+     * HOẶC ảnh. Ảnh được lưu sau khi mọi kiểm tra khác đã qua, và bị xóa khỏi đĩa nếu giao dịch không commit.
+     *
+     * @throws com.aloute.media.InvalidMediaException ảnh không hợp lệ hoặc quá lớn
+     */
+    @Transactional
+    public Comment create(UUID authorId, UUID postId, UUID parentId, String content, MultipartFile image) {
         rateLimiter.check(RateAction.COMMENT, authorId);
         Post post = posts.getVisible(postId, authorId);
-        String text = clean(content);
+        boolean hasImage = image != null && !image.isEmpty();
+        String text = clean(content, hasImage);
 
         Comment parent = null;
         if (parentId != null) {
@@ -74,8 +92,12 @@ public class CommentService {
             parent = target.isReply() ? target.getParent() : target;
         }
 
+        MediaService.StoredMedia stored = media.storeCommentImage(image);
+        discardImageUnlessCommitted(stored);
+
         Comment comment = new Comment();
         comment.setPost(post);
+        comment.setImageUrl(stored == null ? null : stored.url());
         comment.setAuthor(users.getReferenceById(authorId));
         comment.setParent(parent);
         comment.setContent(text);
@@ -149,6 +171,7 @@ public class CommentService {
                 new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
                         profile.getAvatarUrl(), author.primaryRole()),
                 deleted ? "" : PostTextRenderer.toSafeHtml(comment.getContent()),
+                deleted ? null : comment.getImageUrl(),
                 comment.getCreatedAt(),
                 mine,
                 deleted,
@@ -156,10 +179,25 @@ public class CommentService {
                 badges.get(author.getId()));
     }
 
-    /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra rỗng và độ dài. */
-    private static String clean(String content) {
+    /** Nếu giao dịch không commit (rollback hoặc commit lỗi) thì xóa file ảnh đã ghi ra đĩa. */
+    private void discardImageUnlessCommitted(MediaService.StoredMedia stored) {
+        if (stored == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    media.discard(List.of(stored));
+                }
+            }
+        });
+    }
+
+    /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra độ dài; rỗng chỉ được phép khi có ảnh kèm theo. */
+    private static String clean(String content, boolean hasImage) {
         String text = content == null ? "" : content.replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]", "").strip();
-        if (text.isEmpty()) {
+        if (text.isEmpty() && !hasImage) {
             throw new InvalidCommentException("Bình luận không được để trống.");
         }
         if (text.codePointCount(0, text.length()) > Comment.MAX_CONTENT_LENGTH) {
