@@ -33,7 +33,7 @@
                 <a class="search-user" th:each="u : ${users}" th:href="@{/u/{u}(u=${u.username})}">
                     <span th:replace="~{fragments/ui :: avatar(${u}, '')}"></span>
                     <span class="search-user-info">
-                        <span class="search-user-name" th:text="${u.displayName}">Tên</span>
+                        <span class="search-user-name" th:text="${u.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${u.primaryRole})}"></svg>
                         <span class="search-user-handle" th:text="'@' + ${u.username}">@username</span>
                     </span>
                     <span th:if="${u.primaryRole.name() != 'USER'}" th:replace="~{fragments/ui :: roleChip(${u.primaryRole})}"></span>

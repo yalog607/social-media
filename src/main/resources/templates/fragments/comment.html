@@ -7,9 +7,13 @@
     <span th:replace="~{fragments/ui :: avatar(${c.author}, 'avatar--sm')}"></span>
     <div class="comment-content">
         <div class="comment-bubble" th:classappend="${c.deleted} ? 'is-deleted' : ''">
-            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a>
+            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${c.author.primaryRole})}"></svg>
             <span class="fan-badge" th:if="${c.badge != null and !c.deleted}" th:text="${c.badge.emoji()} + ' ' + ${c.badge.label()}">🥇 Fan vàng</span>
-            <div th:unless="${c.deleted}" class="comment-text" th:utext="${c.contentHtml}"></div>
+            <div th:unless="${c.deleted or #strings.isEmpty(c.contentHtml)}" class="comment-text" th:utext="${c.contentHtml}"></div>
+            <a class="lightbox-trigger comment-image-link" th:if="${!c.deleted and c.imageUrl != null}" role="button" tabindex="0"
+               th:attr="data-lightbox=${c.imageUrl}, aria-label='Xem ảnh cỡ lớn'">
+                <img class="comment-image" th:src="${c.imageUrl}" alt="Ảnh trong bình luận" loading="lazy">
+            </a>
             <div th:if="${c.deleted}" class="comment-text text-soft">Bình luận đã bị xóa.</div>
         </div>
         <div class="comment-meta" th:unless="${c.deleted}">

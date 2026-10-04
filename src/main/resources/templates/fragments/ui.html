@@ -14,6 +14,15 @@
       th:classappend="${role.name() == 'USER'} ? '' : 'role-chip--' + ${#strings.toLowerCase(role.name())}"
       th:text="${role.label()}">Người dùng</span>
 
+<!-- Tích vàng đã xác minh cho Creator (giống tích xanh của mạng xã hội khác). Tham số: vai trò chính của người đó (Role);
+     chỉ vẽ khi là CREATOR. Có chữ thay thế cho trình đọc màn hình và gợi ý khi rê chuột. -->
+<svg th:fragment="verified(role)" th:if="${role != null and role.name() == 'CREATOR'}" class="verified-badge" viewBox="0 0 24 24"
+     role="img" aria-label="Creator đã xác minh" focusable="false">
+    <title>Creator đã xác minh</title>
+    <polygon points="12.00,1.20 14.38,3.11 17.40,2.65 18.51,5.49 21.35,6.60 20.89,9.62 22.80,12.00 20.89,14.38 21.35,17.40 18.51,18.51 17.40,21.35 14.38,20.89 12.00,22.80 9.62,20.89 6.60,21.35 5.49,18.51 2.65,17.40 3.11,14.38 1.20,12.00 3.11,9.62 2.65,6.60 5.49,5.49 6.60,2.65 9.62,3.11" fill="#F5B800" stroke="#1B1B1F" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M7.4 12.4l3.2 3.2 6-6.6" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
 <!-- Tấm bảng sticker bên cạnh form xác thực (chỉ trang trí) -->
 <div th:fragment="authSide(headline, sub, tone)" class="auth-side" aria-hidden="true">
     <div class="note note--taped tilt-r" th:classappend="'note--' + ${tone}"

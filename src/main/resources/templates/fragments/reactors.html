@@ -7,7 +7,7 @@
     <a class="search-user" th:each="r : ${reactors}" th:href="@{/u/{u}(u=${r.user.username})}">
         <span th:replace="~{fragments/ui :: avatar(${r.user}, '')}"></span>
         <span class="search-user-info">
-            <span class="search-user-name" th:text="${r.user.displayName}">Tên</span>
+            <span class="search-user-name" th:text="${r.user.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${r.user.primaryRole})}"></svg>
         </span>
         <span class="ms-auto fs-4" th:text="${r.type.emoji()}" th:title="${r.type.label()}">❤️</span>
     </a>
