@@ -103,7 +103,9 @@ class ChatControllerIT extends IntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("sockjs.min.js")))
                 .andExpect(content().string(containsString("stomp.min.js")))
-                .andExpect(content().string(containsString("/js/chat.js")));
+                .andExpect(content().string(containsString("/js/chat.js")))
+                .andExpect(content().string(containsString("data-max-attachment-mb=\"20\"")))
+                .andExpect(content().string(containsString("id=\"chat-attach-thumb\"")));
     }
 
     @Test

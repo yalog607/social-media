@@ -817,3 +817,6 @@ body.lightbox-open { overflow: hidden; }
 .verified-badge { width: 1.05em; height: 1.05em; margin-left: .25rem; vertical-align: -0.16em; flex: none; display: inline-block; }
 .comment-bubble .verified-badge { margin-left: .2rem; margin-bottom: .1rem; }
 .comment-bubble .comment-text { margin-top: .1rem; }
+.chat-attach-thumb { width: 56px; height: 56px; object-fit: cover; border: var(--line); border-radius: 10px; flex: none; }
+.chat-attach-thumb[hidden] { display: none; }
+.chat-attach-preview button { font-size: 1.4rem; line-height: 1; padding: 0 .3rem; }

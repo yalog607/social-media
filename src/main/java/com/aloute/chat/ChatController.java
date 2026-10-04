@@ -62,6 +62,7 @@ public class ChatController {
         model.addAttribute("canManage", conversation.isGroup() && myRole.canManage());
         model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
         model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
+        model.addAttribute("maxAttachmentMb", ChatLimits.MAX_ATTACHMENT_BYTES / (1024 * 1024));
         model.addAttribute("streak", conversation.isGroup() ? Streak.NONE : streaks.forConversation(id));
         model.addAttribute("page", messagesService.history(me.id(), id, null));
         model.addAttribute("friendsNotInGroup", friends.friendsOf(me.id()).stream()

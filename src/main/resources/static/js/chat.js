@@ -151,18 +151,61 @@
     connect();
   }
 
-  // ---------- Đính kèm file ----------
+  // ---------- Đính kèm file (chọn từ máy hoặc dán bằng Ctrl+V) ----------
   var attachedFile = null;
-  attachBtn.addEventListener('click', function () { attachInput.click(); });
-  attachInput.addEventListener('change', function () {
-    attachedFile = attachInput.files[0] || null;
-    attachPreview.hidden = !attachedFile;
-    attachName.textContent = attachedFile ? attachedFile.name : '';
-  });
-  attachClear.addEventListener('click', function () {
+  var attachThumb = document.getElementById('chat-attach-thumb');
+  var maxAttachmentBytes = Number(main.dataset.maxAttachmentMb || 20) * 1024 * 1024;
+
+  function clearAttachment() {
     attachedFile = null;
     attachInput.value = '';
     attachPreview.hidden = true;
+    attachName.textContent = '';
+    if (attachThumb.src) URL.revokeObjectURL(attachThumb.src);
+    attachThumb.removeAttribute('src');
+    attachThumb.hidden = true;
+  }
+
+  // Mỗi tin chỉ một file: file mới thay file đang chọn. Ảnh có bản xem trước nhỏ.
+  function setAttachment(file) {
+    clearAttachment();
+    attachedFile = file;
+    attachPreview.hidden = false;
+    attachName.textContent = file.name;
+    if (file.type.indexOf('image/') === 0) {
+      attachThumb.src = URL.createObjectURL(file);
+      attachThumb.hidden = false;
+    }
+  }
+
+  attachBtn.addEventListener('click', function () { attachInput.click(); });
+  attachInput.addEventListener('change', function () {
+    var file = attachInput.files[0];
+    if (!file) { clearAttachment(); return; }
+    if (file.size > maxAttachmentBytes) {
+      window.Aloute.toast('File tối đa ' + Math.round(maxAttachmentBytes / 1024 / 1024) + ' MB.', 'error');
+      clearAttachment();
+      return;
+    }
+    setAttachment(file);
+  });
+  attachClear.addEventListener('click', clearAttachment);
+
+  // Ctrl+V: dán ảnh (ảnh chụp màn hình, ảnh sao chép từ web...) như khi chọn file. Dán chữ thì giữ nguyên hành vi mặc định.
+  textarea.addEventListener('paste', function (event) {
+    var items = event.clipboardData ? Array.prototype.slice.call(event.clipboardData.items) : [];
+    var picture = null;
+    items.forEach(function (item) {
+      if (!picture && item.kind === 'file' && item.type.indexOf('image/') === 0) picture = item.getAsFile();
+    });
+    if (!picture) return;
+    event.preventDefault();
+    if (picture.size > maxAttachmentBytes) {
+      window.Aloute.toast('Ảnh tối đa ' + Math.round(maxAttachmentBytes / 1024 / 1024) + ' MB.', 'error');
+      return;
+    }
+    var extension = (picture.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    setAttachment(new File([picture], 'anh-dan-' + Date.now() + '.' + extension, { type: picture.type }));
   });
 
   // ---------- Gửi tin nhắn ----------
@@ -181,9 +224,7 @@
       var response = await window.Aloute.api('/api/conversations/' + conversationId + '/messages', { method: 'POST', body: body });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       textarea.value = '';
-      attachedFile = null;
-      attachInput.value = '';
-      attachPreview.hidden = true;
+      clearAttachment();
     } catch (error) {
       window.Aloute.toast('Chưa gửi được tin nhắn, thử lại nhé.', 'error');
     } finally {
