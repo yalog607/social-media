@@ -49,6 +49,13 @@ public class ChatController {
 
     @GetMapping("/messages/{id}")
     public String view(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        if (!chats.isMember(me.id(), id)) {
+            if (chats.exists(id)) {
+                return "chat/not_member";
+            } else {
+                throw new ConversationNotFoundException();
+            }
+        }
         Conversation conversation = chats.requireMembership(me.id(), id);
         chats.markRead(me.id(), id);
         List<PostView.AuthorView> members = chats.membersOf(id);
@@ -63,10 +70,18 @@ public class ChatController {
         model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
         model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
         model.addAttribute("maxAttachmentMb", ChatLimits.MAX_ATTACHMENT_BYTES / (1024 * 1024));
-        model.addAttribute("streak", conversation.isGroup() ? Streak.NONE : streaks.forConversation(id));
+        model.addAttribute("streak", streaks.forConversation(id));
         model.addAttribute("page", messagesService.history(me.id(), id, null));
+        model.addAttribute("pinnedMessages", messagesService.getPinnedMessages(me.id(), id));
+        model.addAttribute("mediaMessages", messagesService.getMediaMessages(me.id(), id));
+        model.addAttribute("linkMessages", messagesService.getLinkMessages(me.id(), id));
         model.addAttribute("friendsNotInGroup", friends.friendsOf(me.id()).stream()
                 .filter(f -> !memberIds.contains(f.id())).toList());
+        
+        if (model.getAttribute("canManage") == Boolean.TRUE) {
+            model.addAttribute("pendingRequests", chats.getPendingRequests(me.id(), id));
+        }
+        
         return "chat/conversation";
     }
 
@@ -79,6 +94,17 @@ public class ChatController {
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("page", messagesService.history(me.id(), id, before));
         return "chat/messages :: list";
+    }
+
+    /** Mảnh HTML kết quả tìm kiếm tin nhắn. */
+    @GetMapping("/api/conversations/{id}/search")
+    public String search(@PathVariable UUID id, @RequestParam String keyword,
+                         @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        Conversation conversation = chats.requireMembership(me.id(), id);
+        model.addAttribute("conversation", conversation);
+        model.addAttribute("header", chats.header(me.id(), conversation));
+        model.addAttribute("searchResults", messagesService.searchMessages(me.id(), id, keyword));
+        return "chat/search :: results";
     }
 
     @PostMapping("/messages/start")
@@ -120,9 +146,10 @@ public class ChatController {
 
     @PostMapping("/messages/{id}/leave")
     public String leave(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        @RequestParam(required = false) UUID nextOwnerId,
                         RedirectAttributes flash) {
         try {
-            chats.leave(me.id(), id);
+            chats.leave(me.id(), id, nextOwnerId);
         } catch (ChatActionException e) {
             flash.addFlashAttribute("error", e.getMessage());
             return "redirect:/messages/" + id;
@@ -135,46 +162,104 @@ public class ChatController {
     @PostMapping("/messages/{id}/title")
     public String rename(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
                          @RequestParam String title, RedirectAttributes flash) {
-        return manage(id, flash, "Đã đổi tên nhóm.", () -> chats.rename(me.id(), id, title));
+        return manage(id, flash, null, () -> chats.rename(me.id(), id, title));
     }
 
     @PostMapping("/messages/{id}/avatar")
     public String avatar(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
                          @RequestParam MultipartFile avatar, RedirectAttributes flash) {
-        return manage(id, flash, "Đã đổi ảnh nhóm.", () -> chats.setAvatar(me.id(), id, avatar));
+        return manage(id, flash, null, () -> chats.setAvatar(me.id(), id, avatar));
     }
 
     @PostMapping("/messages/{id}/members/{userId}/role")
     public String role(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
                        @RequestParam GroupRole role, RedirectAttributes flash) {
-        return manage(id, flash, "Đã cập nhật vai trò.", () -> chats.setRole(me.id(), id, userId, role));
+        return manage(id, flash, null, () -> chats.setRole(me.id(), id, userId, role));
     }
 
     @PostMapping("/messages/{id}/members/{userId}/owner")
     public String owner(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
                         RedirectAttributes flash) {
-        return manage(id, flash, "Đã nhường quyền chủ nhóm.", () -> chats.transferOwnership(me.id(), id, userId));
+        return manage(id, flash, null, () -> chats.transferOwnership(me.id(), id, userId));
     }
 
     @PostMapping("/messages/{id}/members/{userId}/remove")
     public String removeMember(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
                                RedirectAttributes flash) {
-        return manage(id, flash, "Đã xóa thành viên khỏi nhóm.", () -> chats.removeMember(me.id(), id, userId));
+        return manage(id, flash, null, () -> chats.removeMember(me.id(), id, userId));
     }
 
     @PostMapping("/messages/{id}/members/{userId}/nickname")
     public String nickname(@PathVariable UUID id, @PathVariable UUID userId, @AuthenticationPrincipal AlouteUserPrincipal me,
                            @RequestParam(required = false) String nickname, RedirectAttributes flash) {
-        return manage(id, flash, "Đã lưu biệt danh.", () -> chats.setNickname(me.id(), id, userId, nickname));
+        return manage(id, flash, null, () -> chats.setNickname(me.id(), id, userId, nickname));
+    }
+
+    @PostMapping("/messages/{id}/nickname-permission")
+    public String nicknamePermission(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                                     @RequestParam(required = false) boolean allow, RedirectAttributes flash) {
+        return manage(id, flash, null, () -> chats.setAllowAnyoneChangeNickname(me.id(), id, allow));
+    }
+
+    @PostMapping("/messages/{id}/pins/{messageId}")
+    public String togglePin(@PathVariable UUID id, @PathVariable UUID messageId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                            @RequestParam boolean pin, RedirectAttributes flash) {
+        return manage(id, flash, null, () -> messagesService.togglePin(me.id(), messageId, pin));
+    }
+
+    @PostMapping("/messages/{id}/delete/{messageId}")
+    public String deleteMessage(@PathVariable UUID id, @PathVariable UUID messageId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                                RedirectAttributes flash) {
+        return manage(id, flash, "Đã xóa tin nhắn.", () -> messagesService.deleteMessage(me.id(), messageId));
+    }
+
+    @PostMapping("/messages/{id}/edit/{messageId}")
+    public String editMessage(@PathVariable UUID id, @PathVariable UUID messageId, @AuthenticationPrincipal AlouteUserPrincipal me,
+                              @RequestParam String content, RedirectAttributes flash) {
+        return manage(id, flash, "Đã sửa tin nhắn.", () -> messagesService.editMessage(me.id(), messageId, content));
+    }
+
+    @PostMapping("/messages/{id}/disband")
+    public String disband(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash) {
+        try {
+            chats.disband(me.id(), id);
+            flash.addFlashAttribute("notice", "Đã giải tán nhóm.");
+        } catch (ChatActionException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/messages/" + id;
+        }
+        return "redirect:/messages";
+    }
+
+    @PostMapping("/messages/{id}/approval")
+    public String approval(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                           @RequestParam(defaultValue = "false") boolean require, RedirectAttributes flash) {
+        return manage(id, flash, null, () -> chats.toggleApproval(me.id(), id, require));
     }
 
     private static String manage(UUID id, RedirectAttributes flash, String success, Runnable action) {
         try {
             action.run();
-            flash.addFlashAttribute("notice", success);
+            if (success != null) {
+                flash.addFlashAttribute("chatNotice", success);
+            }
         } catch (ChatActionException | com.aloute.media.InvalidMediaException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
+        return "redirect:/messages/" + id;
+    }
+
+    @PostMapping("/messages/{id}/requests/{uid}/approve")
+    public String approveRequest(@PathVariable UUID id, @PathVariable UUID uid,
+                                 @AuthenticationPrincipal AlouteUserPrincipal me) {
+        chats.approveRequest(me.id(), id, uid);
+        return "redirect:/messages/" + id;
+    }
+    
+    @PostMapping("/messages/{id}/requests/{uid}/reject")
+    public String rejectRequest(@PathVariable UUID id, @PathVariable UUID uid,
+                                @AuthenticationPrincipal AlouteUserPrincipal me) {
+        chats.rejectRequest(me.id(), id, uid);
         return "redirect:/messages/" + id;
     }
 }

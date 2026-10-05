@@ -76,7 +76,8 @@
     const person = active.items[index];
     const textarea = active.textarea;
     const caret = textarea.selectionStart;
-    const insert = '@' + person.username + ' ';
+    const name = person.nickname || person.displayName || person.username;
+    const insert = '@' + name + ' ';
     textarea.value = textarea.value.slice(0, active.start) + insert + textarea.value.slice(caret);
     const position = active.start + insert.length;
     textarea.setSelectionRange(position, position);

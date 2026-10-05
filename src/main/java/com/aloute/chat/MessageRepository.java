@@ -25,4 +25,19 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
             where m.conversation_id in (:conversationIds)
             order by m.conversation_id, m.created_at desc""", nativeQuery = true)
     List<Message> findLatestForConversations(@Param("conversationIds") List<UUID> conversationIds);
+
+    List<Message> findByConversationIdAndPinnedTrueOrderByCreatedAtDesc(UUID conversationId);
+
+    @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId AND lower(m.content) LIKE lower(concat('%', :keyword, '%')) ORDER BY m.createdAt DESC")
+    List<Message> searchByContent(@Param("conversationId") UUID conversationId, @Param("keyword") String keyword);
+
+    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.attachment WHERE m.conversation.id = :conversationId AND m.attachment IS NOT NULL ORDER BY m.createdAt DESC")
+    List<Message> findMediaMessages(@Param("conversationId") UUID conversationId);
+
+    long countByConversationIdAndPinnedTrue(UUID conversationId);
+
+    @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId AND m.content LIKE '%http%' ORDER BY m.createdAt DESC")
+    List<Message> findLinkMessages(@Param("conversationId") UUID conversationId);
+    
+    void deleteByConversationId(UUID conversationId);
 }
