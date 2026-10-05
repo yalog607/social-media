@@ -100,8 +100,13 @@ class GroupManagementIT extends IntegrationTest {
 
         befriend(admin, other);
         chats.addMember(admin.getId(), group.getId(), other.getId());
-        assertThatThrownBy(() -> chats.addMember(member.getId(), group.getId(), createUser().getId()))
-                .isInstanceOf(ChatActionException.class);
+        
+        // Members can add other members if approval is not required
+        User anotherFriend = createUser();
+        friends.sendRequest(member.getId(), anotherFriend.getId());
+        friends.accept(anotherFriend.getId(), member.getId());
+        chats.addMember(member.getId(), group.getId(), anotherFriend.getId());
+        assertThat(chats.isMember(anotherFriend.getId(), group.getId())).isTrue();
         assertThatThrownBy(() -> chats.removeMember(admin.getId(), group.getId(), owner.getId())).isInstanceOf(ChatActionException.class);
         assertThatThrownBy(() -> chats.removeMember(member.getId(), group.getId(), other.getId())).isInstanceOf(ChatActionException.class);
         assertThatThrownBy(() -> chats.removeMember(owner.getId(), group.getId(), owner.getId())).hasMessageContaining("rời nhóm");
@@ -116,7 +121,13 @@ class GroupManagementIT extends IntegrationTest {
     void nicknamesFollowPermissionsAndShowInMessages() {
         setUp();
 
+        // Test that anyone can change nickname by default
         chats.setNickname(member.getId(), group.getId(), member.getId(), "  Mochi   xinh ");
+        chats.setNickname(member.getId(), group.getId(), admin.getId(), "Quản trị viên 1");
+        
+        // Disable allowAnyoneChangeNickname
+        chats.setAllowAnyoneChangeNickname(owner.getId(), group.getId(), false);
+
         chats.setNickname(admin.getId(), group.getId(), member.getId(), "Bé Mochi");
         assertThatThrownBy(() -> chats.setNickname(member.getId(), group.getId(), admin.getId(), "x")).isInstanceOf(ChatActionException.class);
         assertThatThrownBy(() -> chats.setNickname(admin.getId(), group.getId(), owner.getId(), "x")).isInstanceOf(ChatActionException.class);
@@ -144,7 +155,7 @@ class GroupManagementIT extends IntegrationTest {
     }
 
     @Test
-    void ownershipTransferAndAutomaticSuccessionWhenTheOwnerLeaves() {
+    void ownershipTransferAndRequiredSuccessionWhenTheOwnerLeaves() {
         setUp();
 
         chats.transferOwnership(owner.getId(), group.getId(), member.getId());
@@ -152,8 +163,9 @@ class GroupManagementIT extends IntegrationTest {
         assertThat(role(owner)).isEqualTo(GroupRole.ADMIN);
         assertThatThrownBy(() -> chats.transferOwnership(owner.getId(), group.getId(), admin.getId())).isInstanceOf(ChatActionException.class);
 
-        chats.leave(member.getId(), group.getId());
-        assertThat(List.of(role(owner), role(admin))).as("quản trị viên vào sớm nhất lên làm chủ nhóm").contains(GroupRole.OWNER);
+        assertThatThrownBy(() -> chats.leave(member.getId(), group.getId(), null)).isInstanceOf(ChatActionException.class);
+        chats.leave(member.getId(), group.getId(), admin.getId());
+        assertThat(role(admin)).isEqualTo(GroupRole.OWNER);
         assertThat(chats.memberViews(group.getId())).filteredOn(m -> m.role() == GroupRole.OWNER).hasSize(1);
     }
 

@@ -79,6 +79,22 @@
     if (m.id) {
       if (chatWindow.querySelector('.msg[data-id="' + m.id + '"]')) return;
       msg.dataset.id = m.id;
+      msg.id = 'msg-' + m.id;
+    }
+
+    if (m.isSystem) {
+      msg.className = 'msg justify-content-center text-center my-3';
+      var span = document.createElement('span');
+      span.className = 'text-dark fw-medium';
+      span.innerHTML = m.contentHtml || '';
+      msg.appendChild(span);
+      
+      var empty = chatWindow.querySelector('p');
+      if (empty) empty.remove();
+      var follow = nearBottom();
+      chatWindow.appendChild(msg);
+      if (follow) scrollToBottom();
+      return;
     }
 
     var avatar = document.createElement('span');
@@ -98,10 +114,19 @@
     body.className = 'msg-body';
 
     if (isGroup && !mine) {
+      var senderRow = document.createElement('div');
+      senderRow.className = 'd-flex align-items-center mb-1';
       var sender = document.createElement('span');
-      sender.className = 'msg-sender';
+      sender.className = 'msg-sender mb-0';
       sender.textContent = m.sender.displayName;
-      body.appendChild(sender);
+      senderRow.appendChild(sender);
+
+      if (m.sender.primaryRole === 'CREATOR') {
+        var badge = document.createElement('div');
+        badge.innerHTML = '<svg class="verified-badge" viewBox="0 0 24 24" role="img" aria-label="Creator đã xác minh" focusable="false"><title>Creator đã xác minh</title><polygon points="12.00,1.20 14.38,3.11 17.40,2.65 18.51,5.49 21.35,6.60 20.89,9.62 22.80,12.00 20.89,14.38 21.35,17.40 18.51,18.51 17.40,21.35 14.38,20.89 12.00,22.80 9.62,20.89 6.60,21.35 5.49,18.51 2.65,17.40 3.11,14.38 1.20,12.00 3.11,9.62 2.65,6.60 5.49,5.49 6.60,2.65 9.62,3.11" fill="#F5B800" stroke="#1B1B1F" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.4 12.4l3.2 3.2 6-6.6" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        senderRow.appendChild(badge.firstChild);
+      }
+      body.appendChild(senderRow);
     }
 
     var bubble = document.createElement('span');

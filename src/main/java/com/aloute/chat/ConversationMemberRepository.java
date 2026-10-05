@@ -16,6 +16,8 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     void deleteByConversationIdAndUserId(UUID conversationId, UUID userId);
 
+    void deleteByConversationId(UUID conversationId);
+
     long countByConversationId(UUID conversationId);
 
     @Query("select cm from ConversationMember cm join fetch cm.user u join fetch u.profile "

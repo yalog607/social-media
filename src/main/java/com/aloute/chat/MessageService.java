@@ -56,6 +56,16 @@ public class MessageService {
         rateLimiter.check(RateAction.CHAT_MESSAGE, senderId);
         Conversation conversation = chats.requireMembership(senderId, conversationId);
         String text = clean(content);
+
+        if (conversation.isGroup() && !text.isEmpty()) {
+            List<MemberView> members = new java.util.ArrayList<>(chats.memberViews(conversationId));
+            members.sort(java.util.Comparator.comparingInt(m -> -(m.nickname() != null ? m.nickname().length() : m.displayName().length())));
+            for (MemberView mv : members) {
+                String name = mv.nickname() != null ? mv.nickname() : mv.displayName();
+                text = text.replaceAll("(?i)@" + java.util.regex.Pattern.quote(name) + "(?![\\p{L}\\p{N}_.@&])", "@" + mv.username());
+            }
+        }
+
         ChatAttachmentService.Stored stored = attachments.store(attachment);
         if (text.isEmpty() && stored == null) {
             throw new ChatActionException("Nhắn gì đó hoặc gửi kèm file nhé.");
@@ -80,7 +90,23 @@ public class MessageService {
             mentions.notifyChat(senderId, conversationId,
                     chats.memberViews(conversationId).stream().map(MemberView::id).collect(java.util.stream.Collectors.toSet()), text);
         }
-        return toView(saved, chats.nicknames(conversationId));
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return toView(saved, chats.nicknames(conversationId), usernameToNickname);
+    }
+
+    /**
+     * Gửi tin nhắn hệ thống (isSystem = true).
+     */
+    @Transactional
+    public void sendSystemMessage(UUID senderId, UUID conversationId, String text) {
+        Conversation conversation = chats.requireMembership(senderId, conversationId);
+        Message message = new Message();
+        message.setConversation(conversation);
+        message.setSender(users.getReferenceById(senderId));
+        message.setContent(text);
+        message.setCreatedAt(clock.instant());
+        message.setSystem(true);
+        messages.save(message);
     }
 
     /**
@@ -102,25 +128,129 @@ public class MessageService {
         String next = hasMore ? new Cursor(rows.get(rows.size() - 1).getCreatedAt(), rows.get(rows.size() - 1).getId()).encode() : null;
         Collections.reverse(rows);
         Map<UUID, String> nicknames = chats.nicknames(conversationId);
-        return new MessagePage(rows.stream().map(m -> toView(m, nicknames)).toList(), next);
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return new MessagePage(rows.stream().map(m -> toView(m, nicknames, usernameToNickname)).toList(), next);
+    }
+
+    private java.util.Map<String, String> getUsernameToNicknameMap(UUID conversationId) {
+        java.util.Map<String, String> usernameToNickname = new java.util.HashMap<>();
+        chats.memberViews(conversationId).forEach(mv -> {
+            usernameToNickname.put(mv.username().toLowerCase(java.util.Locale.ROOT), "@" + (mv.nickname() != null ? mv.nickname() : mv.displayName()));
+        });
+        return usernameToNickname;
     }
 
     /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
-    private static MessageView toView(Message m, Map<UUID, String> nicknames) {
+    private static MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname) {
         User sender = m.getSender();
         Profile profile = sender.getProfile();
         AttachmentView attachmentView = m.getAttachment() == null ? null : new AttachmentView(
                 m.getAttachment().getKind(), m.getAttachment().getUrl(),
                 m.getAttachment().getContentType(), m.getAttachment().getOriginalName());
+                
         return new MessageView(
                 m.getId(),
                 m.getConversation().getId(),
                 new PostView.AuthorView(sender.getId(), sender.getUsername(),
                         nicknames.getOrDefault(sender.getId(), profile.getDisplayName()),
                         profile.getAvatarUrl(), sender.primaryRole()),
-                m.getContent() == null ? "" : PostTextRenderer.toSafeHtml(m.getContent()),
+                m.getContent() == null ? "" : PostTextRenderer.toSafeHtml(m.getContent(), username -> usernameToNickname.get(username)),
                 attachmentView,
-                m.getCreatedAt());
+                m.getCreatedAt(),
+                m.isPinned(),
+                m.isSystem());
+    }
+
+    @Transactional
+    public void deleteMessage(UUID actorId, UUID messageId) {
+        Message message = messages.findById(messageId)
+                .orElseThrow(() -> new ChatActionException("Không tìm thấy tin nhắn."));
+        Conversation conversation = message.getConversation();
+        chats.requireMembership(actorId, conversation.getId());
+        
+        boolean isSender = message.getSender().getId().equals(actorId);
+        if (!isSender) {
+            if (!conversation.isGroup()) {
+                throw new ChatActionException("Không có quyền xóa tin nhắn này.");
+            }
+            GroupRole role = chats.roleOf(actorId, conversation.getId());
+            if (!role.canManage()) {
+                throw new ChatActionException("Chỉ quản trị viên mới được xóa tin nhắn của người khác.");
+            }
+        }
+        messages.delete(message);
+    }
+
+    @Transactional
+    public void editMessage(UUID actorId, UUID messageId, String newContent) {
+        Message message = messages.findById(messageId)
+                .orElseThrow(() -> new ChatActionException("Không tìm thấy tin nhắn."));
+        if (!message.getSender().getId().equals(actorId)) {
+            throw new ChatActionException("Chỉ người gửi mới được sửa tin nhắn.");
+        }
+        String text = clean(newContent);
+        if (text.isEmpty() && message.getAttachment() == null) {
+            throw new ChatActionException("Tin nhắn không được để trống.");
+        }
+        message.setContent(text.isEmpty() ? null : text);
+    }
+
+    @Transactional
+    public void togglePin(UUID userId, UUID messageId, boolean pin) {
+        Message message = messages.findById(messageId)
+                .orElseThrow(() -> new ChatActionException("Không tìm thấy tin nhắn."));
+        Conversation conversation = message.getConversation();
+        chats.requireMembership(userId, conversation.getId());
+        if (conversation.isGroup()) {
+            GroupRole role = chats.roleOf(userId, conversation.getId());
+            if (!role.canManage()) {
+                throw new ChatActionException("Chỉ quản trị viên mới được ghim tin nhắn.");
+            }
+        }
+        if (pin && messages.countByConversationIdAndPinnedTrue(conversation.getId()) >= 3) {
+            throw new ChatActionException("Chỉ được ghim tối đa 3 tin nhắn.");
+        }
+        message.setPinned(pin);
+        
+        User actor = users.getReferenceById(userId);
+        sendSystemMessage(userId, conversation.getId(), actor.getProfile().getDisplayName() + (pin ? " đã ghim" : " đã bỏ ghim") + " một tin nhắn.");
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageView> getPinnedMessages(UUID viewerId, UUID conversationId) {
+        chats.requireMembership(viewerId, conversationId);
+        Map<UUID, String> nicknames = chats.nicknames(conversationId);
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return messages.findByConversationIdAndPinnedTrueOrderByCreatedAtDesc(conversationId)
+                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageView> searchMessages(UUID viewerId, UUID conversationId, String keyword) {
+        chats.requireMembership(viewerId, conversationId);
+        Map<UUID, String> nicknames = chats.nicknames(conversationId);
+        if (keyword == null || keyword.trim().isEmpty()) return Collections.emptyList();
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return messages.searchByContent(conversationId, keyword.trim())
+                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageView> getMediaMessages(UUID viewerId, UUID conversationId) {
+        chats.requireMembership(viewerId, conversationId);
+        Map<UUID, String> nicknames = chats.nicknames(conversationId);
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return messages.findMediaMessages(conversationId)
+                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageView> getLinkMessages(UUID viewerId, UUID conversationId) {
+        chats.requireMembership(viewerId, conversationId);
+        Map<UUID, String> nicknames = chats.nicknames(conversationId);
+        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return messages.findLinkMessages(conversationId)
+                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
     }
 
     /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra độ dài — cùng quy tắc với bình luận/bài viết. */

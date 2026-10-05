@@ -43,6 +43,12 @@ public class Conversation {
     @Column(length = MAX_TITLE_LENGTH)
     private String title;
 
+    @Column(nullable = false)
+    private boolean approvalRequired = false;
+
+    @Column(nullable = false)
+    private boolean allowAnyoneChangeNickname = true;
+
     /** Ảnh đại diện nhóm (chỉ GROUP); null = dùng ảnh mặc định. */
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;

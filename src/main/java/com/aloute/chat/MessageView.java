@@ -11,5 +11,7 @@ public record MessageView(
         PostView.AuthorView sender,
         String contentHtml,
         AttachmentView attachment,
-        Instant createdAt) {
+        Instant createdAt,
+        boolean pinned,
+        boolean isSystem) {
 }
