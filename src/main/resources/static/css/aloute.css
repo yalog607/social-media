@@ -75,6 +75,7 @@ h3 { font-size: 1.35rem; }
 p { max-width: 62ch; }
 a { color: var(--ink); text-decoration-thickness: 2px; text-underline-offset: 3px; }
 a:hover { text-decoration-color: var(--pink); }
+a:active { text-decoration-color: var(--lemon); background-color: var(--lemon); border-radius: 2px; }
 
 :focus-visible {
   outline: 3px solid var(--ink);
@@ -745,7 +746,7 @@ body.lightbox-open { overflow: hidden; }
 }
 .chat-more { flex: none; text-align: center; padding: .4rem; color: var(--ink-soft); font-size: .85rem; min-height: 1.6rem; }
 .chat-more.is-loading::before { content: 'Đang tải tin cũ hơn…'; }
-.msg { display: flex; gap: .6rem; align-items: flex-end; margin-bottom: .5rem; max-width: 100%; }
+.msg { display: flex; gap: .6rem; align-items: flex-start; margin-bottom: .5rem; max-width: 100%; }
 .msg.is-mine { flex-direction: row-reverse; }
 .msg .avatar { flex: none; width: 32px; height: 32px; font-size: .85rem; }
 .msg-body { display: flex; flex-direction: column; max-width: min(420px, 78%); min-width: 0; }
@@ -800,6 +801,8 @@ body.lightbox-open { overflow: hidden; }
 .stat-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 .stat-link[hidden], .post-stats[hidden] { display: none; }
 .mention { font-weight: 700; color: var(--ink); background: var(--lemon); border-radius: 4px; padding: 0 .2rem; text-decoration: none; }
+.text-link { text-decoration: none !important; color: #0d6efd; /* bootstrap default blue */ }
+.text-link:hover, .text-link:active { text-decoration: underline !important; text-decoration-color: var(--lemon) !important; text-decoration-thickness: 3px !important; text-underline-offset: 2px; }
 .mention-menu { position: fixed; z-index: 2000; margin: 0; padding: .25rem; list-style: none; background: var(--white); border: var(--line); border-radius: 12px; box-shadow: var(--sh); max-height: 240px; overflow-y: auto; }
 .mention-item { display: flex; justify-content: space-between; gap: .6rem; padding: .45rem .6rem; border-radius: 8px; cursor: pointer; font-size: .9rem; }
 .mention-item span { color: var(--ink-soft); }
@@ -826,3 +829,11 @@ body.lightbox-open { overflow: hidden; }
 .comment-attach[hidden] { display: none; }
 .comment-attach-thumb { width: 72px; height: 72px; object-fit: cover; border: var(--line); border-radius: 10px; }
 .comment-attach-clear { border: none; background: none; color: var(--danger); font: 800 1.4rem/1 var(--font-body); cursor: pointer; padding: 0 .3rem; }
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 3px #FF6B6B); }
+  50% { transform: scale(1.15) rotate(3deg); filter: drop-shadow(0 0 8px #FFD700); }
+}
+.icon-flame {
+  animation: flame-flicker 1.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
