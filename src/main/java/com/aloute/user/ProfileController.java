@@ -75,8 +75,30 @@ public class ProfileController {
         }
         if (canView) {
             model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, null));
+            model.addAttribute("pinnedPosts", feed.pinnedByAuthor(owner.getId(), viewerId));
             model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
         }
         return "profile/view";
+    }
+
+    @GetMapping("/u/{username}/friends-fragment")
+    public String friendsFragment(@PathVariable String username, Model model) {
+        User owner = users.findByUsername(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("friendsList", friends.friendsOf(owner.getId()));
+        return "profile/lists :: friends";
+    }
+
+    @GetMapping("/u/{username}/followers-fragment")
+    public String followersFragment(@PathVariable String username, Model model) {
+        User owner = users.findByUsername(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("followersList", follows.followers(owner.getId()));
+        return "profile/lists :: followers";
+    }
+
+    @GetMapping("/u/{username}/following-fragment")
+    public String followingFragment(@PathVariable String username, Model model) {
+        User owner = users.findByUsername(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        model.addAttribute("followingList", follows.following(owner.getId()));
+        return "profile/lists :: following";
     }
 }

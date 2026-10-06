@@ -118,4 +118,24 @@ public class PostController {
         }
         return "redirect:" + SafeRedirect.sanitize(next);
     }
+
+    @PostMapping("/posts/{id}/pin")
+    public String pin(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                      @RequestParam(required = false) String next, RedirectAttributes flash) {
+        try {
+            posts.pin(me.id(), id);
+            flash.addFlashAttribute("notice", "Đã ghim bài viết lên trang cá nhân!");
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
+
+    @PostMapping("/posts/{id}/unpin")
+    public String unpin(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        @RequestParam(required = false) String next, RedirectAttributes flash) {
+        posts.unpin(me.id(), id);
+        flash.addFlashAttribute("notice", "Đã bỏ ghim bài viết.");
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
 }
