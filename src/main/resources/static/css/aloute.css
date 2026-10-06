@@ -472,6 +472,7 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 
 .post {
   position: relative;
+  display: flex; flex-direction: column; height: 100%;
   background: var(--white);
   border: var(--line); border-radius: var(--r-card);
   box-shadow: var(--sh);
@@ -555,8 +556,12 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 .post-shared-gone { margin-top: .85rem; padding: .8rem 1rem; font-size: .92rem; }
 
 .post-stats {
-  display: flex; flex-wrap: wrap; gap: .1rem .7rem; margin-top: .85rem;
+  display: flex; flex-wrap: wrap; gap: .1rem .7rem; margin-top: auto; padding-top: .85rem;
   font-size: .85rem; color: var(--ink-soft);
+}
+
+.post-stats[hidden] + .post-actions {
+  margin-top: auto;
 }
 
 .post-actions {
@@ -635,6 +640,12 @@ body[data-role="admin"] .logo { background: var(--lavender); }
   background: var(--white); border: var(--line); border-radius: var(--r-card); box-shadow: var(--sh-sm);
   text-decoration: none; color: inherit;
 }
+.list-user {
+  display: flex; align-items: center; gap: .8rem; padding: .6rem 0;
+  text-decoration: none; color: inherit; border-bottom: 1px solid var(--paper-2);
+}
+.list-user:last-child { border-bottom: none; }
+.list-user:hover { background: var(--paper-1); border-radius: var(--r-card); padding: .6rem .5rem; margin: 0 -.5rem; }
 .search-user:hover { transform: translate(-2px, -2px); box-shadow: var(--sh); }
 .search-user-info { display: flex; flex-direction: column; min-width: 0; flex: 1 1 0%; }
 .search-user-name { font: 800 1rem/1.3 var(--font-display); color: var(--ink); }

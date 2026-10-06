@@ -324,6 +324,26 @@ public class PostService {
         ownedLivePost(actorId, postId).setDeletedAt(clock.instant());
     }
 
+    /** Ghim bài viết lên đầu trang cá nhân (tối đa 3 bài). */
+    @Transactional
+    public void pin(UUID actorId, UUID postId) {
+        Post post = ownedLivePost(actorId, postId);
+        if (post.isPinned()) {
+            return;
+        }
+        if (posts.countPinnedByAuthor(actorId) >= 3) {
+            throw new InvalidPostException("Chỉ được ghim tối đa 3 bài viết. Hãy bỏ ghim bài cũ trước.");
+        }
+        post.setPinned(true);
+    }
+
+    /** Bỏ ghim bài viết khỏi trang cá nhân. */
+    @Transactional
+    public void unpin(UUID actorId, UUID postId) {
+        Post post = ownedLivePost(actorId, postId);
+        post.setPinned(false);
+    }
+
     /** @throws PostNotFoundException nếu bài không tồn tại hoặc {@code viewerId} (null = khách) không được xem */
     @Transactional(readOnly = true)
     public Post getVisible(UUID postId, UUID viewerId) {

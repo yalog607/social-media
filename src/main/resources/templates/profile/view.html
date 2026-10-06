@@ -97,9 +97,15 @@
                 <span class="text-soft">Tham gia từ <span th:text="${joined}">01/2026</span></span>
             </p>
             <p class="d-flex flex-wrap gap-3 profile-stats mb-3">
-                <span><strong th:text="${friendCount}">0</strong> bạn bè</span>
-                <span><strong th:text="${followerCount}">0</strong> người theo dõi</span>
-                <span><strong th:text="${followingCount}">0</strong> đang theo dõi</span>
+                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
+                    <strong th:text="${friendCount}">0</strong> bạn bè
+                </a>
+                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followersModal">
+                    <strong th:text="${followerCount}">0</strong> người theo dõi
+                </a>
+                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
+                    <strong th:text="${followingCount}">0</strong> đang theo dõi
+                </a>
             </p>
             <p class="mb-0" th:if="${canView and owner.profile.bio != null}" th:text="${owner.profile.bio}">Giới thiệu</p>
         </div>
@@ -110,7 +116,79 @@
         <p th:text="${hasBlocked} ? 'Bỏ chặn để xem lại trang cá nhân của họ.' : 'Chủ tài khoản chỉ chia sẻ trang cá nhân với một số người.'">...</p>
     </section>
 
+    <style>
+        .featured-card {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 2.5px solid var(--ink);
+            border-radius: var(--r-card);
+            box-shadow: 4px 4px 0 var(--ink);
+            position: relative;
+            background: var(--white);
+            color: inherit;
+        }
+        .featured-card:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: 7px 7px 0 var(--ink);
+        }
+        .featured-card:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--ink);
+        }
+        .featured-card-link::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+    </style>
     <th:block th:if="${canView}">
+        <div id="pinned-feed" class="note mb-4 p-4" th:if="${!#lists.isEmpty(pinnedPosts)}">
+            <h3 class="h4 mb-3 text-ink" style="font-weight: 800;">Đáng chú ý</h3>
+            <div class="row g-3 flex-nowrap overflow-auto" style="padding-bottom: .5rem;">
+                <th:block th:each="p, stat : ${pinnedPosts}" th:if="${stat.index < 3}">
+                    <div class="col-10 col-sm-6 col-md-4">
+                        <article class="post p-0 overflow-hidden d-flex flex-column h-100 featured-card">
+                            <div class="p-3 pb-2">
+                                <div class="d-flex align-items-start gap-2 mb-2">
+                                    <span style="--size: 36px; flex: none;" th:replace="~{fragments/ui :: avatar(${p.author}, '')}"></span>
+                                    <div style="min-width: 0; flex: 1;">
+                                        <div class="text-truncate" style="font-weight: 700; font-size: .95rem; font-family: var(--font-display); color: var(--ink);">
+                                            <span th:text="${p.author.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${p.author.primaryRole})}"></svg>
+                                        </div>
+                                        <div class="text-soft d-flex align-items-center gap-1" style="font-size: .8rem;">
+                                            <span th:text="${@timeAgo.format(p.createdAt)}">vừa xong</span>
+                                            <span th:if="${p.visibility.name() == 'PUBLIC'}">🌍</span>
+                                            <span th:if="${p.visibility.name() == 'FRIENDS'}">👥</span>
+                                            <span th:if="${p.visibility.name() == 'PRIVATE'}">🔒</span>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown ms-auto" th:if="${isOwner}" style="position: relative; z-index: 10;">
+                                        <button type="button" class="post-menu-btn" style="width: 28px; height: 28px; font-size: 1rem;" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Tùy chọn">&#8943;</button>
+                                        <ul class="dropdown-menu dropdown-menu-end menu-al">
+                                            <li>
+                                                <form th:action="@{/posts/{id}/unpin(id=${p.id})}" method="post">
+                                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                                    <input type="hidden" name="next" th:value="${currentPath}">
+                                                    <button type="submit" class="dropdown-item text-danger">Bỏ ghim khỏi hồ sơ</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <a th:href="@{/posts/{id}(id=${p.id})}" class="text-decoration-none text-ink featured-card-link">
+                                    <div style="font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0;" th:if="${p.hasText()}" th:text="${p.rawContent}"></div>
+                                </a>
+                            </div>
+                            <div class="mt-auto" th:if="${p.hasMedia()}">
+                                <img th:if="${!p.hasVideo()}" th:src="${p.media[0].url}" style="width: 100%; height: 180px; object-fit: cover; display: block; border-top: var(--line);">
+                                <video th:if="${p.hasVideo()}" th:src="${p.media[0].url}" style="width: 100%; height: 180px; object-fit: cover; display: block; border-top: var(--line);"></video>
+                            </div>
+                        </article>
+                    </div>
+                </th:block>
+            </div>
+        </div>
+
         <div id="feed" class="feed">
             <th:block th:replace="~{feed/list :: list}"></th:block>
         </div>
@@ -123,6 +201,46 @@
     <th:block th:if="${me != null}">
         <div th:replace="~{fragments/post-modals :: modals}"></div>
     </th:block>
+
+    <!-- MODALS CHO FRIENDS / FOLLOWERS / FOLLOWING -->
+    <div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true" 
+         th:attr="data-list-url=@{/u/{u}/friends-fragment(u=${owner.username})}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="friendsModalLabel">Bạn bè</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-3" data-list-container></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="followersModal" tabindex="-1" aria-labelledby="followersModalLabel" aria-hidden="true" 
+         th:attr="data-list-url=@{/u/{u}/followers-fragment(u=${owner.username})}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="followersModalLabel">Người theo dõi</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-3" data-list-container></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="followingModal" tabindex="-1" aria-labelledby="followingModalLabel" aria-hidden="true" 
+         th:attr="data-list-url=@{/u/{u}/following-fragment(u=${owner.username})}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="followingModalLabel">Đang theo dõi</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-3" data-list-container></div>
+            </div>
+        </div>
+    </div>
 </main>
 </body>
 </html>

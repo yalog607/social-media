@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="friends">
+    <a class="list-user" th:each="f : ${friendsList}" th:href="@{/u/{u}(u=${f.username})}">
+        <span th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+        <span class="search-user-info">
+            <span class="search-user-name" th:text="${f.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${f.primaryRole})}"></svg>
+            <span class="search-user-handle" th:text="'@' + ${f.username}">@username</span>
+        </span>
+    </a>
+    <p class="text-soft p-3 mb-0 text-center" th:if="${#lists.isEmpty(friendsList)}">Chưa có bạn bè nào.</p>
+</th:block>
+
+<th:block th:fragment="followers">
+    <a class="list-user" th:each="f : ${followersList}" th:href="@{/u/{u}(u=${f.username})}">
+        <span th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+        <span class="search-user-info">
+            <span class="search-user-name" th:text="${f.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${f.primaryRole})}"></svg>
+            <span class="search-user-handle" th:text="'@' + ${f.username}">@username</span>
+        </span>
+    </a>
+    <p class="text-soft p-3 mb-0 text-center" th:if="${#lists.isEmpty(followersList)}">Chưa có người theo dõi nào.</p>
+</th:block>
+
+<th:block th:fragment="following">
+    <a class="list-user" th:each="f : ${followingList}" th:href="@{/u/{u}(u=${f.username})}">
+        <span th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+        <span class="search-user-info">
+            <span class="search-user-name" th:text="${f.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${f.primaryRole})}"></svg>
+            <span class="search-user-handle" th:text="'@' + ${f.username}">@username</span>
+        </span>
+    </a>
+    <p class="text-soft p-3 mb-0 text-center" th:if="${#lists.isEmpty(followingList)}">Chưa theo dõi ai.</p>
+</th:block>
+
+</body>
+</html>
