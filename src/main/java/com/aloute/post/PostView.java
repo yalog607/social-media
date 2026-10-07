@@ -39,7 +39,8 @@ public record PostView(
         List<AuthorView> tagged,
         Integer unlockPrice,
         boolean locked,
-        CategoryView category) {
+        CategoryView category,
+        boolean isPinned) {
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
     }
