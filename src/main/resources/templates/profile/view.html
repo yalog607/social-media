@@ -162,20 +162,17 @@
                                             <span th:if="${p.visibility.name() == 'PRIVATE'}">🔒</span>
                                         </div>
                                     </div>
-                                    <div class="dropdown ms-auto" th:if="${isOwner}" style="position: relative; z-index: 10;">
-                                        <button type="button" class="post-menu-btn" style="width: 28px; height: 28px; font-size: 1rem;" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Tùy chọn">&#8943;</button>
-                                        <ul class="dropdown-menu dropdown-menu-end menu-al">
-                                            <li>
-                                                <form th:action="@{/posts/{id}/unpin(id=${p.id})}" method="post">
-                                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                                    <input type="hidden" name="next" th:value="${currentPath}">
-                                                    <button type="submit" class="dropdown-item text-danger">Bỏ ghim khỏi hồ sơ</button>
-                                                </form>
-                                            </li>
-                                        </ul>
+                                    <div class="ms-auto" th:if="${isOwner}" style="position: relative; z-index: 10;">
+                                        <form th:action="@{/posts/{id}/unpin(id=${p.id})}" method="post" style="margin: 0;">
+                                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                            <input type="hidden" name="next" th:value="${currentPath}">
+                                            <button type="submit" class="post-menu-btn text-danger" style="width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Bỏ ghim" aria-label="Bỏ ghim">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
-                                <a th:href="@{/posts/{id}(id=${p.id})}" class="text-decoration-none text-ink featured-card-link">
+                                <a href="javascript:void(0)" th:attr="data-post-url=@{/posts/{id}/fragment(id=${p.id})}" data-bs-toggle="modal" data-bs-target="#postDetailModal" class="text-decoration-none text-ink featured-card-link">
                                     <div style="font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 0;" th:if="${p.hasText()}" th:text="${p.rawContent}"></div>
                                 </a>
                             </div>
@@ -238,6 +235,26 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body p-3" data-list-container></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Tắt viền và đổ bóng của thẻ bài viết khi nằm trong modal chi tiết */
+        #postDetailModal .post {
+            border: none;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0 1.2rem 1.25rem;
+        }
+    </style>
+    <div class="modal fade" id="postDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content" style="background-color: var(--white); border: var(--line); border-radius: var(--r-card);">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body p-0" data-list-container></div>
             </div>
         </div>
     </div>

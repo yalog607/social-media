@@ -76,6 +76,18 @@ public class PostController {
         return "post/detail";
     }
 
+    /** Trả về fragment HTML của một bài viết (dùng cho popup). */
+    @GetMapping("/posts/{id}/fragment")
+    public String detailFragment(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
+        UUID viewerId = viewer == null ? null : viewer.id();
+        Post post = posts.getVisible(id, viewerId);
+        if (viewerId != null) {
+            views.record(viewerId, id);
+        }
+        model.addAttribute("post", assembler.assemble(List.of(post), viewerId).get(0));
+        return "fragments/post :: card";
+    }
+
     @PostMapping("/posts/{id}/edit")
     public String edit(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
                        @RequestParam(required = false) String content,
