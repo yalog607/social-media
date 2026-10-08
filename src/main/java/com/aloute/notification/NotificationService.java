@@ -78,6 +78,53 @@ public class NotificationService {
     }
 
     @Transactional
+    public void supportReplied(UUID managerId, UUID recipientId, UUID ticketId) {
+        Notification notification = new Notification();
+        notification.setRecipient(users.getReferenceById(recipientId));
+        notification.setActor(users.getReferenceById(managerId));
+        notification.setType(NotificationType.SUPPORT);
+        notification.setReferenceId(ticketId);
+        notifications.save(notification);
+    }
+
+    @Transactional
+    public void reportResolved(UUID managerId, UUID recipientId, UUID reportId) {
+        reportResolved(managerId, recipientId, reportId, "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.", null);
+    }
+
+    @Transactional
+    public void reportResolved(UUID managerId, UUID recipientId, UUID reportId, String detail) {
+        reportResolved(managerId, recipientId, reportId, "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.", detail);
+    }
+
+    @Transactional
+    public void reportResolved(UUID managerId, UUID recipientId, UUID reportId, String customText, String detail) {
+        Notification notification = new Notification();
+        notification.setRecipient(users.getReferenceById(recipientId));
+        notification.setActor(users.getReferenceById(managerId));
+        notification.setType(NotificationType.REPORT);
+        notification.setReferenceId(reportId);
+        notification.setCustomText(customText != null ? customText : "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.");
+        notification.setDetail(detail);
+        notifications.save(notification);
+    }
+
+    @Transactional
+    public void reportOwnerNotified(UUID managerId, UUID ownerId, Post post, UUID referenceId, String customText, String detail) {
+        Notification notification = new Notification();
+        notification.setRecipient(users.getReferenceById(ownerId));
+        notification.setActor(users.getReferenceById(managerId));
+        notification.setType(NotificationType.REPORT);
+        if (post != null) {
+            notification.setPost(post);
+        }
+        notification.setReferenceId(referenceId);
+        notification.setCustomText(customText);
+        notification.setDetail(detail);
+        notifications.save(notification);
+    }
+
+    @Transactional
     public void warned(UUID managerId, UUID recipientId) {
         notify(recipientId, managerId, NotificationType.WARNING, null);
     }
@@ -125,30 +172,49 @@ public class NotificationService {
         return notifications.findRecentFor(userId, Limit.of(RECENT_LIMIT)).stream().map(NotificationService::toView).toList();
     }
 
+    private static final List<NotificationType> PERSISTENT_UNREAD_TYPES = List.of(NotificationType.SUPPORT, NotificationType.REPORT);
+
     @Transactional
     public void markAllRead(UUID userId) {
-        notifications.markAllRead(userId, clock.instant());
+        notifications.markAllNormalRead(userId, clock.instant(), PERSISTENT_UNREAD_TYPES);
+    }
+
+    @Transactional
+    public void markRead(UUID notificationId, UUID userId) {
+        notifications.findById(notificationId)
+                .filter(n -> n.getRecipient().getId().equals(userId))
+                .ifPresent(n -> {
+                    if (n.getReadAt() == null) {
+                        n.setReadAt(clock.instant());
+                    }
+                });
     }
 
     private static NotificationView toView(Notification n) {
         User actor = n.getActor();
         Profile profile = actor.getProfile();
+        String detail = (n.getDetail() != null && !n.getDetail().isBlank()) ? n.getDetail() : n.getBroadcastBody();
         return new NotificationView(
                 n.getId(),
                 new PostView.AuthorView(actor.getId(), actor.getUsername(), profile.getDisplayName(),
                         profile.getAvatarUrl(), actor.primaryRole()),
+                n.getType(),
                 text(n),
                 n.getPost() != null ? n.getPost().getId() : null,
-                n.getBroadcastBody(),
+                detail,
                 n.getConversationId(),
+                n.getReferenceId(),
                 n.getCreatedAt(),
                 n.isRead());
     }
 
     private static String text(Notification n) {
+        if (n.getCustomText() != null && !n.getCustomText().isBlank()) {
+            return n.getCustomText();
+        }
         String name = n.getActor().getProfile().getDisplayName();
         return switch (n.getType()) {
-            case FRIEND_REQUEST -> name + " đã gửi cho bạn một lời mời kết bạn";
+            case FRIEND_REQUEST -> name + " đã gửi lời mời kết bạn cho bạn.";
             case FRIEND_ACCEPTED -> name + " đã chấp nhận lời mời kết bạn của bạn";
             case NEW_FOLLOWER -> name + " đã bắt đầu theo dõi bạn";
             case POST_REACTION -> name + " đã bày tỏ cảm xúc về bài viết của bạn";
@@ -158,10 +224,12 @@ public class NotificationService {
             case MENTION -> n.getConversationId() != null
                     ? name + " đã nhắc đến bạn trong nhóm " + (n.getConversationTitle() == null ? "chat" : n.getConversationTitle())
                     : name + " đã nhắc đến bạn trong một bình luận";
-            case WARNING -> "Quản trị viên đã gửi cho bạn một cảnh báo vì vi phạm quy tắc cộng đồng";
+            case WARNING -> "Bạn đã nhận được cảnh báo về việc vi phạm Tiêu chuẩn cộng đồng.";
             case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
             case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
+            case SUPPORT -> "Yêu cầu hỗ trợ của bạn đã có phản hồi mới.";
+            case REPORT -> "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.";
         };
     }
 }

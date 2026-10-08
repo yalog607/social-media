@@ -3,8 +3,12 @@
 <body>
 <!-- Thanh điều hướng con của khu Kiểm duyệt. Tham số: trang đang mở. -->
 <nav th:fragment="tabs(current)" class="d-flex flex-wrap gap-2 mb-3" aria-label="Kiểm duyệt">
-    <a class="btn-al btn-al--sm" th:classappend="${current == 'queue'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage}">Báo cáo</a>
-    <a class="btn-al btn-al--sm" th:classappend="${current == 'support'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/support}">Hỗ trợ</a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'queue'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage}">
+        Báo cáo<span class="nav-badge" style="margin-left: 6px;" th:if="${pendingReports > 0}" th:text="${pendingReports}">1</span>
+    </a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'support'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/support}">
+        Hỗ trợ<span class="nav-badge" style="margin-left: 6px;" th:if="${pendingSupportTickets > 0}" th:text="${pendingSupportTickets}">1</span>
+    </a>
     <a class="btn-al btn-al--sm" th:classappend="${current == 'categories'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/categories}">Danh mục</a>
     <a class="btn-al btn-al--sm" th:classappend="${current == 'hashtags'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/hashtags}">Hashtag cấm</a>
     <a class="btn-al btn-al--sm" th:classappend="${current == 'stats'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/stats}">Thống kê</a>

@@ -70,6 +70,15 @@ public class Notification {
     @org.hibernate.annotations.Formula("(select c.title from conversations c where c.id = conversation_id)")
     private String conversationTitle;
 
+    @Column(name = "reference_id")
+    private UUID referenceId;
+
+    @Column(name = "detail")
+    private String detail;
+
+    @Column(name = "custom_text")
+    private String customText;
+
     @Column(name = "read_at")
     private Instant readAt;
 

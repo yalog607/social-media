@@ -73,9 +73,12 @@ class ModerationServiceIT extends IntegrationTest {
     @Test
     void removingContentHidesThePostAndClosesEveryReportOnIt() {
         User manager = createUser(Role.MANAGER);
-        Post post = publicPost(createUser());
-        UUID first = report(createUser(), ReportTargetType.POST, post.getId());
-        UUID second = report(createUser(), ReportTargetType.POST, post.getId());
+        User author = createUser();
+        Post post = publicPost(author);
+        User reporter1 = createUser();
+        User reporter2 = createUser();
+        UUID first = report(reporter1, ReportTargetType.POST, post.getId());
+        UUID second = report(reporter2, ReportTargetType.POST, post.getId());
 
         moderation.handle(manager.getId(), first, ReportAction.REMOVE_CONTENT, "spam");
 
@@ -83,6 +86,14 @@ class ModerationServiceIT extends IntegrationTest {
         assertThat(moderation.openReports()).extracting(ReportItem::id).doesNotContain(first, second);
         assertThat(jdbc.queryForObject("select status from reports where id = ?", String.class, second)).isEqualTo("RESOLVED");
         assertThat(jdbc.queryForObject("select handled_by from reports where id = ?", UUID.class, second)).isEqualTo(manager.getId());
+
+        var reporterNotif = notifications.listRecent(reporter1.getId()).get(0);
+        assertThat(reporterNotif.text()).isEqualTo("Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.");
+        assertThat(reporterNotif.detail()).isEqualTo("Nội dung bạn báo cáo đã được xác định là vi phạm Tiêu chuẩn cộng đồng và đã được xử lý.");
+
+        var ownerNotif = notifications.listRecent(author.getId()).get(0);
+        assertThat(ownerNotif.text()).isEqualTo("Bài viết của bạn đã bị gỡ do vi phạm Tiêu chuẩn cộng đồng.");
+        assertThat(ownerNotif.detail()).isEqualTo("Bài viết: \"bài vi phạm\" • Lý do xử lý: spam");
     }
 
     @Test
@@ -101,13 +112,23 @@ class ModerationServiceIT extends IntegrationTest {
     @Test
     void dismissingLeavesContentUntouched() {
         User manager = createUser(Role.MANAGER);
-        Post post = publicPost(createUser());
-        UUID id = report(createUser(), ReportTargetType.POST, post.getId());
+        User author = createUser();
+        Post post = publicPost(author);
+        User reporter = createUser();
+        UUID id = report(reporter, ReportTargetType.POST, post.getId());
 
         moderation.handle(manager.getId(), id, ReportAction.DISMISS, null);
 
         assertThat(posts.getVisible(post.getId(), null).getId()).isEqualTo(post.getId());
         assertThat(jdbc.queryForObject("select status from reports where id = ?", String.class, id)).isEqualTo("DISMISSED");
+
+        var reporterNotif = notifications.listRecent(reporter.getId()).get(0);
+        assertThat(reporterNotif.text()).isEqualTo("Báo cáo của bạn đã được xem xét và chưa phát hiện vi phạm.");
+        assertThat(reporterNotif.detail()).isEqualTo("Chúng tôi chưa phát hiện nội dung được báo cáo vi phạm Tiêu chuẩn cộng đồng.");
+
+        var ownerNotif = notifications.listRecent(author.getId()).get(0);
+        assertThat(ownerNotif.text()).isEqualTo("Một báo cáo về bài viết của bạn đã được xem xét và không ghi nhận vi phạm.");
+        assertThat(ownerNotif.detail()).isEqualTo("Bài viết: \"bài vi phạm\"");
     }
 
     @Test
@@ -120,7 +141,10 @@ class ModerationServiceIT extends IntegrationTest {
                 .isInstanceOf(InvalidModerationException.class);
         moderation.handle(manager.getId(), id, ReportAction.WARN, "ngôn từ không phù hợp");
 
-        assertThat(notifications.listRecent(author.getId())).anyMatch(n -> n.text().contains("cảnh báo"));
+        var notifs = notifications.listRecent(author.getId());
+        assertThat(notifs).anyMatch(n -> n.text().equals("Bạn đã nhận được cảnh báo về việc vi phạm Tiêu chuẩn cộng đồng."));
+        assertThat(notifs).anyMatch(n -> n.text().equals("Một bài viết của bạn đã được xem xét và xác định vi phạm Tiêu chuẩn cộng đồng.")
+                && "Bài viết: \"bài vi phạm\" • Lý do xử lý: ngôn từ không phù hợp".equals(n.detail()));
         assertThat(jdbc.queryForObject("select count(*) from sanctions where user_id = ? and type = 'WARNING'", Long.class, author.getId()))
                 .isEqualTo(1);
         assertThat(users.findById(author.getId()).orElseThrow().getStatus()).isEqualTo(UserStatus.ACTIVE);

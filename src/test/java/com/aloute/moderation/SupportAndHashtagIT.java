@@ -31,6 +31,7 @@ class SupportAndHashtagIT extends IntegrationTest {
     @Autowired PostService posts;
     @Autowired SearchService search;
     @Autowired ManageStats stats;
+    @Autowired com.aloute.notification.NotificationService notifications;
 
     @Test
     void ticketIsAnsweredOnceAndTheUserSeesTheReply() {
@@ -47,6 +48,8 @@ class SupportAndHashtagIT extends IntegrationTest {
         SupportService.Ticket answered = support.mine(user.getId()).get(0);
         assertThat(answered.open()).isFalse();
         assertThat(answered.reply()).contains("Quên mật khẩu");
+        assertThat(notifications.listRecent(user.getId()).get(0).text())
+                .isEqualTo("Yêu cầu hỗ trợ của bạn đã có phản hồi mới.");
         assertThatThrownBy(() -> support.reply(manager.getId(), ticket.id(), "lần hai"))
                 .isInstanceOf(InvalidModerationException.class);
     }
