@@ -41,7 +41,7 @@ class NotificationServiceIT extends IntegrationTest {
 
         NotificationView view = onlyNotificationFor(b.getId());
         assertThat(view.actor().id()).isEqualTo(a.getId());
-        assertThat(view.text()).contains("lời mời kết bạn");
+        assertThat(view.text()).isEqualTo(a.getProfile().getDisplayName() + " đã gửi lời mời kết bạn cho bạn.");
         assertThat(notifications.unreadCount(a.getId())).as("người gửi không tự thông báo cho mình").isZero();
     }
 

@@ -8,4 +8,7 @@ public interface ReportRepository extends JpaRepository<Report, UUID> {
 
     boolean existsByReporterIdAndTargetTypeAndTargetIdAndStatus(UUID reporterId, ReportTargetType targetType,
                                                                 UUID targetId, ReportStatus status);
+
+    java.util.List<Report> findByReporterIdOrderByCreatedAtDesc(UUID reporterId);
+    java.util.Optional<Report> findByIdAndReporterId(UUID id, UUID reporterId);
 }

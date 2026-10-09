@@ -2,6 +2,8 @@ package com.aloute.common;
 
 import com.aloute.chat.ChatService;
 import com.aloute.config.AlouteProperties;
+import com.aloute.moderation.ModerationService;
+import com.aloute.moderation.SupportService;
 import com.aloute.notification.NotificationService;
 import com.aloute.security.ActiveAccountInterceptor;
 import com.aloute.security.AlouteUserPrincipal;
@@ -27,14 +29,19 @@ public class GlobalModelAdvice {
     private final RoleHierarchy roleHierarchy;
     private final NotificationService notifications;
     private final ChatService chats;
+    private final ModerationService moderation;
+    private final SupportService support;
 
     public GlobalModelAdvice(UserRepository users, AlouteProperties props, RoleHierarchy roleHierarchy,
-                             NotificationService notifications, ChatService chats) {
+                             NotificationService notifications, ChatService chats,
+                             ModerationService moderation, SupportService support) {
         this.users = users;
         this.props = props;
         this.roleHierarchy = roleHierarchy;
         this.notifications = notifications;
         this.chats = chats;
+        this.moderation = moderation;
+        this.support = support;
     }
 
     /**
@@ -101,5 +108,15 @@ public class GlobalModelAdvice {
     public AlouteProperties.Firebase.Web firebaseWeb() {
         AlouteProperties.Firebase firebase = props.firebase();
         return firebase != null && firebase.webConfigured() && firebase.enabled() ? firebase.web() : null;
+    }
+
+    @ModelAttribute("pendingReports")
+    public long pendingReports() {
+        return caps().contains("MANAGER") ? moderation.countOpenReports() : 0;
+    }
+
+    @ModelAttribute("pendingSupportTickets")
+    public long pendingSupportTickets() {
+        return caps().contains("MANAGER") ? support.countOpenTickets() : 0;
     }
 }
