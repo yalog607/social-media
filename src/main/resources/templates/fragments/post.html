@@ -49,6 +49,18 @@
             <button type="button" class="post-menu-btn" data-bs-toggle="dropdown" aria-expanded="false"
                     aria-label="Tùy chọn cho bài viết này">&#8943;</button>
             <ul class="dropdown-menu dropdown-menu-end menu-al">
+                <li th:if="${!post.isPinned}">
+                    <form th:action="@{/posts/{id}/pin(id=${post.id})}" method="post">
+                        <input type="hidden" name="next" th:value="${currentPath}">
+                        <button type="submit" class="dropdown-item">Ghim lên hồ sơ</button>
+                    </form>
+                </li>
+                <li th:if="${post.isPinned}">
+                    <form th:action="@{/posts/{id}/unpin(id=${post.id})}" method="post">
+                        <input type="hidden" name="next" th:value="${currentPath}">
+                        <button type="submit" class="dropdown-item">Bỏ ghim khỏi hồ sơ</button>
+                    </form>
+                </li>
                 <li>
                     <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editPostModal"
                             th:attr="data-post-id=${post.id}, data-content=${post.rawContent}, data-visibility=${post.visibility.name()},

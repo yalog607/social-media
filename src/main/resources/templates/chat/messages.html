@@ -5,24 +5,67 @@
 <th:block th:fragment="list">
     <div class="chat-more" th:if="${page.hasMore()}"
          th:attr="data-before-url=@{/api/conversations/{id}/messages(id=${conversation.id}, before=${page.nextCursor})}"></div>
-        <div class="msg" th:each="m : ${page.messages}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
-            <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
-            <div class="msg-body">
-                <span class="msg-sender" th:if="${header.group}" th:text="${m.sender.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
-                <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
-                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
-                       th:href="${m.attachment.url}" target="_blank" rel="noopener">
-                        <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
-                    </a>
-                    <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
-                           class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
-                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="msg-attachment-file"
-                       th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener">file.pdf</a>
-                    <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
-                </span>
-                <span class="msg-time" th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
+        
+        <th:block th:each="m : ${page.messages}">
+            
+            <!-- Tin nhắn hệ thống -->
+            <div th:if="${m.isSystem}" class="msg justify-content-center text-center my-3" th:id="'msg-' + ${m.id}">
+                <span class="text-dark fw-medium" th:utext="${m.contentHtml}">Nội dung</span>
             </div>
-        </div>
+            
+            <!-- Tin nhắn bình thường -->
+            <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
+                <a th:href="@{/{user}(user=${m.sender.username})}">
+                    <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
+                </a>
+                <div class="msg-body">
+                    <div class="d-flex align-items-center mb-1" th:if="${header.group}">
+                        <span class="msg-sender mb-0" th:text="${m.sender.displayName}">Tên</span>
+                        <svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
+                    </div>
+                    <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                        <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
+                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                           th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                            <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
+                        </a>
+                        <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                               class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
+                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="btn-al btn-al--white rounded-pill d-inline-block mt-1"
+                           th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener" style="color: var(--ink); border: 2px solid var(--ink); padding: 0.5rem 1rem; font-weight: bold; background: white;">file.pdf</a>
+                        <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                    </span>
+                    <span class="msg-time d-flex align-items-center gap-2">
+                        <span th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
+                        <th:block th:with="isSender=${m.sender.id == me.id}, canPin=${header.group and canManage}, canDelete=${isSender or (header.group and canManage)}">
+                            <div class="dropdown" th:if="${isSender or canDelete or canPin}">
+                                <button class="btn-link text-decoration-none p-0 text-soft small border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: bold; font-size: 1rem; line-height: 1;">
+                                    ⋯
+                                </button>
+                                <ul class="dropdown-menu shadow-sm" style="min-width: 100px; padding: .5rem; border-radius: 12px; border: 1px solid var(--line);">
+                                    <li th:if="${isSender}">
+                                        <button class="dropdown-item" type="button" th:attr="onclick='editMessage(\'' + ${m.id} + '\')'">Sửa</button>
+                                    </li>
+                                    <li th:if="${canDelete}">
+                                        <form method="post" th:action="@{/messages/{id}/delete/{mid}(id=${conversation.id}, mid=${m.id})}" onsubmit="return confirm('Chắc chắn xóa tin nhắn này?')">
+                                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                            <button class="dropdown-item text-danger" type="submit">Xóa</button>
+                                        </form>
+                                    </li>
+                                    <li th:if="${canPin}">
+                                        <form method="post" th:action="@{/messages/{id}/pins/{mid}(id=${conversation.id}, mid=${m.id})}">
+                                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                            <input type="hidden" name="pin" th:value="${!m.pinned}">
+                                            <button class="dropdown-item" type="submit" th:text="${m.pinned ? 'Bỏ ghim' : 'Ghim'}">Ghim</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </th:block>
+                    </span>
+                </div>
+            </div>
+        </th:block>
 </th:block>
 </body>
 </html>

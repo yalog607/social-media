@@ -53,7 +53,7 @@ public class StreakService {
                 where conversation_id in (""" + marks + """
                 ) and (created_at at time zone 'Asia/Ho_Chi_Minh')::date >= ?
                 group by conversation_id, d
-                having count(distinct sender_id) >= 2
+                having count(distinct sender_id) >= (select count(*) from conversation_members cm where cm.conversation_id = messages.conversation_id)
                 order by conversation_id, d desc""", rs -> {
             daysByConversation.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>())
                     .add(rs.getDate(2).toLocalDate());
