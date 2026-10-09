@@ -36,11 +36,14 @@ public class ChatService {
     private final Clock clock;
     private final ChatAttachmentService attachments;
     private final StreakService streaks;
+    private final ConversationRequestRepository conversationRequests;
+    private final com.aloute.notification.NotificationRepository notifications;
 
     public ChatService(ConversationRepository conversations, ConversationMemberRepository members,
                        MessageRepository messages, UserRepository users, FriendService friends,
                        BlockService blocks, Clock clock, ChatAttachmentService attachments,
-                       StreakService streaks) {
+                       StreakService streaks, ConversationRequestRepository conversationRequests,
+                       com.aloute.notification.NotificationRepository notifications) {
         this.attachments = attachments;
         this.streaks = streaks;
         this.conversations = conversations;
@@ -50,6 +53,8 @@ public class ChatService {
         this.friends = friends;
         this.blocks = blocks;
         this.clock = clock;
+        this.conversationRequests = conversationRequests;
+        this.notifications = notifications;
     }
 
     /** So sánh theo chuỗi hex, giống {@code FriendService#pair}, để chuẩn hóa cặp id không phụ thuộc thứ tự gọi. */
@@ -139,19 +144,61 @@ public class ChatService {
     @Transactional
     public void addMember(UUID actorId, UUID conversationId, UUID newMemberId) {
         Conversation conversation = requireGroupMembership(actorId, conversationId);
-        requireManager(actorId, conversationId, "Chỉ chủ nhóm và quản trị viên mới thêm được thành viên.");
         if (members.existsByConversationIdAndUserId(conversationId, newMemberId)) {
             throw new ChatActionException("Người này đã ở trong nhóm rồi.");
         }
         if (!friends.areFriends(actorId, newMemberId) || blocks.isBlockedEitherWay(actorId, newMemberId)) {
             throw new ChatActionException("Chỉ có thể thêm bạn bè vào nhóm.");
         }
-        addMemberRow(conversation, newMemberId, GroupRole.MEMBER);
+
+        User newMember = users.findById(newMemberId).orElseThrow();
+        User actor = users.findById(actorId).orElseThrow();
+
+        if (conversation.isApprovalRequired() && !requireRole(actorId, conversationId).canManage()) {
+            if (conversationRequests.existsByConversationIdAndUserId(conversationId, newMemberId)) {
+                throw new ChatActionException("Đã có yêu cầu thêm người này vào nhóm đang chờ duyệt.");
+            }
+            conversationRequests.save(new ConversationRequest(conversation, newMember, actor, clock.instant()));
+            systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã yêu cầu thêm " + newMember.getProfile().getDisplayName() + " vào nhóm. Chờ quản trị viên duyệt.");
+        } else {
+            addMemberRow(conversation, newMemberId, GroupRole.MEMBER);
+            conversationRequests.deleteByConversationIdAndUserId(conversationId, newMemberId);
+            systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã thêm " + newMember.getProfile().getDisplayName() + " vào nhóm.");
+        }
+    }
+    
+    @Transactional(readOnly = true)
+    public List<ConversationRequest> getPendingRequests(UUID actorId, UUID conversationId) {
+        requireManager(actorId, conversationId, "Chỉ quản trị viên mới xem được danh sách chờ duyệt.");
+        return conversationRequests.findByConversationIdWithUsers(conversationId);
+    }
+
+    @Transactional
+    public void approveRequest(UUID actorId, UUID conversationId, UUID targetUserId) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        requireManager(actorId, conversationId, "Chỉ quản trị viên mới có thể duyệt thành viên.");
+        if (members.existsByConversationIdAndUserId(conversationId, targetUserId)) {
+            conversationRequests.deleteByConversationIdAndUserId(conversationId, targetUserId);
+            return;
+        }
+        ConversationRequest req = conversationRequests.findById(new ConversationRequest.ConversationRequestId(conversationId, targetUserId)).orElseThrow(() -> new ChatActionException("Yêu cầu không tồn tại hoặc đã bị hủy."));
+        addMemberRow(conversation, targetUserId, GroupRole.MEMBER);
+        conversationRequests.delete(req);
+        
+        User target = users.findById(targetUserId).orElseThrow();
+        User actor = users.findById(actorId).orElseThrow();
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã phê duyệt cho " + target.getProfile().getDisplayName() + " tham gia nhóm.");
+    }
+    
+    @Transactional
+    public void rejectRequest(UUID actorId, UUID conversationId, UUID targetUserId) {
+        requireManager(actorId, conversationId, "Chỉ quản trị viên mới có thể từ chối thành viên.");
+        conversationRequests.deleteByConversationIdAndUserId(conversationId, targetUserId);
     }
 
     /** @throws ChatActionException hội thoại là DIRECT (không thể rời, chỉ có thể chặn/xóa quan hệ) */
     @Transactional
-    public void leave(UUID actorId, UUID conversationId) {
+    public void leave(UUID actorId, UUID conversationId, UUID nextOwnerId) {
         Conversation conversation = conversations.findGroupById(conversationId)
                 .orElseThrow(() -> new ChatActionException("Chỉ có thể rời nhóm, không thể rời hội thoại 1-1."));
         if (!members.existsByConversationIdAndUserId(conversation.getId(), actorId)) {
@@ -159,14 +206,49 @@ public class ChatService {
         }
         ConversationMember leaving = members.findByConversationIdAndUserId(conversation.getId(), actorId).orElseThrow();
         boolean wasOwner = leaving.getRole() == GroupRole.OWNER;
-        members.deleteByConversationIdAndUserId(conversation.getId(), actorId);
-        if (wasOwner) {
-            // Chủ nhóm rời đi: quản trị viên vào sớm nhất (không có thì thành viên vào sớm nhất) lên làm chủ nhóm
-            List<ConversationMember> rest = members.findMembers(conversation.getId());
-            rest.stream().filter(m -> m.getRole() == GroupRole.ADMIN).findFirst()
-                    .or(() -> rest.stream().findFirst())
-                    .ifPresent(next -> next.setRole(GroupRole.OWNER));
+
+        List<ConversationMember> rest = members.findMembers(conversation.getId());
+
+        if (wasOwner && rest.size() > 1) {
+            if (nextOwnerId == null) {
+                throw new ChatActionException("Bạn phải chọn một thành viên khác làm chủ nhóm trước khi rời đi.");
+            }
+            if (nextOwnerId.equals(actorId)) {
+                throw new ChatActionException("Bạn không thể chọn chính mình làm chủ nhóm mới.");
+            }
+            ConversationMember nextOwner = members.findByConversationIdAndUserId(conversationId, nextOwnerId)
+                    .orElseThrow(() -> new ChatActionException("Người được chọn làm chủ nhóm mới không ở trong nhóm."));
+            nextOwner.setRole(GroupRole.OWNER);
+
+            User actorUser = users.findById(actorId).orElseThrow();
+            systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã nhường quyền chủ nhóm cho " + nextOwner.getUser().getProfile().getDisplayName() + " trước khi rời đi.");
         }
+
+        members.deleteByConversationIdAndUserId(conversation.getId(), actorId);
+        
+        User actor = users.findById(actorId).orElseThrow();
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã rời khỏi nhóm.");
+    }
+
+    @Transactional
+    public void disband(UUID actorId, UUID conversationId) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        requireManager(actorId, conversationId, "Chỉ quản trị viên hoặc chủ nhóm mới có thể giải tán nhóm.");
+        messages.deleteByConversationId(conversationId);
+        members.deleteByConversationId(conversationId);
+        conversationRequests.deleteByConversationId(conversationId);
+        notifications.deleteByConversationId(conversationId);
+        conversations.delete(conversation);
+    }
+
+    @Transactional
+    public void toggleApproval(UUID actorId, UUID conversationId, boolean req) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        requireManager(actorId, conversationId, "Chỉ quản trị viên hoặc chủ nhóm mới có thể thiết lập quyền duyệt.");
+        conversation.setApprovalRequired(req);
+        
+        User actor = users.findById(actorId).orElseThrow();
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + (req ? " đã bật" : " đã tắt") + " tính năng duyệt thành viên.");
     }
 
     // ---------- Quản lý nhóm: tên, ảnh, vai trò, thành viên, biệt danh ----------
@@ -184,6 +266,9 @@ public class ChatService {
             throw new ChatActionException("Tên nhóm tối đa " + Conversation.MAX_TITLE_LENGTH + " ký tự.");
         }
         conversation.setTitle(clean);
+        
+        User actor = users.findById(actorId).orElseThrow();
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã đổi tên nhóm thành \"" + clean + "\".");
     }
 
     /** @throws ChatActionException không đủ quyền, file rỗng hoặc không phải ảnh */
@@ -199,12 +284,15 @@ public class ChatService {
             throw new ChatActionException("Ảnh nhóm phải là file ảnh (JPG, PNG, GIF, WEBP).");
         }
         conversation.setAvatarUrl(stored.url());
+        
+        User actor = users.findById(actorId).orElseThrow();
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã thay đổi ảnh đại diện của nhóm.");
     }
 
     /** Chủ nhóm đặt người khác làm quản trị viên hoặc đưa về thành viên. */
     @Transactional
     public void setRole(UUID actorId, UUID conversationId, UUID targetId, GroupRole role) {
-        requireGroupMembership(actorId, conversationId);
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
         if (role == GroupRole.OWNER) {
             throw new ChatActionException("Dùng chức năng chuyển quyền chủ nhóm.");
         }
@@ -216,12 +304,16 @@ public class ChatService {
             throw new ChatActionException("Không thể đổi vai trò của chủ nhóm.");
         }
         target.setRole(role);
+        
+        User actorUser = users.findById(actorId).orElseThrow();
+        User targetUser = users.findById(targetId).orElseThrow();
+        systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã đặt " + targetUser.getProfile().getDisplayName() + " làm " + role.label().toLowerCase() + ".");
     }
 
     /** Chủ nhóm nhường quyền cho một thành viên; chủ cũ trở thành quản trị viên. */
     @Transactional
     public void transferOwnership(UUID actorId, UUID conversationId, UUID targetId) {
-        requireGroupMembership(actorId, conversationId);
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
         ConversationMember actor = members.findByConversationIdAndUserId(conversationId, actorId).orElseThrow();
         if (actor.getRole() != GroupRole.OWNER) {
             throw new ChatActionException("Chỉ chủ nhóm mới nhường quyền được.");
@@ -232,12 +324,16 @@ public class ChatService {
         ConversationMember target = requireTarget(conversationId, targetId);
         target.setRole(GroupRole.OWNER);
         actor.setRole(GroupRole.ADMIN);
+        
+        User actorUser = users.findById(actorId).orElseThrow();
+        User targetUser = users.findById(targetId).orElseThrow();
+        systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã nhường quyền chủ nhóm cho " + targetUser.getProfile().getDisplayName() + ".");
     }
 
     /** Chủ nhóm xóa được mọi người khác; quản trị viên chỉ xóa được thành viên thường. Tự rời nhóm dùng {@link #leave}. */
     @Transactional
     public void removeMember(UUID actorId, UUID conversationId, UUID targetId) {
-        requireGroupMembership(actorId, conversationId);
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
         GroupRole actorRole = requireRole(actorId, conversationId);
         if (targetId.equals(actorId)) {
             throw new ChatActionException("Muốn rời nhóm hãy dùng nút \"Rời nhóm\".");
@@ -247,6 +343,10 @@ public class ChatService {
             throw new ChatActionException("Bạn không có quyền xóa người này khỏi nhóm.");
         }
         members.delete(target);
+        
+        User actorUser = users.findById(actorId).orElseThrow();
+        User targetUser = users.findById(targetId).orElseThrow();
+        systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã xóa " + targetUser.getProfile().getDisplayName() + " khỏi nhóm.");
     }
 
     /**
@@ -259,7 +359,11 @@ public class ChatService {
         ConversationMember target = requireTarget(conversationId, targetId);
         if (conversation.isGroup() && !targetId.equals(actorId)) {
             GroupRole actorRole = requireRole(actorId, conversationId);
-            if (!actorRole.canManage() || !actorRole.outranks(target.getRole())) {
+            boolean canChange = conversation.isAllowAnyoneChangeNickname() || actorRole.canManage();
+            if (!canChange) {
+                throw new ChatActionException("Chỉ quản trị viên mới được phép đặt biệt danh.");
+            }
+            if (!conversation.isAllowAnyoneChangeNickname() && !actorRole.outranks(target.getRole())) {
                 throw new ChatActionException("Bạn không có quyền đặt biệt danh cho người này.");
             }
         }
@@ -268,6 +372,26 @@ public class ChatService {
             throw new ChatActionException("Biệt danh tối đa " + MAX_NICKNAME + " ký tự.");
         }
         target.setNickname(clean.isEmpty() ? null : clean);
+        
+        User actorUser = users.findById(actorId).orElseThrow();
+        User targetUser = users.findById(targetId).orElseThrow();
+        if (clean.isEmpty()) {
+            systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã xóa biệt danh của " + targetUser.getProfile().getDisplayName() + ".");
+        } else {
+            systemMessage(conversation, actorId, actorUser.getProfile().getDisplayName() + " đã đặt biệt danh cho " + targetUser.getProfile().getDisplayName() + " là " + clean + ".");
+        }
+    }
+
+    @Transactional
+    public void setAllowAnyoneChangeNickname(UUID actorId, UUID conversationId, boolean allow) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        if (!conversation.isGroup()) throw new ChatActionException("Chỉ nhóm mới có cài đặt này.");
+        if (conversation.isAllowAnyoneChangeNickname() == allow) return;
+        requireManager(actorId, conversationId, "Chỉ quản trị viên hoặc chủ nhóm mới có thể đổi cài đặt này.");
+        conversation.setAllowAnyoneChangeNickname(allow);
+        User actor = users.findById(actorId).orElseThrow();
+        String status = allow ? "bật" : "tắt";
+        systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + " đã " + status + " tính năng cho phép ai cũng có thể thay đổi biệt danh.");
     }
 
     /** Thành viên của hội thoại kèm vai trò và biệt danh, theo thứ tự vào nhóm. */
@@ -329,6 +453,11 @@ public class ChatService {
         }
         return conversations.findById(conversationId).orElseThrow(ConversationNotFoundException::new);
     }
+    
+    @Transactional(readOnly = true)
+    public boolean exists(UUID conversationId) {
+        return conversations.existsById(conversationId);
+    }
 
     private Conversation requireGroupMembership(UUID userId, UUID conversationId) {
         Conversation conversation = requireMembership(userId, conversationId);
@@ -365,7 +494,7 @@ public class ChatService {
         }
 
         Map<UUID, Streak> streakById = streaks.forConversations(mine.stream()
-                .map(ConversationMember::getConversation).filter(c -> !c.isGroup()).map(Conversation::getId).toList());
+                .map(ConversationMember::getConversation).map(Conversation::getId).toList());
         List<ConversationSummaryView> views = new ArrayList<>();
         for (ConversationMember membership : mine) {
             Conversation conversation = membership.getConversation();
@@ -428,5 +557,15 @@ public class ChatService {
         member.setUser(users.getReferenceById(userId));
         member.setJoinedAt(clock.instant());
         members.save(member);
+    }
+
+    private void systemMessage(Conversation conversation, UUID actorId, String text) {
+        Message msg = new Message();
+        msg.setConversation(conversation);
+        msg.setSender(users.getReferenceById(actorId));
+        msg.setContent(text);
+        msg.setCreatedAt(clock.instant());
+        msg.setSystem(true);
+        messages.save(msg);
     }
 }

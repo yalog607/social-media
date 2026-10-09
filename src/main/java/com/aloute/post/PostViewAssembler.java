@@ -178,7 +178,8 @@ public class PostViewAssembler {
                 taggedByPost.getOrDefault(post.getId(), List.of()),
                 post.getUnlockPrice(),
                 locked,
-                post.getCategoryId() == null ? null : categoryById.get(post.getCategoryId()));
+                post.getCategoryId() == null ? null : categoryById.get(post.getCategoryId()),
+                post.isPinned());
     }
 
     /** Bản sao của {@code view} với {@code sharedPost} được gắn (bản thân {@code view} được dựng như bài thường ở bước 1). */
@@ -186,6 +187,6 @@ public class PostViewAssembler {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
                 view.shareCount(), sharedPostId, sharedPost, view.tagged(),
-                view.unlockPrice(), view.locked(), view.category());
+                view.unlockPrice(), view.locked(), view.category(), view.isPinned());
     }
 }

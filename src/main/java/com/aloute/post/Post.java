@@ -81,6 +81,9 @@ public class Post {
     @Column(name = "category_id")
     private UUID categoryId;
 
+    @Column(name = "is_pinned", nullable = false)
+    private boolean isPinned = false;
+
     /** Giá (Xu) để mở khóa nội dung; null nghĩa là bài miễn phí. Chỉ Creator đặt được. */
     @Column(name = "unlock_price")
     private Integer unlockPrice;

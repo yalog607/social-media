@@ -117,4 +117,18 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             where p.author.id = :authorId and p.deletedAt is null and p.scheduledAt is not null
             order by p.scheduledAt, p.id""")
     List<Post> findScheduledByAuthor(@Param("authorId") UUID authorId);
+
+    /** Các bài viết được ghim của một tác giả (tối đa 3 bài, nhưng không giới hạn ở repo). */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.user.UserStatus.ACTIVE and a.id = :authorId
+              and p.isPinned = true
+              and (p.visibility in :visibilities or (p.visibility = com.aloute.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
+              ))
+            order by p.createdAt desc, p.id desc""")
+    List<Post> findPinnedByAuthor(@Param("authorId") UUID authorId, @Param("visibilities") Collection<Visibility> visibilities,
+                                  @Param("viewerId") UUID viewerId);
+
+    @Query("select count(p) from Post p where p.author.id = :authorId and p.isPinned = true and p.deletedAt is null")
+    long countPinnedByAuthor(@Param("authorId") UUID authorId);
 }

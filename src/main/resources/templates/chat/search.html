@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="results">
+    <p class="text-soft" th:if="${#lists.isEmpty(searchResults)}">Không tìm thấy tin nhắn nào khớp với từ khóa.</p>
+    <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(searchResults)}">
+        <div class="d-flex align-items-start gap-3 py-2 border-bottom" style="cursor: pointer;" th:each="m : ${searchResults}"
+             th:attr="onclick='scrollToMessage(\'' + ${m.id} + '\')'" data-bs-dismiss="offcanvas">
+            <span th:replace="~{fragments/ui :: avatar(${m.sender}, 'avatar--sm')}"></span>
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small text-muted fw-medium text-truncate" th:text="${m.sender.displayName} + (${m.sender.primaryRole.name() == 'ADMIN'} ? ' [ADMIN]' : '')">Người gửi</span>
+                    <span class="small text-muted flex-shrink-0 ms-2" th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">thời gian</span>
+                </div>
+                <div class="text-dark small" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">
+                    <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>
