@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Báo cáo của bạn', ~{::main}, 'none', ~{})}">
+<head><title>Báo cáo của bạn</title></head>
+<body>
+<main>
+    <div class="page-title"><h1>Báo cáo của bạn</h1></div>
+    <section class="note" aria-labelledby="mine-title">
+        <h2 id="mine-title" class="h4 mb-3">Danh sách báo cáo vi phạm</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(reports)}">Bạn chưa có báo cáo nào.</p>
+        <article class="mb-4" th:each="r : ${reports}">
+            <div class="report-row-head">
+                <strong><a th:href="@{/reports/{id}(id=${r.id()})}" style="text-decoration:none; color:inherit">
+                    <th:block th:if="${r.type().name() == 'POST'}">Bài viết</th:block>
+                    <th:block th:if="${r.type().name() == 'COMMENT'}">Bình luận</th:block>
+                    <th:block th:if="${r.type().name() == 'USER'}">Tài khoản</th:block>
+                    <th:block th:text="${r.ownerName() != null ? ' của ' + r.ownerName() : ''}"></th:block>
+                </a></strong>
+                <span class="report-status-badge"
+                      th:classappend="${r.status().name() == 'OPEN'} ? 'report-status-badge--open' : 'report-status-badge--resolved'"
+                      th:text="${r.status().name() == 'OPEN' ? 'Chưa xử lý' : 'Đã xử lý'}">
+                    Chưa xử lý
+                </span>
+            </div>
+
+            <a th:href="@{/reports/{id}(id=${r.id()})}" style="text-decoration:none; color:inherit; display:block">
+                <blockquote class="note report-preview-box"
+                            th:classappend="${r.status().name() == 'OPEN'} ? 'note--sky' : 'note--mint'"
+                            th:if="${r.removed()}" style="font-size:0.9rem">
+                    Nội dung này không còn tồn tại hoặc đã bị quản trị viên xóa.
+                </blockquote>
+                <blockquote class="note report-preview-box"
+                            th:classappend="${r.status().name() == 'OPEN'} ? 'note--sky' : 'note--mint'"
+                            th:if="${!r.removed()}" th:text="${r.preview()}" style="font-size:0.9rem">
+                    Preview
+                </blockquote>
+            </a>
+
+            <p class="mb-1 text-soft"><strong>Lý do: <span th:text="${r.reason().label()}">Lý do</span></strong></p>
+            <p class="mb-0 text-muted" style="font-size:0.875rem" th:text="'Ngày báo cáo: ' + ${@timeAgo.format(r.createdAt())}">1 ngày trước</p>
+            <hr th:if="${!rStat.last}">
+        </article>
+    </section>
+</main>
+</body>
+</html>

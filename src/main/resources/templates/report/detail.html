@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Chi tiết báo cáo', ~{::main}, 'none', ~{})}">
+<head><title>Chi tiết báo cáo</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1 class="report-header-pill">Chi tiết báo cáo</h1>
+    </div>
+    
+    <section class="note" aria-labelledby="detail-title">
+        <h2 id="detail-title" class="h4 mb-3">Thông tin báo cáo</h2>
+        <div class="mb-3">
+            <strong>Trạng thái:</strong>
+            <span class="report-status-badge ms-2"
+                  th:classappend="${report.status().name() == 'OPEN'} ? 'report-status-badge--open' : 'report-status-badge--resolved'"
+                  th:text="${report.status().name() == 'OPEN' ? 'Chưa xử lý' : 'Đã xử lý'}">Chưa xử lý</span>
+        </div>
+        <div class="mb-3">
+            <strong>Ngày gửi:</strong>
+            <span th:text="${@timeAgo.format(report.createdAt())}">1 ngày trước</span>
+            <span class="text-muted" th:text="'(' + ${@timeAgo.full(report.createdAt())} + ')'"></span>
+        </div>
+        <div class="mb-3">
+            <strong>Lý do: <span th:text="${report.reason().label()}">Lý do</span></strong>
+        </div>
+        <div class="mb-3" th:if="${report.detail() != null && !report.detail().isBlank()}">
+            <strong>Chi tiết bổ sung:</strong>
+            <p class="mt-1 p-2 bg-light rounded" style="white-space:pre-line; border: 1px solid #e0e0e0" th:text="${report.detail()}">Chi tiết</p>
+        </div>
+
+        <h3 class="h5 mt-4 mb-3 border-top pt-3">Nội dung bị báo cáo</h3>
+
+        <!-- Render full Post card khi bài viết còn hiển thị -->
+        <th:block th:if="${reportedPost != null}">
+            <div id="feed" class="feed mt-3">
+                <th:block th:replace="~{fragments/post :: card(${reportedPost})}"></th:block>
+            </div>
+        </th:block>
+
+        <!-- Hiển thị thông báo an toàn khi bài viết đã bị xóa hoặc đối tượng khác -->
+        <th:block th:if="${reportedPost == null}">
+            <p class="mb-2" th:if="${report.ownerName() != null}">
+                <strong>
+                    <th:block th:if="${report.type().name() == 'POST'}">Bài viết</th:block>
+                    <th:block th:if="${report.type().name() == 'COMMENT'}">Bình luận</th:block>
+                    <th:block th:if="${report.type().name() == 'USER'}">Tài khoản</th:block>
+                    <th:block th:text="' của ' + ${report.ownerName()}"></th:block>
+                </strong>
+            </p>
+            <blockquote class="note mb-2"
+                        th:classappend="${report.status().name() == 'OPEN'} ? 'note--sky' : 'note--mint'"
+                        th:if="${report.removed()}">
+                Nội dung này không còn tồn tại hoặc đã bị quản trị viên xóa.
+            </blockquote>
+            <blockquote class="note mb-0"
+                        th:classappend="${report.status().name() == 'OPEN'} ? 'note--sky' : 'note--mint'"
+                        th:if="${report.preview() != null and !#strings.isEmpty(report.preview())}"
+                        style="white-space:pre-line" th:text="${report.preview()}">
+                Nội dung...
+            </blockquote>
+        </th:block>
+    </section>
+
+    <th:block th:if="${me != null}">
+        <div th:replace="~{fragments/post-modals :: modals}"></div>
+    </th:block>
+</main>
+</body>
+</html>

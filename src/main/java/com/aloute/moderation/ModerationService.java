@@ -33,15 +33,18 @@ public class ModerationService {
     private final NotificationService notifications;
     private final AuditService audit;
     private final Clock clock;
+    private final com.aloute.post.PostRepository posts;
 
     public ModerationService(JdbcTemplate jdbc, UserRepository users, RefreshTokenService refreshTokens,
-                             NotificationService notifications, AuditService audit, Clock clock) {
+                             NotificationService notifications, AuditService audit, Clock clock,
+                             com.aloute.post.PostRepository posts) {
         this.jdbc = jdbc;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.notifications = notifications;
         this.audit = audit;
         this.clock = clock;
+        this.posts = posts;
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +69,12 @@ public class ModerationService {
                 QUEUE_LIMIT);
     }
 
+    @Transactional(readOnly = true)
+    public long countOpenReports() {
+        Long count = jdbc.queryForObject("select count(*) from reports where status = 'OPEN'", Long.class);
+        return count == null ? 0 : count;
+    }
+
     /**
      * @param note lý do/ghi chú (bắt buộc với cảnh cáo và khóa; hiển thị trong lịch sử chế tài)
      * @throws InvalidModerationException báo cáo không còn mở, thiếu ghi chú, hành động không áp dụng được,
@@ -83,6 +92,14 @@ public class ModerationService {
         String cleanNote = cleanNote(note, action == ReportAction.WARN || action == ReportAction.SUSPEND);
         UUID ownerId = ownerOf(type, targetId);
 
+        String previewSql = switch (type) {
+            case "POST" -> "select content from posts where id = ?";
+            case "COMMENT" -> "select content from comments where id = ?";
+            default -> "select p.display_name from profiles p where p.user_id = ?";
+        };
+        var previewList = jdbc.queryForList(previewSql, String.class, targetId);
+        String preview = previewList.isEmpty() || previewList.get(0) == null ? "" : clip(previewList.get(0));
+
         String status = action == ReportAction.DISMISS ? "DISMISSED" : "RESOLVED";
         switch (action) {
             case DISMISS -> { }
@@ -91,10 +108,75 @@ public class ModerationService {
             case SUSPEND -> suspend(managerId, requireSanctionable(managerId, ownerId), cleanNote, reportId);
         }
         Timestamp now = Timestamp.from(clock.instant());
+
+        var reportsToNotify = jdbc.queryForList("select id, reporter_id from reports where status = 'OPEN' and target_type = ? and target_id = ?",
+                type, targetId);
+
         jdbc.update("""
                 update reports set status = ?, handled_by = ?, handled_at = ?
                 where status = 'OPEN' and target_type = ? and target_id = ?""", status, managerId, now, type, targetId);
         audit.log(managerId, "REPORT_" + action.name(), type, targetId, cleanNote);
+        
+        String reporterText;
+        String reporterDetail;
+        if (action == ReportAction.DISMISS) {
+            reporterText = "Báo cáo của bạn đã được xem xét và chưa phát hiện vi phạm.";
+            reporterDetail = "Chúng tôi chưa phát hiện nội dung được báo cáo vi phạm Tiêu chuẩn cộng đồng.";
+        } else {
+            reporterText = "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.";
+            reporterDetail = "Nội dung bạn báo cáo đã được xác định là vi phạm Tiêu chuẩn cộng đồng và đã được xử lý.";
+        }
+        for (var r : reportsToNotify) {
+            notifications.reportResolved(managerId, (UUID) r.get("reporter_id"), (UUID) r.get("id"), reporterText, reporterDetail);
+        }
+
+        if (ownerId != null && !ownerId.equals(managerId)) {
+            String targetLabel = switch (type) {
+                case "POST" -> "bài viết";
+                case "COMMENT" -> "bình luận";
+                default -> "tài khoản";
+            };
+            String targetCapitalized = switch (type) {
+                case "POST" -> "Bài viết";
+                case "COMMENT" -> "Bình luận";
+                default -> "Tài khoản";
+            };
+            String ownerText;
+            String ownerDetail;
+            if (action == ReportAction.DISMISS) {
+                ownerText = "Một báo cáo về " + targetLabel + " của bạn đã được xem xét và không ghi nhận vi phạm.";
+                ownerDetail = preview.isBlank() ? null : (targetCapitalized + ": \"" + preview + "\"");
+            } else if (action == ReportAction.REMOVE_CONTENT) {
+                ownerText = targetCapitalized + " của bạn đã bị gỡ do vi phạm Tiêu chuẩn cộng đồng.";
+                if (!preview.isBlank() && cleanNote != null && !cleanNote.isBlank()) {
+                    ownerDetail = targetCapitalized + ": \"" + preview + "\" • Lý do xử lý: " + cleanNote;
+                } else if (!preview.isBlank()) {
+                    ownerDetail = targetCapitalized + ": \"" + preview + "\"";
+                } else if (cleanNote != null && !cleanNote.isBlank()) {
+                    ownerDetail = "Lý do xử lý: " + cleanNote;
+                } else {
+                    ownerDetail = null;
+                }
+            } else {
+                ownerText = "POST".equals(type)
+                        ? "Một bài viết của bạn đã được xem xét và xác định vi phạm Tiêu chuẩn cộng đồng."
+                        : "Một " + targetLabel + " của bạn đã được xem xét và xác định vi phạm Tiêu chuẩn cộng đồng.";
+                if (!preview.isBlank() && cleanNote != null && !cleanNote.isBlank()) {
+                    ownerDetail = targetCapitalized + ": \"" + preview + "\" • Lý do xử lý: " + cleanNote;
+                } else if (!preview.isBlank()) {
+                    ownerDetail = targetCapitalized + ": \"" + preview + "\"";
+                } else if (cleanNote != null && !cleanNote.isBlank()) {
+                    ownerDetail = "Lý do xử lý: " + cleanNote;
+                } else {
+                    ownerDetail = null;
+                }
+            }
+            if (ownerDetail != null && ownerDetail.length() > 500) {
+                ownerDetail = ownerDetail.substring(0, 499) + "…";
+            }
+            com.aloute.post.Post postRef = "POST".equals(type) ? posts.findById(targetId).orElse(null) : null;
+            notifications.reportOwnerNotified(managerId, ownerId, postRef, targetId, ownerText, ownerDetail);
+        }
     }
 
     /** Gỡ khóa. @throws InvalidModerationException người này không đang bị khóa */

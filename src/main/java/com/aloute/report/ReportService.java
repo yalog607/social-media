@@ -11,6 +11,10 @@ import com.aloute.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -20,19 +24,26 @@ import java.util.UUID;
 @Service
 public class ReportService {
 
+    public record MyReportItem(UUID id, UUID targetId, ReportTargetType type, ReportReason reason, String detail,
+                               Instant createdAt, ReportStatus status, String preview, boolean removed,
+                               String ownerName) {
+    }
+
     private final ReportRepository reports;
     private final PostService posts;
     private final CommentRepository comments;
     private final UserRepository users;
     private final RateLimiter rateLimiter;
+    private final JdbcTemplate jdbc;
 
     public ReportService(ReportRepository reports, PostService posts, CommentRepository comments,
-                         UserRepository users, RateLimiter rateLimiter) {
+                         UserRepository users, RateLimiter rateLimiter, JdbcTemplate jdbc) {
         this.reports = reports;
         this.posts = posts;
         this.comments = comments;
         this.users = users;
         this.rateLimiter = rateLimiter;
+        this.jdbc = jdbc;
     }
 
     /**
@@ -60,6 +71,57 @@ public class ReportService {
         return reports.save(report);
     }
 
+    @Transactional(readOnly = true)
+    public List<MyReportItem> mine(UUID reporterId) {
+        return jdbc.query("""
+                select r.id, r.target_id, r.target_type, r.reason, r.detail, r.created_at, r.status,
+                       coalesce(p.content, c.content, tp.display_name) as preview,
+                       (p.deleted_at is not null or c.deleted_at is not null) as removed,
+                       op.display_name
+                from reports r
+                left join posts p on r.target_type = 'POST' and p.id = r.target_id
+                left join comments c on r.target_type = 'COMMENT' and c.id = r.target_id
+                left join users tu on r.target_type = 'USER' and tu.id = r.target_id
+                left join profiles tp on tp.user_id = tu.id
+                left join profiles op on op.user_id = coalesce(p.author_id, c.author_id, tu.id)
+                where r.reporter_id = ?
+                order by r.created_at desc, r.id desc""",
+                (rs, i) -> new MyReportItem(
+                        rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+                        ReportTargetType.valueOf(rs.getString(3)),
+                        ReportReason.valueOf(rs.getString(4)), rs.getString(5), rs.getTimestamp(6).toInstant(),
+                        ReportStatus.valueOf(rs.getString(7)), clip(rs.getString(8)), rs.getBoolean(9),
+                        rs.getString(10)),
+                reporterId);
+    }
+
+    @Transactional(readOnly = true)
+    public MyReportItem getMyReport(UUID reporterId, UUID reportId) {
+        List<MyReportItem> items = jdbc.query("""
+                select r.id, r.target_id, r.target_type, r.reason, r.detail, r.created_at, r.status,
+                       coalesce(p.content, c.content, tp.display_name) as preview,
+                       (p.deleted_at is not null or c.deleted_at is not null) as removed,
+                       op.display_name
+                from reports r
+                left join posts p on r.target_type = 'POST' and p.id = r.target_id
+                left join comments c on r.target_type = 'COMMENT' and c.id = r.target_id
+                left join users tu on r.target_type = 'USER' and tu.id = r.target_id
+                left join profiles tp on tp.user_id = tu.id
+                left join profiles op on op.user_id = coalesce(p.author_id, c.author_id, tu.id)
+                where r.id = ? and r.reporter_id = ?""",
+                (rs, i) -> new MyReportItem(
+                        rs.getObject(1, UUID.class), rs.getObject(2, UUID.class),
+                        ReportTargetType.valueOf(rs.getString(3)),
+                        ReportReason.valueOf(rs.getString(4)), rs.getString(5), rs.getTimestamp(6).toInstant(),
+                        ReportStatus.valueOf(rs.getString(7)), clip(rs.getString(8)), rs.getBoolean(9),
+                        rs.getString(10)),
+                reportId, reporterId);
+        if (items.isEmpty()) {
+            throw new InvalidReportException("Báo cáo không tồn tại.");
+        }
+        return items.get(0);
+    }
+
     /** Kiểm tra đối tượng tồn tại và người báo cáo xem được; trả về chủ của đối tượng. */
     private UUID resolveOwner(UUID reporterId, ReportTargetType type, UUID targetId) {
         return switch (type) {
@@ -82,5 +144,13 @@ public class ReportService {
             throw new InvalidReportException("Chi tiết tối đa " + Report.MAX_DETAIL_LENGTH + " ký tự.");
         }
         return text;
+    }
+
+    private static String clip(String text) {
+        if (text == null) {
+            return "";
+        }
+        String flat = text.strip().replaceAll("\\s+", " ");
+        return flat.codePointCount(0, flat.length()) <= 200 ? flat : flat.substring(0, flat.offsetByCodePoints(0, 200)) + "…";
     }
 }

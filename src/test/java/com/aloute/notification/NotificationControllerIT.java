@@ -34,6 +34,9 @@ class NotificationControllerIT extends IntegrationTest {
         assertThat(notifications.unreadCount(me.getId())).as("mở trang thông báo tự đánh dấu đã đọc").isZero();
     }
 
+    @Autowired com.aloute.post.PostService posts;
+    @Autowired NotificationRepository notificationRepository;
+
     @Test
     void emptyStateShowsWhenThereAreNoNotifications() throws Exception {
         User me = createUser();
@@ -41,5 +44,29 @@ class NotificationControllerIT extends IntegrationTest {
         mvc.perform(get("/notifications").with(asUser(me)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Chưa có thông báo nào")));
+    }
+
+    @Test
+    void readAndRedirectSafelyHandlesDeletedPost() throws Exception {
+        User me = createUser();
+        User author = createUser();
+        var post = posts.create(author.getId(), "Bài viết này sẽ bị xóa", com.aloute.user.Visibility.PUBLIC, null, null, null, null, null, null);
+        posts.delete(author.getId(), post.getId());
+
+        Notification n = new Notification();
+        n.setRecipient(me);
+        n.setActor(author);
+        n.setType(NotificationType.POST_REACTION);
+        n.setPost(post);
+        n = notificationRepository.save(n);
+
+        mvc.perform(get("/notifications/" + n.getId() + "/read")
+                        .param("postId", post.getId().toString())
+                        .with(asUser(me)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/notifications"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attributeExists("error"));
+
+        assertThat(notifications.unreadCount(me.getId())).isZero();
     }
 }
