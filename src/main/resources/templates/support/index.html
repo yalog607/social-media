@@ -23,7 +23,7 @@
     <section class="note" aria-labelledby="mine-title">
         <h2 id="mine-title" class="h4 mb-3">Yêu cầu của bạn</h2>
         <p class="text-soft mb-0" th:if="${#lists.isEmpty(tickets)}">Bạn chưa gửi yêu cầu nào.</p>
-        <article class="mb-3" th:each="tk : ${tickets}">
+        <article class="mb-3" th:each="tk : ${tickets}" th:id="'ticket-' + ${tk.id()}">
             <p class="mb-1"><strong th:text="${tk.subject()}">Tiêu đề</strong>
                 <span class="role-chip" th:text="${tk.open()} ? 'Đang chờ' : 'Đã phản hồi'">Đang chờ</span></p>
             <p class="mb-1" style="white-space:pre-line" th:text="${tk.body()}">Nội dung</p>

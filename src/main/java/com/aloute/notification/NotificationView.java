@@ -12,10 +12,12 @@ import java.util.UUID;
 public record NotificationView(
         UUID id,
         PostView.AuthorView actor,
+        NotificationType type,
         String text,
         UUID postId,
         String detail,
         UUID conversationId,
+        UUID referenceId,
         Instant createdAt,
         boolean read) {
 }

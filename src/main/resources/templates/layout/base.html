@@ -36,6 +36,7 @@
                     <li><a class="dropdown-item" th:href="@{/me}">Trang cá nhân</a></li>
                     <li><a class="dropdown-item" th:href="@{/wallet}">Ví Xu</a></li>
                     <li><a class="dropdown-item" th:href="@{/support}">Hỗ trợ</a></li>
+                    <li><a class="dropdown-item" th:href="@{/reports}">Báo cáo</a></li>
                     <li><a class="dropdown-item" th:href="@{/settings}">Cài đặt</a></li>
                     <li>
                         <form th:action="@{/logout}" method="post">
@@ -72,14 +73,15 @@
             <a class="nav-tab" th:if="${caps.contains('CREATOR')}" th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">
                 <svg aria-hidden="true"><use href="#i-star"/></svg>Creator</a>
             <a class="nav-tab" th:if="${caps.contains('MANAGER')}" th:classappend="${active == 'manage'} ? 'is-active'" th:href="@{/manage}">
-                <svg aria-hidden="true"><use href="#i-shield"/></svg>Kiểm duyệt</a>
+                <svg aria-hidden="true"><use href="#i-shield"/></svg>Kiểm duyệt
+                <span class="nav-badge" th:if="${pendingReports + pendingSupportTickets > 0}" th:text="${pendingReports + pendingSupportTickets}">1</span></a>
             <a class="nav-tab" th:if="${caps.contains('ADMIN')}" th:classappend="${active == 'admin'} ? 'is-active'" th:href="@{/admin}">
                 <svg aria-hidden="true"><use href="#i-crown"/></svg>Quản trị</a>
         </nav>
 
         <div class="app-main" id="main">
             <div class="alert-al alert-al--ok" role="status" th:if="${notice != null}"><p th:text="${notice}"></p></div>
-            <div class="alert-al alert-al--error" role="alert" th:if="${error != null}"><p th:text="${error}"></p></div>
+            <div class="alert-al alert-al--error" role="alert" th:if="${error != null and status == null}"><p th:text="${error}"></p></div>
             <th:block th:replace="${content}"></th:block>
         </div>
 
@@ -104,7 +106,8 @@
         <a class="bottom-tab" th:if="${caps.contains('CREATOR')}" th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">
             <svg aria-hidden="true"><use href="#i-star"/></svg>Creator</a>
         <a class="bottom-tab" th:if="${caps.contains('MANAGER')}" th:classappend="${active == 'manage'} ? 'is-active'" th:href="@{/manage}">
-            <svg aria-hidden="true"><use href="#i-shield"/></svg>Duyệt</a>
+            <svg aria-hidden="true"><use href="#i-shield"/></svg>Duyệt
+            <span class="nav-badge nav-badge--bottom" th:if="${pendingReports + pendingSupportTickets > 0}" th:text="${pendingReports + pendingSupportTickets}">1</span></a>
         <a class="bottom-tab" th:if="${caps.contains('ADMIN')}" th:classappend="${active == 'admin'} ? 'is-active'" th:href="@{/admin}">
             <svg aria-hidden="true"><use href="#i-crown"/></svg>Admin</a>
     </nav>

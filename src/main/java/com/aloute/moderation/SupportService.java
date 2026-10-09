@@ -28,12 +28,15 @@ public class SupportService {
     private final RateLimiter rateLimiter;
     private final AuditService audit;
     private final Clock clock;
+    private final com.aloute.notification.NotificationService notifications;
 
-    public SupportService(JdbcTemplate jdbc, RateLimiter rateLimiter, AuditService audit, Clock clock) {
+    public SupportService(JdbcTemplate jdbc, RateLimiter rateLimiter, AuditService audit, Clock clock,
+                          com.aloute.notification.NotificationService notifications) {
         this.jdbc = jdbc;
         this.rateLimiter = rateLimiter;
         this.audit = audit;
         this.clock = clock;
+        this.notifications = notifications;
     }
 
     @Transactional
@@ -54,17 +57,26 @@ public class SupportService {
         return query("where t.status = 'OPEN' order by t.created_at, t.id limit 50");
     }
 
+    @Transactional(readOnly = true)
+    public long countOpenTickets() {
+        Long count = jdbc.queryForObject("select count(*) from support_tickets where status = 'OPEN'", Long.class);
+        return count == null ? 0 : count;
+    }
+
     /** @throws InvalidModerationException phiếu đã đóng hoặc phản hồi không hợp lệ */
     @Transactional
     public void reply(UUID managerId, UUID ticketId, String reply) {
         String text = clean(reply, MAX_BODY, "Phản hồi");
-        int updated = jdbc.update("""
-                update support_tickets set status = 'CLOSED', reply = ?, handled_by = ?, handled_at = ?
-                where id = ? and status = 'OPEN'""", text, managerId, Timestamp.from(clock.instant()), ticketId);
-        if (updated == 0) {
-            throw new InvalidModerationException("Phiếu này đã được xử lý rồi.");
+        List<UUID> users = jdbc.queryForList("select user_id from support_tickets where id = ? and status = 'OPEN' for update", UUID.class, ticketId);
+        if (users.isEmpty()) {
+            throw new InvalidModerationException("Phiếu này đã được xử lý hoặc không tồn tại.");
         }
+        jdbc.update("""
+                update support_tickets set status = 'CLOSED', reply = ?, handled_by = ?, handled_at = ?
+                where id = ?""", text, managerId, Timestamp.from(clock.instant()), ticketId);
+        
         audit.log(managerId, "TICKET_REPLIED", "TICKET", ticketId, null);
+        notifications.supportReplied(managerId, users.get(0), ticketId);
     }
 
     private List<Ticket> query(String where, Object... args) {

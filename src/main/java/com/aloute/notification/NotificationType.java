@@ -13,5 +13,7 @@ public enum NotificationType {
     DONATION,
     BROADCAST,
     WARNING,
-    MENTION
+    MENTION,
+    SUPPORT,
+    REPORT
 }
