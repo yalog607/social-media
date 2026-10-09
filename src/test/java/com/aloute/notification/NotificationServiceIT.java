@@ -1,16 +1,19 @@
 package com.aloute.notification;
 
-import com.aloute.comment.Comment;
-import com.aloute.comment.CommentService;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
-import com.aloute.reaction.ReactionService;
-import com.aloute.reaction.ReactionType;
-import com.aloute.social.FollowService;
-import com.aloute.social.FriendService;
+import com.aloute.dto.notification.NotificationView;
+import com.aloute.service.notification.NotificationService;
+
+import com.aloute.model.comment.Comment;
+import com.aloute.service.comment.CommentService;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.service.reaction.ReactionService;
+import com.aloute.model.reaction.ReactionType;
+import com.aloute.service.social.FollowService;
+import com.aloute.service.social.FriendService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

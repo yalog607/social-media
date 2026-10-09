@@ -1,7 +1,7 @@
 package com.aloute.security;
 
-import com.aloute.user.User;
-import com.aloute.user.UserRepository;
+import com.aloute.model.user.User;
+import com.aloute.repository.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;

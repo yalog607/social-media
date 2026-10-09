@@ -1,5 +1,7 @@
 package com.aloute.auth;
 
+import com.aloute.service.auth.LoginAttemptService;
+
 import com.aloute.config.AlouteProperties;
 import com.aloute.support.MutableClock;
 import org.junit.jupiter.api.BeforeEach;

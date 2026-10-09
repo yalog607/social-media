@@ -121,7 +121,7 @@
 
     <div class="post-actions" th:attr="data-post-id=${post.id}">
         <div class="reactions" role="group" aria-label="Cảm xúc cho bài viết này">
-            <button type="button" class="reaction-chip" th:each="type : ${T(com.aloute.reaction.ReactionType).values()}"
+            <button type="button" class="reaction-chip" th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
                     th:attr="data-type=${type.name()}, aria-pressed=${post.reactions.mine() == type}"
                     th:classappend="${post.reactions.mine() == type} ? 'is-active' : ''"
                     th:title="${type.label()}" th:disabled="${me == null}">

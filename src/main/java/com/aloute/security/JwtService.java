@@ -1,7 +1,7 @@
 package com.aloute.security;
 
 import com.aloute.config.AlouteProperties;
-import com.aloute.user.Role;
+import com.aloute.model.user.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;

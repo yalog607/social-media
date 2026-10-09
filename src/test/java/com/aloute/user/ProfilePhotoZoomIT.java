@@ -1,6 +1,8 @@
 package com.aloute.user;
 
-import com.aloute.social.BlockService;
+import com.aloute.model.user.User;
+
+import com.aloute.service.social.BlockService;
 import com.aloute.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

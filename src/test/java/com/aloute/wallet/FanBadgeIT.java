@@ -1,13 +1,18 @@
 package com.aloute.wallet;
 
-import com.aloute.comment.CommentService;
-import com.aloute.comment.CommentView;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
+import com.aloute.dto.wallet.FanView;
+import com.aloute.model.wallet.FanBadge;
+import com.aloute.service.wallet.FanService;
+import com.aloute.service.wallet.WalletService;
+
+import com.aloute.service.comment.CommentService;
+import com.aloute.dto.comment.CommentView;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

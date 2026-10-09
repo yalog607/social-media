@@ -1,14 +1,18 @@
 package com.aloute.creator;
 
-import com.aloute.notification.NotificationService;
-import com.aloute.notification.NotificationView;
-import com.aloute.social.BlockService;
-import com.aloute.social.FollowService;
+import com.aloute.exception.creator.InvalidBroadcastException;
+import com.aloute.model.creator.BroadcastAudience;
+import com.aloute.service.creator.BroadcastService;
+
+import com.aloute.service.notification.NotificationService;
+import com.aloute.dto.notification.NotificationView;
+import com.aloute.service.social.BlockService;
+import com.aloute.service.social.FollowService;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.MutableClock;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.wallet.WalletService;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.service.wallet.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -1,16 +1,20 @@
 package com.aloute.wallet;
 
-import com.aloute.post.Post;
-import com.aloute.post.InvalidPostException;
-import com.aloute.post.PostService;
-import com.aloute.post.PostView;
-import com.aloute.post.PostViewAssembler;
-import com.aloute.social.BlockService;
+import com.aloute.exception.wallet.WalletException;
+import com.aloute.model.wallet.WalletTxType;
+import com.aloute.service.wallet.WalletService;
+
+import com.aloute.model.post.Post;
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.service.post.PostService;
+import com.aloute.dto.post.PostView;
+import com.aloute.service.post.PostViewAssembler;
+import com.aloute.service.social.BlockService;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.MutableClock;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

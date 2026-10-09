@@ -1,8 +1,8 @@
 package com.aloute.config;
 
-import com.aloute.auth.FirebaseTokenVerifier;
-import com.aloute.auth.SocialIdentity;
-import com.aloute.auth.SocialTokenVerifier;
+import com.aloute.service.auth.FirebaseTokenVerifier;
+import com.aloute.dto.auth.SocialIdentity;
+import com.aloute.service.auth.SocialTokenVerifier;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;

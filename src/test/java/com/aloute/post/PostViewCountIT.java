@@ -1,11 +1,16 @@
 package com.aloute.post;
 
-import com.aloute.creator.InsightsService;
+import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.service.post.PostViewService;
+
+import com.aloute.service.creator.InsightsService;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.MutableClock;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -67,6 +72,6 @@ class PostViewCountIT extends IntegrationTest {
         assertThat(insights.insights(creator.getId(), 7).views()).as("fan + reader").isEqualTo(2);
     }
 
-    private record InsightsViewHolder(com.aloute.creator.InsightsView view) {
+    private record InsightsViewHolder(com.aloute.dto.creator.InsightsView view) {
     }
 }

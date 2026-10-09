@@ -1,8 +1,13 @@
 package com.aloute.notification;
 
-import com.aloute.social.FollowService;
+import com.aloute.model.notification.Notification;
+import com.aloute.model.notification.NotificationType;
+import com.aloute.repository.notification.NotificationRepository;
+import com.aloute.service.notification.NotificationService;
+
+import com.aloute.service.social.FollowService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,7 +39,7 @@ class NotificationControllerIT extends IntegrationTest {
         assertThat(notifications.unreadCount(me.getId())).as("mở trang thông báo tự đánh dấu đã đọc").isZero();
     }
 
-    @Autowired com.aloute.post.PostService posts;
+    @Autowired com.aloute.service.post.PostService posts;
     @Autowired NotificationRepository notificationRepository;
 
     @Test
@@ -50,7 +55,7 @@ class NotificationControllerIT extends IntegrationTest {
     void readAndRedirectSafelyHandlesDeletedPost() throws Exception {
         User me = createUser();
         User author = createUser();
-        var post = posts.create(author.getId(), "Bài viết này sẽ bị xóa", com.aloute.user.Visibility.PUBLIC, null, null, null, null, null, null);
+        var post = posts.create(author.getId(), "Bài viết này sẽ bị xóa", com.aloute.model.user.Visibility.PUBLIC, null, null, null, null, null, null);
         posts.delete(author.getId(), post.getId());
 
         Notification n = new Notification();

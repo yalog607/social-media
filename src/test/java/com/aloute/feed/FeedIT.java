@@ -1,14 +1,17 @@
 package com.aloute.feed;
 
-import com.aloute.post.Post;
-import com.aloute.post.PostRepository;
-import com.aloute.post.PostService;
-import com.aloute.post.PostView;
+import com.aloute.dto.feed.FeedPage;
+import com.aloute.service.feed.FeedService;
+
+import com.aloute.model.post.Post;
+import com.aloute.repository.post.PostRepository;
+import com.aloute.service.post.PostService;
+import com.aloute.dto.post.PostView;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.TestMedia;
-import com.aloute.user.User;
-import com.aloute.user.UserStatus;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.UserStatus;
+import com.aloute.model.user.Visibility;
 import jakarta.persistence.EntityManagerFactory;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
@@ -37,9 +40,9 @@ class FeedIT extends IntegrationTest {
     @Autowired PostRepository postRepository;
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManagerFactory entityManagerFactory;
-    @Autowired com.aloute.reaction.ReactionService reactionService;
-    @Autowired com.aloute.comment.CommentService commentService;
-    @Autowired com.aloute.social.FriendService friendService;
+    @Autowired com.aloute.service.reaction.ReactionService reactionService;
+    @Autowired com.aloute.service.comment.CommentService commentService;
+    @Autowired com.aloute.service.social.FriendService friendService;
 
     /** Tạo bài rồi đặt created_at cách đều nhau (bài đầu tiên cũ nhất) để thứ tự không phụ thuộc đồng hồ. */
     private List<Post> createSpaced(User author, int count, Visibility visibility) {
@@ -233,14 +236,14 @@ class FeedIT extends IntegrationTest {
         User author = createUser();
         Post post = postService.create(author.getId(), "bài gốc", Visibility.PUBLIC, List.of(), null);
         User reactor = createUser();
-        reactionService.toggle(reactor.getId(), post.getId(), com.aloute.reaction.ReactionType.FIRE);
+        reactionService.toggle(reactor.getId(), post.getId(), com.aloute.model.reaction.ReactionType.FIRE);
         commentService.create(createUser().getId(), post.getId(), null, "bình luận đầu");
         Post share = postService.share(createUser().getId(), post.getId(), "chia sẻ lại nè");
 
         PostView original = feed.byAuthor(author.getId(), reactor.getId(), null).posts().get(0);
 
         assertThat(original.reactions().total()).isEqualTo(1);
-        assertThat(original.reactions().mine()).isEqualTo(com.aloute.reaction.ReactionType.FIRE);
+        assertThat(original.reactions().mine()).isEqualTo(com.aloute.model.reaction.ReactionType.FIRE);
         assertThat(original.commentCount()).isEqualTo(1);
         assertThat(original.shareCount()).isEqualTo(1);
         assertThat(share).isNotNull();

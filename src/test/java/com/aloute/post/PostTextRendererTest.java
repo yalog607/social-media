@@ -1,5 +1,7 @@
 package com.aloute.post;
 
+import com.aloute.util.post.PostTextRenderer;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
