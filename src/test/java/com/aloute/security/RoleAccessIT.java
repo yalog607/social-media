@@ -1,8 +1,8 @@
 package com.aloute.security;
 
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.Role;
-import com.aloute.user.User;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -112,7 +112,7 @@ class RoleAccessIT extends IntegrationTest {
     void suspendedUserWithStillValidTokenIsSignedOutOnNextRequest() throws Exception {
         User user = createUser();
         String refresh = refreshTokens.issue(user, "test");
-        user.setStatus(com.aloute.user.UserStatus.SUSPENDED);
+        user.setStatus(com.aloute.model.user.UserStatus.SUSPENDED);
         users.saveAndFlush(user);
 
         // Access token còn hạn tối đa 15 phút nhưng tài khoản đã bị khóa: phiên bị thu hồi, không lỗi 500

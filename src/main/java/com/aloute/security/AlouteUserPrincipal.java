@@ -1,7 +1,7 @@
 package com.aloute.security;
 
-import com.aloute.user.Role;
-import com.aloute.user.User;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
 
 import java.security.Principal;
 import java.util.Set;

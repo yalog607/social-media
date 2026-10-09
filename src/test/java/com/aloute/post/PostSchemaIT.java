@@ -1,9 +1,14 @@
 package com.aloute.post;
 
-import com.aloute.media.MediaKind;
+import com.aloute.model.post.Post;
+import com.aloute.model.post.PostMedia;
+import com.aloute.repository.post.PostMediaRepository;
+import com.aloute.repository.post.PostRepository;
+
+import com.aloute.model.media.MediaKind;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;

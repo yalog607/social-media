@@ -1,15 +1,15 @@
 package com.aloute.mention;
 
-import com.aloute.comment.CommentService;
-import com.aloute.notification.NotificationService;
-import com.aloute.post.Mentions;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
-import com.aloute.post.PostTextRenderer;
-import com.aloute.social.BlockService;
+import com.aloute.service.comment.CommentService;
+import com.aloute.service.notification.NotificationService;
+import com.aloute.util.post.Mentions;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.util.post.PostTextRenderer;
+import com.aloute.service.social.BlockService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

@@ -2,7 +2,7 @@ package com.aloute.auth;
 
 import com.aloute.security.CookieService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
@@ -160,7 +160,7 @@ class AuthFlowIT extends IntegrationTest {
     @Test
     void suspendedAccountCannotLogInAfterCorrectPassword() throws Exception {
         User user = createUser();
-        user.setStatus(com.aloute.user.UserStatus.SUSPENDED);
+        user.setStatus(com.aloute.model.user.UserStatus.SUSPENDED);
         users.saveAndFlush(user);
 
         MvcResult result = login(user.getEmail(), PASSWORD, uniqueIp());

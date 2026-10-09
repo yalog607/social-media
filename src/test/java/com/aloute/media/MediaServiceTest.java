@@ -1,7 +1,12 @@
 package com.aloute.media;
 
+import com.aloute.exception.media.InvalidMediaException;
+import com.aloute.model.media.MediaKind;
+import com.aloute.service.media.MediaService;
+import com.aloute.util.media.MediaLimits;
+
 import com.aloute.config.AlouteProperties;
-import com.aloute.storage.LocalStorageService;
+import com.aloute.service.storage.LocalStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

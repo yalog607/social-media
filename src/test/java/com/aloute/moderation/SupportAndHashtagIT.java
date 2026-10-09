@@ -1,13 +1,18 @@
 package com.aloute.moderation;
 
-import com.aloute.common.RateLimitExceededException;
-import com.aloute.post.InvalidPostException;
-import com.aloute.post.PostService;
-import com.aloute.search.SearchService;
+import com.aloute.exception.moderation.InvalidModerationException;
+import com.aloute.service.moderation.BannedHashtags;
+import com.aloute.service.moderation.ManageStats;
+import com.aloute.service.moderation.SupportService;
+
+import com.aloute.exception.common.RateLimitExceededException;
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.service.post.PostService;
+import com.aloute.service.search.SearchService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,7 +36,7 @@ class SupportAndHashtagIT extends IntegrationTest {
     @Autowired PostService posts;
     @Autowired SearchService search;
     @Autowired ManageStats stats;
-    @Autowired com.aloute.notification.NotificationService notifications;
+    @Autowired com.aloute.service.notification.NotificationService notifications;
 
     @Test
     void ticketIsAnsweredOnceAndTheUserSeesTheReply() {

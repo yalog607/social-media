@@ -1,5 +1,7 @@
 package com.aloute.storage;
 
+import com.aloute.service.storage.LocalStorageService;
+
 import com.aloute.config.AlouteProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

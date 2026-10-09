@@ -1,5 +1,9 @@
 package com.aloute.storage;
 
+import com.aloute.service.storage.CloudinaryStorageService;
+import com.aloute.service.storage.LocalStorageService;
+import com.aloute.service.storage.StorageService;
+
 import com.aloute.config.AlouteProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

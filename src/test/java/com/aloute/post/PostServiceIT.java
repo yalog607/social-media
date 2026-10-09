@@ -1,14 +1,21 @@
 package com.aloute.post;
 
-import com.aloute.common.RateAction;
-import com.aloute.common.RateLimitExceededException;
-import com.aloute.media.InvalidMediaException;
-import com.aloute.media.MediaKind;
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.model.post.Post;
+import com.aloute.model.post.PostMedia;
+import com.aloute.repository.post.PostRepository;
+import com.aloute.service.post.PostService;
+
+import com.aloute.model.common.RateAction;
+import com.aloute.exception.common.RateLimitExceededException;
+import com.aloute.exception.media.InvalidMediaException;
+import com.aloute.model.media.MediaKind;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.TestMedia;
-import com.aloute.user.User;
-import com.aloute.user.UserStatus;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.UserStatus;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -26,7 +33,7 @@ class PostServiceIT extends IntegrationTest {
     @Autowired PostService service;
     @Autowired PostRepository posts;
     @Autowired TransactionTemplate tx;
-    @Autowired com.aloute.social.FriendService friendService;
+    @Autowired com.aloute.service.social.FriendService friendService;
 
     private Post reload(UUID id) {
         return posts.findById(id).orElseThrow();

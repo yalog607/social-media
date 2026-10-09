@@ -1,7 +1,12 @@
 package com.aloute.social;
 
+import com.aloute.exception.social.SocialActionException;
+import com.aloute.model.social.FriendState;
+import com.aloute.service.social.BlockService;
+import com.aloute.service.social.FriendService;
+
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

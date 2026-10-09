@@ -1,8 +1,8 @@
 package com.aloute.security;
 
 import com.aloute.config.AlouteProperties;
-import com.aloute.user.User;
-import com.aloute.user.UserRepository;
+import com.aloute.model.user.User;
+import com.aloute.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,5 +1,7 @@
 package com.aloute.feed;
 
+import com.aloute.dto.feed.Cursor;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
