@@ -2,6 +2,7 @@ package com.aloute.feed;
 
 import com.aloute.post.Post;
 import com.aloute.post.PostRepository;
+import com.aloute.post.PostView;
 import com.aloute.post.PostViewAssembler;
 import com.aloute.user.Visibility;
 import org.springframework.data.domain.PageRequest;
@@ -48,6 +49,14 @@ public class FeedService {
         Set<Visibility> visible = authorId.equals(viewerId) ? ALL : PUBLIC_ONLY;
         List<Post> rows = posts.byAuthor(authorId, visible, viewerId, from.createdAt(), from.id(), PageRequest.of(0, PAGE_SIZE + 1));
         return toPage(rows, viewerId);
+    }
+
+    /** Danh sách bài đã ghim của tác giả (tối đa 3 bài) */
+    @Transactional(readOnly = true)
+    public List<PostView> pinnedByAuthor(UUID authorId, UUID viewerId) {
+        Set<Visibility> visible = authorId.equals(viewerId) ? ALL : PUBLIC_ONLY;
+        List<Post> rows = posts.findPinnedByAuthor(authorId, visible, viewerId);
+        return assembler.assemble(rows, viewerId);
     }
 
     /** Bài công khai gắn thẻ {@code tag} (đã ở dạng chuẩn hóa), mới nhất trước. */

@@ -43,6 +43,12 @@ public class Message {
     @Column(length = MAX_CONTENT_LENGTH)
     private String content;
 
+    @Column(nullable = false)
+    private boolean pinned = false;
+
+    @Column(name = "is_system", nullable = false)
+    private boolean isSystem = false;
+
     @OneToOne(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private MessageAttachment attachment;
 

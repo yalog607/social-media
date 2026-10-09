@@ -171,10 +171,10 @@ class ChatServiceIT extends IntegrationTest {
         Conversation group = chats.createGroup(owner.getId(), "Nhóm", List.of(friend.getId()));
         Conversation direct = chats.startDirect(owner.getId(), friend.getId());
 
-        chats.leave(friend.getId(), group.getId());
+        chats.leave(friend.getId(), group.getId(), null);
         assertThat(chats.isMember(friend.getId(), group.getId())).isFalse();
 
-        assertThatThrownBy(() -> chats.leave(owner.getId(), direct.getId())).isInstanceOf(ChatActionException.class);
+        assertThatThrownBy(() -> chats.leave(owner.getId(), direct.getId(), null)).isInstanceOf(ChatActionException.class);
     }
 
     @Test

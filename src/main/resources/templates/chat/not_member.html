@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Tin nhắn', ~{::main}, 'messages', ~{})}">
+<head><title>Tin nhắn</title></head>
+<body>
+<main>
+    <section class="note note--sky empty" style="margin-top: 100px;">
+        <h2 class="h3">Không thể truy cập</h2>
+        <p>Bạn không còn là thành viên của cuộc trò chuyện này, hoặc cuộc trò chuyện đã bị xóa.</p>
+        <a th:href="@{/messages}" class="btn-al btn-al--ink mt-3">Quay lại tin nhắn</a>
+    </section>
+</main>
+</body>
+</html>

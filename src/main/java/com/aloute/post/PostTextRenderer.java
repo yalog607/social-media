@@ -18,6 +18,10 @@ public final class PostTextRenderer {
     }
 
     public static String toSafeHtml(String text) {
+        return toSafeHtml(text, null);
+    }
+
+    public static String toSafeHtml(String text, java.util.function.Function<String, String> mentionResolver) {
         if (text == null || text.isEmpty()) {
             return "";
         }
@@ -43,11 +47,28 @@ public final class PostTextRenderer {
                 mention.appendReplacement(withMentions, Matcher.quoteReplacement(mention.group()));
                 continue;
             }
+            String displayMention = "@" + name;
+            if (mentionResolver != null) {
+                String resolved = mentionResolver.apply(name.toLowerCase(java.util.Locale.ROOT));
+                if (resolved != null) {
+                    displayMention = resolved;
+                }
+            }
             mention.appendReplacement(withMentions, Matcher.quoteReplacement(
-                    "<a class=\"mention\" href=\"/u/" + name.toLowerCase(java.util.Locale.ROOT) + "\">@" + name + "</a>" + dots));
+                    "<a class=\"mention\" href=\"/u/" + name.toLowerCase(java.util.Locale.ROOT) + "\">" + displayMention + "</a>" + dots));
         }
         mention.appendTail(withMentions);
 
-        return withMentions.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
+        // Link nhận diện: https?://...
+        Matcher url = java.util.regex.Pattern.compile("https?://(?:[^\\s&]|&amp;)+").matcher(withMentions);
+        StringBuilder withUrls = new StringBuilder(withMentions.length() + 32);
+        while (url.find()) {
+            String href = url.group();
+            String linkHtml = "<a class=\"text-link\" href=\"" + href + "\" target=\"_blank\" rel=\"noopener\">" + href + "</a>";
+            url.appendReplacement(withUrls, Matcher.quoteReplacement(linkHtml));
+        }
+        url.appendTail(withUrls);
+
+        return withUrls.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
     }
 }

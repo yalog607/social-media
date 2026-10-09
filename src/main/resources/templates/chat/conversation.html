@@ -14,91 +14,23 @@
             <h1 th:text="${header.title}">Tên</h1>
             <p class="streak" th:if="${streak.active()}" th:classappend="${streak.atRisk()} ? 'streak--risk'"
                th:title="${streak.atRisk()} ? 'Hôm nay hai bạn chưa cùng nhắn, hãy nhắn để giữ chuỗi!' : 'Hai bạn đã nhắn nhau mỗi ngày liên tiếp'">
-                🔥 <strong th:text="${streak.days()}">3</strong> ngày<span th:if="${streak.atRisk()}"> · nhắn hôm nay để giữ chuỗi!</span>
+                <span class="icon-flame d-inline-block">🔥</span> <strong th:text="${streak.days()}">3</strong> ngày<span th:if="${streak.atRisk()}"> · nhắn hôm nay để giữ chuỗi!</span>
             </p>
             <p class="text-soft mb-0" th:if="${header.group}" th:text="${#lists.size(members)} + ' thành viên'">3 thành viên</p>
         </div>
         <div class="chat-header-actions">
             <a class="btn-al btn-al--white btn-al--sm" th:href="@{/messages}">← Tất cả tin nhắn</a>
-            <form method="post" th:if="${header.group}" th:action="@{/messages/{id}/leave(id=${conversation.id})}">
-                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                <button type="submit" class="btn-al btn-al--white btn-al--sm">Rời nhóm</button>
-            </form>
+            <button th:if="${header.group}" type="button" class="btn-al btn-al--white btn-al--sm" data-bs-toggle="offcanvas" data-bs-target="#chatSettingsOffcanvas">⚙️ Cài đặt nhóm</button>
         </div>
     </div>
-
-    <section class="mb-3" aria-label="Cài đặt hội thoại">
-        <details class="chat-settings">
-            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer"
-                     th:text="${header.group} ? 'Thành viên & cài đặt nhóm' : 'Biệt danh'">Cài đặt</summary>
-            <div class="mt-3">
-                <div class="chat-group-forms" th:if="${canManage}">
-                    <form method="post" th:action="@{/messages/{id}/title(id=${conversation.id})}" class="chat-new-form">
-                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                        <input class="input-al" name="title" required maxlength="100" th:value="${header.title}" aria-label="Tên nhóm">
-                        <button type="submit" class="btn-al btn-al--pink btn-al--sm">Đổi tên nhóm</button>
-                    </form>
-                    <form method="post" enctype="multipart/form-data" th:action="@{/messages/{id}/avatar(id=${conversation.id})}" class="chat-new-form">
-                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                        <input class="input-al" type="file" name="avatar" required accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Ảnh nhóm">
-                        <button type="submit" class="btn-al btn-al--sky btn-al--sm">Đổi ảnh nhóm</button>
-                    </form>
-                </div>
-
-                <ul class="list-unstyled chat-members">
-                    <li class="chat-member" th:each="m : ${memberViews}">
-                        <div class="chat-member-head">
-                            <span th:replace="~{fragments/ui :: avatar(${m}, 'avatar--sm')}"></span>
-                            <span>
-                                <strong th:text="${m.shownName()}">Tên</strong>
-                                <span class="text-soft small" th:if="${m.nickname != null}" th:text="'(' + ${m.displayName} + ')'">(tên thật)</span>
-                                <span class="role-chip" th:if="${header.group}" th:text="${m.role.label()}">Thành viên</span>
-                            </span>
-                        </div>
-                        <div class="chat-member-actions">
-                            <form method="post" class="d-flex gap-1"
-                                  th:if="${!header.group or m.id == me.id or (canManage and myRole.outranks(m.role))}"
-                                  th:action="@{/messages/{id}/members/{uid}/nickname(id=${conversation.id}, uid=${m.id})}">
-                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                <input class="input-al input-al--sm" name="nickname" th:maxlength="${maxNickname}" th:value="${m.nickname}"
-                                       placeholder="Biệt danh" th:attr="aria-label='Biệt danh của ' + ${m.displayName}">
-                                <button type="submit" class="btn-al btn-al--white btn-al--sm">Lưu</button>
-                            </form>
-                            <th:block th:if="${isOwner and m.id != me.id}">
-                                <form method="post" th:action="@{/messages/{id}/members/{uid}/role(id=${conversation.id}, uid=${m.id})}">
-                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                    <input type="hidden" name="role" th:value="${m.role.name() == 'ADMIN'} ? 'MEMBER' : 'ADMIN'">
-                                    <button type="submit" class="btn-al btn-al--white btn-al--sm"
-                                            th:text="${m.role.name() == 'ADMIN'} ? 'Gỡ quản trị viên' : 'Làm quản trị viên'">Quản trị viên</button>
-                                </form>
-                                <form method="post" th:action="@{/messages/{id}/members/{uid}/owner(id=${conversation.id}, uid=${m.id})}"
-                                      onsubmit="return confirm('Nhường quyền chủ nhóm cho người này? Bạn sẽ trở thành quản trị viên.')">
-                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Nhường chủ nhóm</button>
-                                </form>
-                            </th:block>
-                            <form method="post" th:if="${header.group and canManage and m.id != me.id and myRole.outranks(m.role)}"
-                                  th:action="@{/messages/{id}/members/{uid}/remove(id=${conversation.id}, uid=${m.id})}"
-                                  onsubmit="return confirm('Xóa người này khỏi nhóm?')">
-                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                <button type="submit" class="btn-al btn-al--ink btn-al--sm">Xóa khỏi nhóm</button>
-                            </form>
-                        </div>
-                    </li>
-                </ul>
-
-                <form method="post" th:if="${canManage and !#lists.isEmpty(friendsNotInGroup)}" th:action="@{/messages/{id}/members(id=${conversation.id})}"
-                      class="chat-new-form">
-                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                    <select class="input-al" name="memberId" required data-custom-select>
-                        <option value="" disabled selected>Thêm bạn bè vào nhóm...</option>
-                        <option th:each="f : ${friendsNotInGroup}" th:value="${f.id}" th:text="${f.displayName}">Tên</option>
-                    </select>
-                    <button type="submit" class="btn-al btn-al--pink btn-al--sm">Thêm</button>
-                </form>
-            </div>
-        </details>
-    </section>
+    
+    <div class="mb-3 d-flex align-items-center justify-content-between p-2" style="background-color: var(--white); border: 1px solid var(--line); border-radius: 8px;" th:if="${header.group and !#lists.isEmpty(pinnedMessages)}">
+        <div class="d-flex align-items-center gap-2 overflow-hidden" style="cursor: pointer;" th:attr="onclick='scrollToMessage(\'' + ${pinnedMessages[0].id} + '\')'">
+            <span>📌</span>
+            <span class="text-truncate text-soft small" style="max-width: 300px;" th:text="${pinnedMessages[0].contentHtml != null ? pinnedMessages[0].contentHtml.replaceAll('<[^>]*>', '') : 'Tin nhắn đính kèm'}">Nội dung ghim</span>
+        </div>
+        <button type="button" class="btn-al btn-al--white btn-al--sm" data-bs-toggle="modal" data-bs-target="#pinnedMessagesModal">Tất cả</button>
+    </div>
 
     <div class="chat-window" id="chat-window">
         <th:block th:replace="~{chat/messages :: list}"></th:block>
@@ -121,10 +53,498 @@
             <svg aria-hidden="true"><use href="#i-send"/></svg>
         </button>
     </form>
+
+    <div class="modal fade" id="leaveGroupModal" tabindex="-1" aria-hidden="true" th:if="${header.group}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note" method="post" th:action="@{/messages/{id}/leave(id=${conversation.id})}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <h2 class="h4 mb-3">Rời nhóm</h2>
+                <div class="field mb-3" th:if="${isOwner and #lists.size(members) > 1}">
+                    <label for="nextOwnerId">Bạn là chủ nhóm. Vui lòng chọn người thay thế:</label>
+                    <select id="nextOwnerId" name="nextOwnerId" required class="input-al mt-1">
+                        <option value="" disabled selected>-- Chọn chủ nhóm mới --</option>
+                        <option th:each="m : ${members}" th:if="${m.id != me.id}" th:value="${m.id}" th:text="${m.displayName}">Tên</option>
+                    </select>
+                </div>
+                <p th:unless="${isOwner and #lists.size(members) > 1}">Bạn có chắc chắn muốn rời khỏi nhóm này không?</p>
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--ink">Xác nhận rời</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Pinned Messages Modal -->
+    <div class="modal fade" id="pinnedMessagesModal" tabindex="-1" aria-hidden="true" th:if="${header.group}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content note">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h4 mb-0">Tin nhắn đã ghim</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-soft" th:if="${#lists.isEmpty(pinnedMessages)}">Chưa có tin nhắn nào được ghim trong nhóm này.</p>
+                    <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(pinnedMessages)}">
+                        <div class="d-flex align-items-start gap-3 py-2 border-bottom" th:each="m : ${pinnedMessages}">
+                            <span th:replace="~{fragments/ui :: avatar(${m.sender}, 'avatar--sm')}"></span>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small text-muted" th:text="${m.sender.displayName} + (${m.sender.primaryRole.name() == 'ADMIN'} ? ' [ADMIN]' : '')">Người gửi</span>
+                                    <span class="small text-muted" th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">thời gian</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <div class="bubble bubble--in" style="background-color: var(--c-surface)">
+                                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                                           th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                                            <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
+                                        </a>
+                                        <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                                               class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
+                                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="btn-al btn-al--white rounded-pill d-inline-block mt-1"
+                                           th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener" style="color: var(--ink); border: 2px solid var(--ink); padding: 0.5rem 1rem; font-weight: bold; background: white;">file.pdf</a>
+                                        <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn-link text-decoration-none p-0 text-soft small border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: bold; font-size: 1.2rem; line-height: 1;">⋯</button>
+                                        <ul class="dropdown-menu shadow-sm" style="min-width: 150px; padding: .5rem; border-radius: 12px; border: 1px solid var(--line);">
+                                            <li><button class="dropdown-item" type="button" th:attr="onclick='scrollToMessage(\'' + ${m.id} + '\')'" data-bs-dismiss="modal">Xem trong đoạn chat</button></li>
+                                            <li th:if="${canManage}">
+                                                <form method="post" th:action="@{/messages/{id}/pins/{mid}(id=${conversation.id}, mid=${m.id})}">
+                                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                                    <input type="hidden" name="pin" value="false">
+                                                    <button class="dropdown-item" type="submit">Bỏ ghim</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Disband Group Modal -->
+    <div class="modal fade" id="disbandGroupModal" tabindex="-1" aria-hidden="true" th:if="${header.group and isOwner}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="post" th:action="@{/messages/{id}/disband(id=${conversation.id})}" class="modal-content note">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h4 mb-0 text-danger">Giải tán nhóm</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn giải tán nhóm này không? Toàn bộ lịch sử tin nhắn sẽ bị xóa và không thể khôi phục.</p>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Xác nhận giải tán</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Media Messages Modal -->
+    <div class="modal fade" id="mediaMessagesModal" tabindex="-1" aria-hidden="true" th:if="${header.group}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content note">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h4 mb-0">File phương tiện và liên kết</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs border-bottom mb-3" role="tablist">
+                        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabMedia">Ảnh & Video</button></li>
+                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabFiles">File</button></li>
+                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabLinks">Liên kết</button></li>
+                    </ul>
+                    <div class="tab-content">
+                        <!-- Tab Ảnh & Video -->
+                        <div class="tab-pane fade show active" id="tabMedia" role="tabpanel">
+                            <div class="d-flex flex-wrap gap-2" th:unless="${#lists.isEmpty(mediaMessages)}">
+                                <th:block th:each="m : ${mediaMessages}">
+                                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                                       th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                                        <img th:src="${m.attachment.url}" alt="Ảnh" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                    </a>
+                                    <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                                           th:src="${m.attachment.url}" controls style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;"></video>
+                                </th:block>
+                            </div>
+                        </div>
+                        <!-- Tab File -->
+                        <div class="tab-pane fade" id="tabFiles" role="tabpanel">
+                            <div class="d-flex flex-column gap-2">
+                                <th:block th:each="m : ${mediaMessages}">
+                                    <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" 
+                                       class="btn-al btn-al--white rounded-pill d-inline-block mt-1 text-center" style="color: var(--ink); border: 2px solid var(--ink); padding: 0.5rem 1rem; font-weight: bold; background: white;"
+                                       th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener">file.pdf</a>
+                                </th:block>
+                            </div>
+                        </div>
+                        <!-- Tab Liên kết -->
+                        <div class="tab-pane fade" id="tabLinks" role="tabpanel">
+                            <div class="d-flex flex-column gap-3">
+                                <p class="text-soft" th:if="${#lists.isEmpty(linkMessages)}">Chưa có liên kết nào.</p>
+                                <div class="msg is-mine" style="max-width: 100%; cursor: pointer;" th:each="m : ${linkMessages}" th:attr="onclick='scrollToMessage(\'' + ${m.id} + '\')'" data-bs-dismiss="modal">
+                                    <div class="msg-body" style="align-items: flex-start">
+                                        <span class="msg-sender"><strong th:text="${m.sender.displayName}">Người gửi</strong></span>
+                                        <span class="bubble bubble--in" style="background-color: var(--c-surface)">
+                                            <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Messages Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="searchMessagesOffcanvas" aria-labelledby="searchMessagesOffcanvasLabel" style="width: 400px; max-width: 100vw; background-color: var(--white)" th:if="${header.group}">
+        <div class="offcanvas-header border-bottom flex-column align-items-start gap-2">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <h5 class="offcanvas-title h5 mb-0" id="searchMessagesOffcanvasLabel">Tìm kiếm tin nhắn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
+            </div>
+            <form id="searchMessagesForm" class="d-flex gap-2 w-100 mt-2" data-no-lock>
+                <input type="text" id="searchChatKeyword" class="input-al flex-grow-1" placeholder="Nhập từ khóa cần tìm...">
+                <button type="submit" class="btn-al btn-al--pink btn-al--sm">Tìm</button>
+            </form>
+        </div>
+        <div class="offcanvas-body" id="searchMessagesResults">
+            <p class="text-soft">Gõ từ khóa và bấm Tìm để xem kết quả.</p>
+        </div>
+    </div>
+
+    <!-- Image Zoom Modal -->
+    <div class="modal fade" id="imageZoomModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0 pb-0 justify-content-end">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body text-center p-0">
+                    <img th:if="${header.avatarUrl != null}" th:src="${header.avatarUrl}" alt="Ảnh nhóm" style="max-width: 100%; max-height: 80vh; border-radius: 8px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Settings Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="chatSettingsOffcanvas" aria-labelledby="chatSettingsOffcanvasLabel" style="width: 400px; max-width: 100vw; background-color: var(--white)">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title h5 mb-0" id="chatSettingsOffcanvasLabel">Cài đặt nhóm</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Đóng"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="accordion" id="chatSettingsAccordion">
+            
+            <!-- Tùy chỉnh đoạn chat -->
+            <div class="accordion-item" th:if="${canManage}">
+                <h2 class="accordion-header" id="headingCustomize">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCustomize" aria-expanded="false" aria-controls="collapseCustomize">
+                        Tùy chỉnh nhóm
+                    </button>
+                </h2>
+                <div id="collapseCustomize" class="accordion-collapse collapse" aria-labelledby="headingCustomize" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body">
+                        <div class="d-flex justify-content-center mb-3">
+                            <img id="avatarPreview" th:if="${header.avatarUrl != null}" th:src="${header.avatarUrl}" alt="Ảnh nhóm" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; cursor: pointer;" data-bs-toggle="modal" data-bs-target="#imageZoomModal">
+                            <img id="avatarPreview" th:unless="${header.avatarUrl != null}" src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20fill%3D%22%23eee%22%2F%3E%3C%2Fsvg%3E" alt="Chưa có ảnh" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+                        </div>
+                        <div class="chat-group-forms">
+                            <form method="post" th:action="@{/messages/{id}/title(id=${conversation.id})}" class="chat-new-form">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <input class="input-al" name="title" required maxlength="100" th:value="${header.title}" aria-label="Tên nhóm">
+                                <button type="submit" class="btn-al btn-al--pink btn-al--sm">Đổi tên</button>
+                            </form>
+                            <form method="post" enctype="multipart/form-data" th:action="@{/messages/{id}/avatar(id=${conversation.id})}" class="chat-new-form">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <input class="input-al" type="file" id="groupAvatarInput" name="avatar" required accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Ảnh nhóm" onchange="if(this.files[0]) document.getElementById('avatarPreview').src = window.URL.createObjectURL(this.files[0])">
+                                <button type="submit" class="btn-al btn-al--sky btn-al--sm">Cập nhật ảnh</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yêu cầu chờ duyệt -->
+            <div class="accordion-item" th:if="${pendingRequests != null and !#lists.isEmpty(pendingRequests)}">
+                <h2 class="accordion-header" id="headingRequests">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRequests" aria-expanded="true" aria-controls="collapseRequests">
+                        Yêu cầu duyệt thành viên
+                        <span class="badge rounded-pill bg-danger ms-2" th:text="${#lists.size(pendingRequests)}">1</span>
+                    </button>
+                </h2>
+                <div id="collapseRequests" class="accordion-collapse collapse show" aria-labelledby="headingRequests" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+                            <li class="d-flex align-items-center justify-content-between" th:each="r : ${pendingRequests}">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span th:replace="~{fragments/ui :: avatar(${r.user.profile}, 'avatar--sm')}"></span>
+                                    <div>
+                                        <div class="fw-medium text-ink" th:text="${r.user.profile.displayName}">Người chờ</div>
+                                        <div class="small text-soft" th:text="'Được thêm bởi ' + ${r.inviter.profile.displayName}">Người mời</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <form method="post" th:action="@{/messages/{id}/requests/{uid}/reject(id=${conversation.id}, uid=${r.user.id})}">
+                                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                        <button type="submit" class="btn-al btn-al--white btn-al--sm text-danger" title="Từ chối">X</button>
+                                    </form>
+                                    <form method="post" th:action="@{/messages/{id}/requests/{uid}/approve(id=${conversation.id}, uid=${r.user.id})}">
+                                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                        <button type="submit" class="btn-al btn-al--ink btn-al--sm" title="Đồng ý">Duyệt</button>
+                                    </form>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thành viên trong đoạn chat -->
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingMembers">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMembers" aria-expanded="false" aria-controls="collapseMembers" th:text="${header.group} ? 'Thành viên & quyền' : 'Biệt danh'">
+                        Thành viên & quyền
+                    </button>
+                </h2>
+                <div id="collapseMembers" class="accordion-collapse collapse" aria-labelledby="headingMembers" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body">
+                        <ul class="list-unstyled chat-members mb-0">
+                            <li class="chat-member" th:each="m : ${memberViews}">
+                                <div class="chat-member-head">
+                                    <span th:replace="~{fragments/ui :: avatar(${m}, 'avatar--sm')}"></span>
+                                    <span>
+                                        <strong th:text="${m.shownName()}">Tên</strong>
+                                        <span class="text-soft small" th:if="${m.nickname != null}" th:text="'(' + ${m.displayName} + ')'">(tên thật)</span>
+                                        <span class="role-chip" th:if="${header.group}" th:text="${m.role.label()}">Thành viên</span>
+                                    </span>
+                                </div>
+                                <div class="chat-member-actions dropdown" th:if="${!header.group or m.id == me.id or conversation.allowAnyoneChangeNickname or (canManage and myRole.outranks(m.role))}">
+                                    <button class="btn-link text-decoration-none p-0 text-soft small border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: bold; font-size: 1rem; line-height: 1;">
+                                        ⋯
+                                    </button>
+                                    <ul class="dropdown-menu shadow-sm" style="min-width: 220px; padding: .5rem; border-radius: 12px; border: 1px solid var(--line);">
+                                        <li>
+                                            <form method="post" class="d-flex gap-1 mb-2"
+                                                  th:action="@{/messages/{id}/members/{uid}/nickname(id=${conversation.id}, uid=${m.id})}">
+                                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                                <input class="input-al input-al--sm" name="nickname" th:maxlength="${maxNickname}" th:value="${m.nickname}"
+                                                       placeholder="Biệt danh" th:attr="aria-label='Biệt danh của ' + ${m.displayName}">
+                                                <button type="submit" class="btn-al btn-al--white btn-al--sm">Lưu</button>
+                                            </form>
+                                        </li>
+                                        <th:block th:if="${isOwner and m.id != me.id}">
+                                            <li>
+                                                <form method="post" th:action="@{/messages/{id}/members/{uid}/role(id=${conversation.id}, uid=${m.id})}">
+                                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                                    <input type="hidden" name="role" th:value="${m.role.name() == 'ADMIN'} ? 'MEMBER' : 'ADMIN'">
+                                                    <button type="submit" class="dropdown-item"
+                                                            th:text="${m.role.name() == 'ADMIN'} ? 'Gỡ quản trị viên' : 'Làm quản trị viên'">Quản trị viên</button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="post" th:action="@{/messages/{id}/members/{uid}/owner(id=${conversation.id}, uid=${m.id})}"
+                                                      onsubmit="return confirm('Nhường quyền chủ nhóm cho người này? Bạn sẽ trở thành quản trị viên.')">
+                                                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                                    <button type="submit" class="dropdown-item">Nhường chủ nhóm</button>
+                                                </form>
+                                            </li>
+                                        </th:block>
+                                        <li th:if="${header.group and canManage and m.id != me.id and myRole.outranks(m.role)}">
+                                            <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" th:data-bs-target="'#removeMemberModal-' + ${m.id}">Xóa khỏi nhóm</button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                        <form method="post" th:action="@{/messages/{id}/members(id=${conversation.id})}"
+                              class="chat-new-form mt-3">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <select class="input-al" name="memberId" required data-custom-select th:disabled="${#lists.isEmpty(friendsNotInGroup)}">
+                                <option value="" disabled selected th:text="${#lists.isEmpty(friendsNotInGroup)} ? 'Bạn không có bạn bè nào để thêm' : 'Thêm bạn bè vào nhóm...'">Thêm bạn bè vào nhóm...</option>
+                                <option th:each="f : ${friendsNotInGroup}" th:value="${f.id}" th:text="${f.displayName}">Tên</option>
+                            </select>
+                            <button type="submit" class="btn-al btn-al--pink btn-al--sm" th:disabled="${#lists.isEmpty(friendsNotInGroup)}">Thêm</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File phương tiện, file và liên kết -->
+            <div class="accordion-item" th:if="${header.group}">
+                <h2 class="accordion-header" id="headingMedia">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMedia" aria-expanded="false" aria-controls="collapseMedia">
+                        File phương tiện, tin ghim
+                    </button>
+                </h2>
+                <div id="collapseMedia" class="accordion-collapse collapse" aria-labelledby="headingMedia" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body d-flex flex-column gap-2">
+                        <button type="button" class="btn-al btn-al--white text-start" data-bs-toggle="modal" data-bs-target="#mediaMessagesModal">Xem file phương tiện và file</button>
+                        <button type="button" class="btn-al btn-al--white text-start" data-bs-toggle="modal" data-bs-target="#pinnedMessagesModal">Xem tin nhắn đã ghim</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tìm kiếm tin nhắn -->
+            <div class="accordion-item" th:if="${header.group}">
+                <h2 class="accordion-header" id="headingPrivacy">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePrivacy" aria-expanded="false" aria-controls="collapsePrivacy">
+                        Tìm kiếm tin nhắn
+                    </button>
+                </h2>
+                <div id="collapsePrivacy" class="accordion-collapse collapse" aria-labelledby="headingPrivacy" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body d-flex flex-column gap-2">
+                        <button type="button" class="btn-al btn-al--white text-start" data-bs-toggle="offcanvas" data-bs-target="#searchMessagesOffcanvas">Tìm kiếm trong đoạn chat</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quản trị viên -->
+            <div class="accordion-item" th:if="${canManage}">
+                <h2 class="accordion-header" id="headingAdmin">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdmin" aria-expanded="false" aria-controls="collapseAdmin">
+                        Quản trị nhóm
+                    </button>
+                </h2>
+                <div id="collapseAdmin" class="accordion-collapse collapse" aria-labelledby="headingAdmin" data-bs-parent="#chatSettingsAccordion">
+                    <div class="accordion-body d-flex flex-column gap-2">
+                        <form method="post" th:action="@{/messages/{id}/approval(id=${conversation.id})}" class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--c-surface); border: 1px solid var(--line);">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <span>Bật duyệt thành viên</span>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="require" value="true" th:checked="${conversation.approvalRequired}" onchange="this.form.submit()">
+                            </div>
+                        </form>
+                        <form method="post" th:action="@{/messages/{id}/nickname-permission(id=${conversation.id})}" class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--c-surface); border: 1px solid var(--line);">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <span>Ai cũng được đổi biệt danh</span>
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" name="allow" value="true" th:checked="${conversation.allowAnyoneChangeNickname}" onchange="this.form.submit()">
+                            </div>
+                        </form>
+                        <button type="button" th:if="${isOwner}" class="btn-al btn-al--ink text-start" data-bs-toggle="modal" data-bs-target="#disbandGroupModal">Giải tán nhóm</button>
+                    </div>
+                </div>
+            </div>
+            
+            </div>
+            
+            <div class="mt-4" th:if="${header.group}">
+                <button type="button" class="btn-al btn-al--white text-danger w-100" data-bs-toggle="modal" data-bs-target="#leaveGroupModal">Rời nhóm</button>
+            </div>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        function scrollToMessage(id) {
+            const el = document.getElementById('msg-' + id);
+            if (el) {
+                el.scrollIntoView({behavior: 'smooth', block: 'center'});
+                el.style.transition = 'background-color 0.5s';
+                const oldBg = el.style.backgroundColor;
+                el.style.backgroundColor = 'var(--c-surface)';
+                setTimeout(() => { el.style.backgroundColor = oldBg; }, 1500);
+            } else {
+                window.Aloute.toast('Tin nhắn ở quá xa, hãy tải thêm lịch sử để xem.', 'error');
+            }
+        }
+
+        function searchChatMessages(event) {
+            if (event) event.preventDefault();
+            const keyword = document.getElementById('searchChatKeyword').value;
+            const conversationId = /*[[${conversation.id}]]*/ 'id';
+            const resultsDiv = document.getElementById('searchMessagesResults');
+            const submitBtn = document.querySelector('#searchMessagesForm button[type="submit"]');
+            if (!keyword.trim()) return;
+            
+            if (submitBtn) submitBtn.disabled = true;
+            resultsDiv.innerHTML = '<p class="text-soft">Đang tìm kiếm...</p>';
+            window.Aloute.api(`/api/conversations/${conversationId}/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.text())
+                .then(html => {
+                    resultsDiv.innerHTML = html;
+                    if (submitBtn) submitBtn.disabled = false;
+                })
+                .catch(err => {
+                    resultsDiv.innerHTML = '<p class="text-danger">Có lỗi xảy ra khi tìm kiếm.</p>';
+                    if (submitBtn) submitBtn.disabled = false;
+                });
+        }
+
+        function editMessage(messageId) {
+            const conversationId = /*[[${conversation.id}]]*/ 'id';
+            const newContent = prompt('Nhập nội dung mới:');
+            if (newContent !== null && newContent.trim() !== '') {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.action = `/messages/${conversationId}/edit/${messageId}`;
+                
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_csrf';
+                csrfInput.value = window.Aloute.csrfToken();
+                form.appendChild(csrfInput);
+                
+                const contentInput = document.createElement('input');
+                contentInput.type = 'hidden';
+                contentInput.name = 'content';
+                contentInput.value = newContent;
+                form.appendChild(contentInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatNotice = /*[[${chatNotice}]]*/ null;
+            if (chatNotice) {
+                window.Aloute.toast(chatNotice, 'ok');
+            }
+            
+            const searchForm = document.getElementById('searchMessagesForm');
+            if (searchForm) {
+                searchForm.addEventListener('submit', searchChatMessages);
+            }
+        });
+    </script>
     <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
     <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
     <script th:src="@{/js/chat.js}"></script>
     <script th:src="@{/js/custom-select.js}"></script>
+
+    <th:block th:if="${header.group and canManage}">
+        <th:block th:each="m : ${memberViews}">
+            <div class="modal fade" th:id="'removeMemberModal-' + ${m.id}" tabindex="-1" aria-hidden="true" th:if="${m.id != me.id and myRole.outranks(m.role)}">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form method="post" th:action="@{/messages/{id}/members/{uid}/remove(id=${conversation.id}, uid=${m.id})}" class="modal-content note">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <div class="modal-header border-0 pb-0">
+                            <h2 class="h4 mb-0 text-danger">Xóa thành viên</h2>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p th:text="'Bạn có chắc chắn muốn xóa ' + ${m.displayName} + ' khỏi nhóm không?'"></p>
+                        </div>
+                        <div class="modal-footer border-0 pt-0 justify-content-end">
+                            <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn-al btn-al--pink">Xác nhận xóa</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </th:block>
+    </th:block>
 </main>
+
 </body>
 </html>
