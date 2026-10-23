@@ -1,8 +1,12 @@
 package com.aloute.user;
 
-import com.aloute.comment.CommentService;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
+
+import com.aloute.service.comment.CommentService;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
 import com.aloute.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

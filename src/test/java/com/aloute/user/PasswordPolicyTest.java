@@ -1,5 +1,7 @@
 package com.aloute.user;
 
+import com.aloute.util.user.PasswordPolicy;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -1,13 +1,13 @@
 package com.aloute.guestbook;
 
-import com.aloute.notification.NotificationService;
-import com.aloute.post.PostView.AuthorView;
-import com.aloute.social.BlockService;
-import com.aloute.social.FriendService;
-import com.aloute.social.SocialActionException;
-import com.aloute.user.Profile;
-import com.aloute.user.User;
-import com.aloute.user.UserRepository;
+import com.aloute.dto.post.PostView.AuthorView;
+import com.aloute.exception.social.SocialActionException;
+import com.aloute.model.user.Profile;
+import com.aloute.model.user.User;
+import com.aloute.repository.user.UserRepository;
+import com.aloute.service.notification.NotificationService;
+import com.aloute.service.social.BlockService;
+import com.aloute.service.social.FriendService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

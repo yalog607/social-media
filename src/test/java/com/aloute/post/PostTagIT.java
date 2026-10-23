@@ -1,10 +1,16 @@
 package com.aloute.post;
 
-import com.aloute.notification.NotificationService;
-import com.aloute.social.FriendService;
+import com.aloute.dto.post.PostView;
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.service.post.PostViewAssembler;
+
+import com.aloute.service.notification.NotificationService;
+import com.aloute.service.social.FriendService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

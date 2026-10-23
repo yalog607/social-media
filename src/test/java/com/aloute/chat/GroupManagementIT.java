@@ -1,9 +1,17 @@
 package com.aloute.chat;
 
-import com.aloute.social.FriendService;
+import com.aloute.dto.chat.ConversationSummaryView;
+import com.aloute.dto.chat.MessageView;
+import com.aloute.exception.chat.ChatActionException;
+import com.aloute.model.chat.Conversation;
+import com.aloute.model.chat.GroupRole;
+import com.aloute.service.chat.ChatService;
+import com.aloute.service.chat.MessageService;
+
+import com.aloute.service.social.FriendService;
 import com.aloute.support.IntegrationTest;
 import com.aloute.support.TestMedia;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;

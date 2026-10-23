@@ -1,6 +1,6 @@
 package com.aloute.guestbook;
 
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

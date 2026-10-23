@@ -1,8 +1,8 @@
 package com.aloute.guestbook;
 
-import com.aloute.common.SafeRedirect;
+import com.aloute.exception.social.SocialActionException;
 import com.aloute.security.AlouteUserPrincipal;
-import com.aloute.social.SocialActionException;
+import com.aloute.util.common.SafeRedirect;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;

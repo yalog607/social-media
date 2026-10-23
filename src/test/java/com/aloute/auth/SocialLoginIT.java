@@ -1,9 +1,12 @@
 package com.aloute.auth;
 
+import com.aloute.dto.auth.SocialIdentity;
+import com.aloute.service.auth.SocialTokenVerifier;
+
 import com.aloute.security.CookieService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.AuthProvider;
-import com.aloute.user.User;
+import com.aloute.model.user.AuthProvider;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
@@ -129,7 +132,7 @@ class SocialLoginIT extends IntegrationTest {
         User user = createUser();
         user.setEmailVerified(true);
         user.setFirebaseUid(uid());
-        user.setStatus(com.aloute.user.UserStatus.SUSPENDED);
+        user.setStatus(com.aloute.model.user.UserStatus.SUSPENDED);
         users.saveAndFlush(user);
 
         MvcResult result = loginWith(google(user.getFirebaseUid(), user.getEmail(), true));

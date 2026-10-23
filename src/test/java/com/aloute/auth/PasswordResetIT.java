@@ -1,9 +1,9 @@
 package com.aloute.auth;
 
-import com.aloute.common.MailService;
+import com.aloute.service.common.MailService;
 import com.aloute.security.CookieService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

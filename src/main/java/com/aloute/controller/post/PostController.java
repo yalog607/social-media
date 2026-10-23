@@ -1,0 +1,160 @@
+package com.aloute.controller.post;
+
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.service.post.PostViewAssembler;
+import com.aloute.service.post.PostViewService;
+import com.aloute.util.post.ScheduleTime;
+
+import com.aloute.exception.common.RateLimitExceededException;
+import com.aloute.util.common.SafeRedirect;
+import com.aloute.exception.media.InvalidMediaException;
+import com.aloute.security.AlouteUserPrincipal;
+import com.aloute.model.user.Visibility;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Đăng, xem, sửa, xóa bài. Đăng bài dùng form thường (multipart POST rồi chuyển hướng) nên vẫn hoạt động khi tắt JS;
+ * lỗi được đưa lại ô đăng bài qua flash attribute, giữ nguyên chữ người dùng đã gõ.
+ */
+@Controller
+public class PostController {
+
+    private final PostService posts;
+    private final PostViewAssembler assembler;
+    private final PostViewService views;
+
+    public PostController(PostService posts, PostViewAssembler assembler, PostViewService views) {
+        this.views = views;
+        this.posts = posts;
+        this.assembler = assembler;
+    }
+
+    @PostMapping("/posts")
+    public String create(@AuthenticationPrincipal AlouteUserPrincipal me,
+                         @RequestParam(required = false) String content,
+                         @RequestParam(required = false) Visibility visibility,
+                         @RequestParam(required = false) List<MultipartFile> images,
+                         @RequestParam(required = false) MultipartFile video,
+                         @RequestParam(required = false) List<UUID> taggedUserIds,
+                         @RequestParam(required = false) Integer unlockPrice,
+                         @RequestParam(required = false) String scheduledAt,
+                         @RequestParam(required = false) Integer tzOffset,
+                         @RequestParam(required = false) UUID categoryId,
+                         RedirectAttributes flash) {
+        try {
+            Instant when = ScheduleTime.parse(scheduledAt, tzOffset);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when, categoryId);
+            flash.addFlashAttribute("notice", when == null ? "Đã đăng bài!" : "Đã hẹn giờ đăng bài!");
+        } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
+            flash.addFlashAttribute("composerError", e.getMessage());
+            flash.addFlashAttribute("composerContent", content);
+            flash.addFlashAttribute("composerVisibility", visibility == null ? null : visibility.name());
+            flash.addFlashAttribute("composerUnlockPrice", unlockPrice);
+            flash.addFlashAttribute("composerScheduledAt", scheduledAt);
+            flash.addFlashAttribute("composerCategoryId", categoryId);
+            flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);
+        }
+        return "redirect:/";
+    }
+
+    /** Trang riêng của một bài (địa chỉ để chia sẻ). Khách xem được nếu bài công khai; còn lại 404. */
+    @GetMapping("/posts/{id}")
+    public String detail(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
+        UUID viewerId = viewer == null ? null : viewer.id();
+        Post post = posts.getVisible(id, viewerId);
+        if (viewerId != null) {
+            views.record(viewerId, id);
+        }
+        model.addAttribute("post", assembler.assemble(List.of(post), viewerId).get(0));
+        return "post/detail";
+    }
+
+    /** Trả về fragment HTML của một bài viết (dùng cho popup). */
+    @GetMapping("/posts/{id}/fragment")
+    public String detailFragment(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
+        UUID viewerId = viewer == null ? null : viewer.id();
+        Post post = posts.getVisible(id, viewerId);
+        if (viewerId != null) {
+            views.record(viewerId, id);
+        }
+        model.addAttribute("post", assembler.assemble(List.of(post), viewerId).get(0));
+        return "fragments/post :: card";
+    }
+
+    @PostMapping("/posts/{id}/edit")
+    public String edit(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                       @RequestParam(required = false) String content,
+                       @RequestParam(required = false) Visibility visibility,
+                       @RequestParam(required = false) String next,
+                       @RequestParam(required = false) List<UUID> taggedUserIds,
+                       @RequestParam(defaultValue = "false") boolean tagsLoaded,
+                       @RequestParam(required = false) UUID categoryId,
+                       RedirectAttributes flash) {
+        try {
+            // Danh sách thẻ chỉ có giá trị khi JS đã nạp được danh sách bạn bè (tagsLoaded); nếu không thì giữ nguyên thẻ cũ
+            List<UUID> tagsToSet = tagsLoaded ? (taggedUserIds == null ? List.of() : taggedUserIds) : null;
+            posts.edit(me.id(), id, content, visibility, tagsToSet, categoryId);
+            flash.addFlashAttribute("notice", "Đã lưu chỉnh sửa!");
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
+
+    @PostMapping("/posts/{id}/delete")
+    public String delete(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                         @RequestParam(required = false) String next, RedirectAttributes flash) {
+        posts.delete(me.id(), id);
+        flash.addFlashAttribute("notice", "Đã xóa bài viết.");
+        String target = SafeRedirect.sanitize(next);
+        // Đang đứng ở chính trang chi tiết của bài vừa xóa thì quay về bảng tin, không thì gặp 404
+        return "redirect:" + (target.contains(id.toString()) ? "/" : target);
+    }
+
+    @PostMapping("/posts/{id}/share")
+    public String share(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        @RequestParam(required = false) String caption,
+                        @RequestParam(required = false) String next, RedirectAttributes flash) {
+        try {
+            posts.share(me.id(), id, caption);
+            flash.addFlashAttribute("notice", "Đã chia sẻ bài viết!");
+        } catch (InvalidPostException | RateLimitExceededException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
+
+    @PostMapping("/posts/{id}/pin")
+    public String pin(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                      @RequestParam(required = false) String next, RedirectAttributes flash) {
+        try {
+            posts.pin(me.id(), id);
+            flash.addFlashAttribute("notice", "Đã ghim bài viết lên trang cá nhân!");
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
+
+    @PostMapping("/posts/{id}/unpin")
+    public String unpin(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                        @RequestParam(required = false) String next, RedirectAttributes flash) {
+        posts.unpin(me.id(), id);
+        flash.addFlashAttribute("notice", "Đã bỏ ghim bài viết.");
+        return "redirect:" + SafeRedirect.sanitize(next);
+    }
+}

@@ -1,5 +1,7 @@
 package com.aloute.post;
 
+import com.aloute.dto.post.PostView;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;

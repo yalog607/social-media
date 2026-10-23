@@ -1,15 +1,18 @@
 package com.aloute.creator;
 
-import com.aloute.comment.CommentService;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
-import com.aloute.reaction.ReactionService;
-import com.aloute.reaction.ReactionType;
-import com.aloute.social.FollowService;
+import com.aloute.dto.creator.InsightsView;
+import com.aloute.service.creator.InsightsService;
+
+import com.aloute.service.comment.CommentService;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.service.reaction.ReactionService;
+import com.aloute.model.reaction.ReactionType;
+import com.aloute.service.social.FollowService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

@@ -1,6 +1,6 @@
 package com.aloute.guestbook;
 
-import com.aloute.post.PostView.AuthorView;
+import com.aloute.dto.post.PostView.AuthorView;
 
 import java.time.Instant;
 import java.util.UUID;

@@ -24,10 +24,12 @@ class ErrorPageIT extends IntegrationTest {
     @Test
     void notFoundShowsTheCustomErrorPageNotWhitelabel() throws Exception {
         mvc.perform(get("/error").accept(MediaType.TEXT_HTML)
+                        .with(asUser(createUser()))
                         .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 404)
                         .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/duong-dan-khong-ton-tai"))
                 .andExpect(content().string(not(containsString("Whitelabel Error Page"))))
-                .andExpect(content().string(containsString("Trang này đi lạc rồi")));
+                .andExpect(content().string(containsString("Trang này đi lạc rồi")))
+                .andExpect(content().string(not(containsString("alert-al--error"))));
     }
 
     @Test

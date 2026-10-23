@@ -1,5 +1,7 @@
 package com.aloute.post;
 
+import com.aloute.util.post.Hashtags;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.stream.IntStream;

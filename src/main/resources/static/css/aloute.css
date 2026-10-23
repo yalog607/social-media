@@ -840,6 +840,94 @@ body.lightbox-open { overflow: hidden; }
 .comment-attach[hidden] { display: none; }
 .comment-attach-thumb { width: 72px; height: 72px; object-fit: cover; border: var(--line); border-radius: 10px; }
 .comment-attach-clear { border: none; background: none; color: var(--danger); font: 800 1.4rem/1 var(--font-body); cursor: pointer; padding: 0 .3rem; }
+
+/* ---------- 16. Báo cáo & Chi tiết báo cáo ---------- */
+.report-header-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: .5rem 1.4rem;
+  font-size: clamp(1.4rem, 2.5vw + .6rem, 2rem);
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--white);
+  border: var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--sh);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.report-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .8rem;
+  margin-bottom: .6rem;
+  width: 100%;
+}
+
+.report-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: .25rem .85rem;
+  font-size: .85rem;
+  font-weight: 700;
+  border: var(--line);
+  border-radius: var(--r-pill);
+  box-shadow: var(--sh-sm);
+  white-space: nowrap;
+  flex: none;
+}
+
+.report-status-badge--open {
+  background-color: #DDF1FF;
+  color: var(--ink);
+}
+
+.report-status-badge--resolved {
+  background-color: #D3F6E6;
+  color: var(--ink);
+}
+
+.report-status-bar {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  padding: .65rem 1rem;
+  border: var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-sm);
+  margin-bottom: .6rem;
+  display: block;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.report-status-bar:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--sh);
+}
+
+.report-status-bar--open {
+  background-color: #FFE3EC;
+  color: var(--ink);
+}
+
+.report-status-bar--resolved {
+  background-color: #D3F6E6;
+  color: var(--ink);
+}
+
+.report-preview-box {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: .6rem;
+}
+
 @keyframes flame-flicker {
   0%, 100% { transform: scale(1) rotate(-3deg); filter: drop-shadow(0 0 3px #FF6B6B); }
   50% { transform: scale(1.15) rotate(3deg); filter: drop-shadow(0 0 8px #FFD700); }

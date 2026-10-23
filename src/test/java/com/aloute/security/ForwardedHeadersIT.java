@@ -1,7 +1,7 @@
 package com.aloute.security;
 
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;

@@ -1,11 +1,15 @@
 package com.aloute.reaction;
 
-import com.aloute.post.Post;
-import com.aloute.post.PostNotFoundException;
-import com.aloute.post.PostService;
+import com.aloute.dto.reaction.Reactor;
+import com.aloute.model.reaction.ReactionType;
+import com.aloute.service.reaction.ReactionService;
+
+import com.aloute.model.post.Post;
+import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.service.post.PostService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

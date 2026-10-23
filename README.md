@@ -69,15 +69,19 @@ Mặc định ảnh/video lưu trên đĩa của máy chủ (`uploads/` khi dev,
 2. Đặt biến môi trường `ALOUTE_STORAGE_TYPE=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
 3. Khởi động lại ứng dụng — avatar, ảnh bìa, ảnh/video bài đăng và file đính kèm chat từ giờ tự động tải lên Cloudinary; ảnh/video đã lưu cục bộ từ trước KHÔNG được chuyển tự động.
 
-## Cấu trúc
+## Cấu trúc (MVC ba lớp)
 ```
 src/main/java/com/aloute/
-├─ auth/      đăng ký, đăng nhập, quên mật khẩu, Social
-├─ security/  JWT, cookie, refresh token, filter
-├─ user/      tài khoản, vai trò, hồ sơ, cài đặt
-├─ storage/   lưu ảnh lên đĩa (kiểm tra chữ ký byte thật)
-├─ home/      trang chủ, khu vực theo vai trò
-├─ common/    mail, tiện ích dùng chung
-└─ config/    Security, MVC, Firebase, thuộc tính cấu hình
-src/main/resources/{db/migration, templates, static}
+├─ controller/<tính năng>/   Controller: nhận request, gọi service, trả view/JSON
+├─ service/<tính năng>/      Model (nghiệp vụ): service, job, storage, gửi mail
+├─ repository/<tính năng>/   Model (truy cập dữ liệu): Spring Data JPA
+├─ model/<tính năng>/        Model (miền dữ liệu): entity, enum
+├─ dto/<tính năng>/          Model (đối tượng truyền): *View, *Form, *Page
+├─ exception/<tính năng>/    ngoại lệ nghiệp vụ
+├─ util/<tính năng>/         tiện ích thuần (không phụ thuộc Spring)
+├─ security/                 JWT, cookie, refresh token, filter (hạ tầng)
+└─ config/                   Security, MVC, Firebase, thuộc tính cấu hình
+src/main/resources/templates   View: Thymeleaf
+src/main/resources/{db/migration, static}
 ```
+`<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user, wallet…

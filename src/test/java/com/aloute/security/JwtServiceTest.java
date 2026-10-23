@@ -1,7 +1,7 @@
 package com.aloute.security;
 
 import com.aloute.config.AlouteProperties;
-import com.aloute.user.Role;
+import com.aloute.model.user.Role;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

@@ -1,10 +1,15 @@
 package com.aloute.chat;
 
-import com.aloute.social.BlockService;
-import com.aloute.social.FriendService;
+import com.aloute.exception.chat.ChatActionException;
+import com.aloute.exception.chat.ConversationNotFoundException;
+import com.aloute.model.chat.Conversation;
+import com.aloute.service.chat.ChatService;
+
+import com.aloute.service.social.BlockService;
+import com.aloute.service.social.FriendService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.MessagePermission;
-import com.aloute.user.User;
+import com.aloute.model.user.MessagePermission;
+import com.aloute.model.user.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

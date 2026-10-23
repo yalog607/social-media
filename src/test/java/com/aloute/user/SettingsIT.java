@@ -1,5 +1,11 @@
 package com.aloute.user;
 
+import com.aloute.model.user.MessagePermission;
+import com.aloute.model.user.Profile;
+import com.aloute.model.user.User;
+import com.aloute.model.user.UserStatus;
+import com.aloute.model.user.Visibility;
+
 import com.aloute.security.CookieService;
 import com.aloute.security.RefreshTokenService;
 import com.aloute.support.IntegrationTest;

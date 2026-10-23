@@ -1,18 +1,23 @@
 package com.aloute.admin;
 
-import com.aloute.audit.AuditService;
-import com.aloute.comment.CommentService;
-import com.aloute.post.Post;
-import com.aloute.post.PostNotFoundException;
-import com.aloute.post.PostService;
+import com.aloute.dto.admin.StaffMember;
+import com.aloute.exception.admin.InvalidAdminActionException;
+import com.aloute.service.admin.AdminService;
+import com.aloute.service.admin.SystemSettings;
+
+import com.aloute.service.audit.AuditService;
+import com.aloute.service.comment.CommentService;
+import com.aloute.model.post.Post;
+import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.service.post.PostService;
 import com.aloute.security.RefreshTokenService;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.RegistrationClosedException;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.UserService;
-import com.aloute.user.UserStatus;
-import com.aloute.user.Visibility;
+import com.aloute.exception.user.RegistrationClosedException;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.service.user.UserService;
+import com.aloute.model.user.UserStatus;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

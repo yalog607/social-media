@@ -2,10 +2,10 @@ package com.aloute.support;
 
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.security.JwtService;
-import com.aloute.user.Profile;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.UserRepository;
+import com.aloute.model.user.Profile;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.repository.user.UserRepository;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;

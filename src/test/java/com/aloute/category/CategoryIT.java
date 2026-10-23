@@ -1,15 +1,19 @@
 package com.aloute.category;
 
-import com.aloute.feed.FeedService;
-import com.aloute.post.InvalidPostException;
-import com.aloute.post.Post;
-import com.aloute.post.PostService;
-import com.aloute.post.PostView;
-import com.aloute.post.PostViewAssembler;
+import com.aloute.dto.category.CategoryView;
+import com.aloute.exception.category.InvalidCategoryException;
+import com.aloute.service.category.CategoryService;
+
+import com.aloute.service.feed.FeedService;
+import com.aloute.exception.post.InvalidPostException;
+import com.aloute.model.post.Post;
+import com.aloute.service.post.PostService;
+import com.aloute.dto.post.PostView;
+import com.aloute.service.post.PostViewAssembler;
 import com.aloute.support.IntegrationTest;
-import com.aloute.user.Role;
-import com.aloute.user.User;
-import com.aloute.user.Visibility;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.model.user.Visibility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
