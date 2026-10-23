@@ -1,9 +1,23 @@
 (function () {
   'use strict';
 
-  // Khi modal mở lên, fetch nội dung danh sách và chèn vào
+  // Khi modal mở lên, xử lý nội dung hoặc điền form
   document.addEventListener('show.bs.modal', async function (event) {
     const modal = event.target;
+    if (modal.id === 'deleteGuestbookModal') {
+      const trigger = event.relatedTarget;
+      if (!trigger) return;
+      const form = modal.querySelector('form');
+      const url = trigger.getAttribute('data-delete-url') || trigger.dataset?.deleteUrl;
+      if (form && url) {
+        form.action = url;
+      }
+      const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
+      if (csrfInput && window.Aloute && typeof window.Aloute.csrfToken === 'function') {
+        csrfInput.value = window.Aloute.csrfToken();
+      }
+      return;
+    }
     if (modal.id === 'friendsModal' || modal.id === 'followersModal' || modal.id === 'followingModal' || modal.id === 'postDetailModal') {
       const listContainer = modal.querySelector('[data-list-container]');
       // Cho postDetailModal, URL được đặt trên nút kích hoạt (event.relatedTarget) thay vì trên modal

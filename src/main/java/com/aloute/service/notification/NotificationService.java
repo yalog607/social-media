@@ -83,6 +83,11 @@ public class NotificationService {
     }
 
     @Transactional
+    public void guestbookEntryAdded(UUID actorId, UUID recipientId) {
+        notify(recipientId, actorId, NotificationType.GUESTBOOK_ENTRY, null);
+    }
+
+    @Transactional
     public void supportReplied(UUID managerId, UUID recipientId, UUID ticketId) {
         Notification notification = new Notification();
         notification.setRecipient(users.getReferenceById(recipientId));
@@ -233,6 +238,7 @@ public class NotificationService {
             case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
             case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
+            case GUESTBOOK_ENTRY -> name + " đã dán một mẩu lưu bút lên trang cá nhân của bạn";
             case SUPPORT -> "Yêu cầu hỗ trợ của bạn đã có phản hồi mới.";
             case REPORT -> "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.";
         };
