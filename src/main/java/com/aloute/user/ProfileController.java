@@ -1,6 +1,7 @@
 package com.aloute.user;
 
 import com.aloute.feed.FeedService;
+import com.aloute.guestbook.GuestbookService;
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.social.BlockService;
 import com.aloute.social.FollowService;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZoneId;
@@ -30,15 +32,18 @@ public class ProfileController {
     private final FriendService friends;
     private final FollowService follows;
     private final BlockService blocks;
+    private final GuestbookService guestbook;
 
     public ProfileController(UserRepository users, FeedService feed, ProfileVisibilityRules visibility,
-                             FriendService friends, FollowService follows, BlockService blocks) {
+                             FriendService friends, FollowService follows, BlockService blocks,
+                             GuestbookService guestbook) {
         this.users = users;
         this.feed = feed;
         this.visibility = visibility;
         this.friends = friends;
         this.follows = follows;
         this.blocks = blocks;
+        this.guestbook = guestbook;
     }
 
     @GetMapping("/me")
@@ -48,6 +53,7 @@ public class ProfileController {
 
     @GetMapping("/u/{username}")
     public String view(@PathVariable String username,
+                       @RequestParam(defaultValue = "posts") String tab,
                        @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         User owner = users.findByUsername(username)
                 .filter(User::isActive)
@@ -77,6 +83,10 @@ public class ProfileController {
             model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, null));
             model.addAttribute("pinnedPosts", feed.pinnedByAuthor(owner.getId(), viewerId));
             model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
+            model.addAttribute("activeTab", "guestbook".equalsIgnoreCase(tab) ? "guestbook" : "posts");
+            model.addAttribute("guestbookCount", guestbook.countFor(owner.getId(), viewerId));
+            model.addAttribute("guestbookEntries", guestbook.listEntries(owner.getId(), viewerId));
+            model.addAttribute("canSignGuestbook", !blockedEitherWay && guestbook.canSign(viewerId, owner.getId()));
         }
         return "profile/view";
     }

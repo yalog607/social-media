@@ -78,6 +78,11 @@ public class NotificationService {
     }
 
     @Transactional
+    public void guestbookEntryAdded(UUID actorId, UUID recipientId) {
+        notify(recipientId, actorId, NotificationType.GUESTBOOK_ENTRY, null);
+    }
+
+    @Transactional
     public void warned(UUID managerId, UUID recipientId) {
         notify(recipientId, managerId, NotificationType.WARNING, null);
     }
@@ -162,6 +167,7 @@ public class NotificationService {
             case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
             case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
+            case GUESTBOOK_ENTRY -> name + " đã dán một mẩu lưu bút lên trang cá nhân của bạn";
         };
     }
 }

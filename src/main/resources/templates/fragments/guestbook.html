@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="guestbookSection">
+    <!-- Khung dán lưu bút nếu có quyền -->
+    <div class="note note--taped mb-4 p-4" th:if="${canSignGuestbook}">
+        <h3 class="h4 mb-3 d-flex align-items-center gap-2" style="font-weight: 800;">
+            <span>📖 Dán một mẩu lưu bút cho</span>
+            <span class="text-primary" th:text="${owner.profile.displayName}">Tên bạn</span>
+        </h3>
+        <form method="post" th:action="@{/u/{u}/guestbook(u=${owner.username})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
+
+            <div class="mb-3">
+                <textarea name="content" class="input-al w-100" rows="3" maxlength="500" required
+                          placeholder="Viết vài dòng chúc mừng, nhắn gửi kỷ niệm học trò hay đôi lời dễ thương..."
+                          th:text="${draftContent != null} ? ${draftContent} : ''"
+                          style="min-height: 90px;"></textarea>
+            </div>
+
+            <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                <!-- Chọn màu giấy note pastel -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-bold text-soft small">Màu giấy:</span>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="lemon" checked class="form-check-input mt-0"
+                               th:checked="${draftColor == null or draftColor == 'lemon'}">
+                        <span class="badge" style="background:#FFF6BF; color:#16121F; border:1.5px solid #16121F;">Vàng</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="pink" class="form-check-input mt-0"
+                               th:checked="${draftColor == 'pink'}">
+                        <span class="badge" style="background:#FFE3EC; color:#16121F; border:1.5px solid #16121F;">Hồng</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="mint" class="form-check-input mt-0"
+                               th:checked="${draftColor == 'mint'}">
+                        <span class="badge" style="background:#D3F6E6; color:#16121F; border:1.5px solid #16121F;">Xanh Mint</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="lavender" class="form-check-input mt-0"
+                               th:checked="${draftColor == 'lavender'}">
+                        <span class="badge" style="background:#E7DFFF; color:#16121F; border:1.5px solid #16121F;">Tím</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="sky" class="form-check-input mt-0"
+                               th:checked="${draftColor == 'sky'}">
+                        <span class="badge" style="background:#DDF1FF; color:#16121F; border:1.5px solid #16121F;">Xanh Mây</span>
+                    </label>
+                </div>
+
+                <!-- Chọn Sticker -->
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-bold text-soft small">Sticker:</span>
+                    <select name="stickerIcon" class="input-al py-1 px-2" style="width: auto; min-width: 90px; height: 38px;">
+                        <option value="🌸" th:selected="${draftSticker == '🌸'}">🌸 Hoa</option>
+                        <option value="🧋" th:selected="${draftSticker == '🧋'}">🧋 Trà sữa</option>
+                        <option value="💌" th:selected="${draftSticker == '💌'}">💌 Thư gửi</option>
+                        <option value="⭐" th:selected="${draftSticker == '⭐'}">⭐ Ngôi sao</option>
+                        <option value="🎓" th:selected="${draftSticker == '🎓'}">🎓 Tốt nghiệp</option>
+                        <option value="🍀" th:selected="${draftSticker == '🍀'}">🍀 May mắn</option>
+                        <option value="🔥" th:selected="${draftSticker == '🔥'}">🔥 Rực cháy</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn-al btn-al--lemon btn-al--sm">
+                        <span>📌 Dán mẩu lưu bút</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Hộp gợi ý kết bạn nếu chưa thể dán lưu bút -->
+    <div class="note note--mint mb-4 p-4 text-center" th:if="${!canSignGuestbook and me != null and !isOwner}">
+        <h4 class="h5 mb-2" style="font-weight: 800;">Chỉ bạn bè mới có thể dán lưu bút cho <span th:text="${owner.profile.displayName}">Tên</span></h4>
+        <p class="text-soft mb-3">Hãy gửi lời mời kết bạn để cùng nhau chia sẻ những mẩu giấy note kỷ niệm thời học trò nhé!</p>
+        <form method="post" th:if="${friendState != null and friendState.name() == 'NONE'}" th:action="@{/u/{u}/friend-request(u=${owner.username})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
+            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Kết bạn ngay</button>
+        </form>
+    </div>
+
+    <!-- Danh sách các mẩu lưu bút -->
+    <div class="row g-4" th:if="${!#lists.isEmpty(guestbookEntries)}">
+        <div class="col-12 col-md-6" th:each="entry, stat : ${guestbookEntries}">
+            <article class="note note--taped h-100 p-3 position-relative d-flex flex-column"
+                     th:classappend="${'note--' + entry.colorTheme} + ' ' + (${stat.index % 2 == 0} ? 'tilt-l' : 'tilt-r') + ' ' + (${entry.isHidden} ? 'opacity-75' : '')"
+                     style="min-height: 180px; box-shadow: 4px 4px 0 var(--ink);">
+
+                <!-- Header mẩu note: Avatar + Tên + Sticker -->
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span style="--size: 38px; flex: none;" th:replace="~{fragments/ui :: avatar(${entry.author}, '')}"></span>
+                    <div style="min-width: 0; flex: 1;">
+                        <a th:href="@{/u/{u}(u=${entry.author.username})}" class="text-decoration-none text-ink d-block text-truncate"
+                           style="font-weight: 800; font-family: var(--font-display); font-size: .95rem;">
+                            <span th:text="${entry.author.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${entry.author.primaryRole})}"></svg>
+                        </a>
+                        <div class="text-soft small" th:text="${@timeAgo.format(entry.createdAt)}">vừa xong</div>
+                    </div>
+
+                    <!-- Sticker góc -->
+                    <span class="fs-4 ms-auto" th:text="${entry.stickerIcon}" th:title="'Sticker ' + ${entry.stickerIcon}">🌸</span>
+                </div>
+
+                <!-- Badges: ĐÃ GHIM / ĐANG ẨN -->
+                <div class="d-flex gap-1 mb-2" th:if="${entry.isPinned or entry.isHidden}">
+                    <span class="badge bg-warning text-dark border border-dark small fw-bold" th:if="${entry.isPinned}">📌 ĐÃ GHIM</span>
+                    <span class="badge bg-secondary text-white border border-dark small fw-bold" th:if="${entry.isHidden}">👁️ ĐÃ ẨN</span>
+                </div>
+
+                <!-- Nội dung mẩu note -->
+                <div class="my-2" style="white-space: pre-wrap; word-break: break-word; font-size: .95rem; line-height: 1.5; flex: 1;"
+                     th:text="${entry.content}">
+                    Nội dung mẩu lưu bút ở đây...
+                </div>
+
+                <!-- Thao tác mẩu note (Ghim, Ẩn, Xóa) -->
+                <div class="pt-2 mt-auto border-top border-dark border-opacity-10 d-flex justify-content-end gap-2"
+                     th:if="${entry.canPin or entry.canHide or entry.canDelete}">
+
+                    <!-- Ghim / Bỏ ghim -->
+                    <form method="post" th:if="${entry.canPin}" th:action="@{/guestbook/{id}/pin(id=${entry.id})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
+                        <button type="submit" class="btn btn-sm btn-link text-dark text-decoration-none p-0 fw-bold small"
+                                th:text="${entry.isPinned} ? 'Bỏ ghim' : '📌 Ghim'"></button>
+                    </form>
+
+                    <!-- Ẩn / Hiện -->
+                    <form method="post" th:if="${entry.canHide}" th:action="@{/guestbook/{id}/hide(id=${entry.id})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
+                        <button type="submit" class="btn btn-sm btn-link text-secondary text-decoration-none p-0 small"
+                                th:text="${entry.isHidden} ? '👁️ Hiện lại' : 'Ẩn'"></button>
+                    </form>
+
+                    <!-- Xóa -->
+                    <button type="button" th:if="${entry.canDelete}"
+                            class="btn btn-sm btn-link text-danger text-decoration-none p-0 small"
+                            data-bs-toggle="modal" data-bs-target="#deleteGuestbookModal"
+                            th:attr="data-delete-url=@{/guestbook/{id}/delete(id=${entry.id})}">Gỡ bỏ</button>
+                </div>
+            </article>
+        </div>
+    </div>
+
+    <!-- Empty state nếu chưa có mẩu lưu bút nào -->
+    <section class="note note--lemon empty text-center mt-3" th:if="${#lists.isEmpty(guestbookEntries)}">
+        <h3 class="h4">Sổ lưu bút chưa có mẩu giấy nào</h3>
+        <p class="text-soft mb-0" th:text="${isOwner} ? 'Chưa có bạn bè nào dán lưu bút. Bạn có thể tự viết một mẩu note mở đầu sổ lưu bút của mình nhé!' : 'Hãy là người đầu tiên dán mẩu lưu bút xinh xắn cho bạn ấy nhé!'"></p>
+    </section>
+
+    <!-- Modal xác nhận gỡ mẩu lưu bút phong cách Neo-Brutalism -->
+    <div class="modal fade" id="deleteGuestbookModal" tabindex="-1" aria-labelledby="deleteGuestbookTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note note--taped p-4" method="post" id="deleteGuestbookForm" novalidate>
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="fs-4">🗑️</span>
+                    <h2 class="h5 mb-0 fw-bold" id="deleteGuestbookTitle" style="font-family: var(--font-display);">Gỡ mẩu lưu bút này?</h2>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <p class="text-soft mb-3" style="font-size: .95rem;">Mẩu lưu bút sẽ bị gỡ vĩnh viễn khỏi trang cá nhân và không thể khôi phục lại.</p>
+                <div class="d-flex justify-content-end gap-2 pt-2 border-top border-dark border-opacity-10">
+                    <button type="button" class="btn-al btn-al--white btn-al--sm" data-bs-dismiss="modal">Giữ lại</button>
+                    <button type="submit" class="btn-al btn-al--sm" style="--bg: #ff8585;">Gỡ bỏ ngay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('show.bs.modal', function (event) {
+            const modal = event.target;
+            if (modal && modal.id === 'deleteGuestbookModal') {
+                const trigger = event.relatedTarget;
+                if (!trigger) return;
+                const form = modal.querySelector('form');
+                const url = trigger.getAttribute('data-delete-url') || trigger.dataset.deleteUrl;
+                if (form && url) {
+                    form.action = url;
+                }
+                const csrfInput = form ? form.querySelector('input[name="_csrf"]') : null;
+                if (csrfInput && window.Aloute && typeof window.Aloute.csrfToken === 'function') {
+                    csrfInput.value = window.Aloute.csrfToken();
+                }
+            }
+        });
+    </script>
+</div>
+
+</body>
+</html>
