@@ -36,10 +36,11 @@ public class ProfileController {
     private final FollowService follows;
     private final BlockService blocks;
     private final GuestbookService guestbook;
+    private final com.aloute.service.mood.MoodService moodService;
 
     public ProfileController(UserRepository users, FeedService feed, ProfileVisibilityRules visibility,
                              FriendService friends, FollowService follows, BlockService blocks,
-                             GuestbookService guestbook) {
+                             GuestbookService guestbook, com.aloute.service.mood.MoodService moodService) {
         this.users = users;
         this.feed = feed;
         this.visibility = visibility;
@@ -47,6 +48,7 @@ public class ProfileController {
         this.follows = follows;
         this.blocks = blocks;
         this.guestbook = guestbook;
+        this.moodService = moodService;
     }
 
     @GetMapping("/me")
@@ -75,6 +77,8 @@ public class ProfileController {
         model.addAttribute("followerCount", follows.followerCount(owner.getId()));
         model.addAttribute("followingCount", follows.followingCount(owner.getId()));
         model.addAttribute("blockedEitherWay", blockedEitherWay);
+        model.addAttribute("ownerMood", moodService.getUserMood(owner.getId()).orElse(null));
+        model.addAttribute("moodPresets", moodService.getPresets());
         // Ảnh đại diện luôn hiện dù hồ sơ riêng tư; phóng to thì vẫn phải theo đúng ý chủ hồ sơ (trừ chính họ)
         model.addAttribute("canZoomPhotos", isOwner || (!blockedEitherWay && owner.getProfile().isPhotoZoomEnabled()));
         if (!isOwner && viewerId != null) {

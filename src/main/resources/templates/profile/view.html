@@ -90,12 +90,22 @@
             </div>
             <h1 class="h2 mt-3 mb-1"><span th:text="${owner.profile.displayName}">Tên hiển thị</span><svg th:replace="~{fragments/ui :: verified(${owner.primaryRole()})}"></svg></h1>
             <p class="text-soft mb-2">@<span th:text="${owner.username}">username</span></p>
-            <p class="d-flex flex-wrap gap-2 align-items-center mb-3">
+
+            <!-- Hàng thông tin & huy hiệu: Vibe tâm trạng, Vai trò, Ngày tham gia -->
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                <!-- Huy hiệu tâm trạng hôm nay -->
+                <div th:replace="~{fragments/mood :: moodBadge(${ownerMood})}"></div>
+
+                <!-- Chip vai trò -->
                 <th:block th:if="${owner.primaryRole().name() != 'USER'}">
                     <span th:replace="~{fragments/ui :: roleChip(${owner.primaryRole()})}"></span>
                 </th:block>
-                <span class="text-soft">Tham gia từ <span th:text="${joined}">01/2026</span></span>
-            </p>
+
+                <!-- Ngày tham gia -->
+                <span class="text-soft small d-inline-flex align-items-center gap-1">
+                    <span>📅</span> Tham gia từ <span th:text="${joined}">01/2026</span>
+                </span>
+            </div>
             <p class="d-flex flex-wrap gap-3 profile-stats mb-3">
                 <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
                     <strong th:text="${friendCount}">0</strong> bạn bè
@@ -275,6 +285,8 @@
             </div>
         </div>
     </div>
+
+    <div th:replace="~{fragments/mood :: customMoodModal}"></div>
 </main>
 </body>
 </html>

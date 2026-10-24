@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- ==================== WIDGET TÂM TRẠNG CỦA BẠN (TRÊN FEED) ==================== -->
+<section th:fragment="moodWidget" class="note note--taped mb-3 p-3 position-relative mood-widget-card" id="mood-board" th:if="${me != null}">
+    <!-- Tiêu đề + Huy hiệu thời gian / 24H -->
+    <div class="d-flex align-items-center justify-content-between mb-2 gap-1" style="min-width: 0;">
+        <div class="d-flex align-items-center gap-1 fw-bold" style="font-family: var(--font-display); font-size: .95rem; min-width: 0;">
+            <span class="fs-5 mood-rainbow-icon">🌈</span>
+            <span class="text-truncate">Vibe hôm nay của bạn</span>
+        </div>
+        <span th:if="${myMood != null}" class="badge border border-dark rounded-pill px-2 py-0_5 fw-bold text-nowrap"
+              style="font-size: .68rem; background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink);">
+            ⏳ Còn <strong th:text="${myMood.hoursRemaining(T(java.time.Instant).now())}">24</strong>h
+        </span>
+        <span th:if="${myMood == null}" class="badge bg-dark text-white rounded-pill px-2 py-0_5 small mood-24h-badge"
+              style="font-size: .68rem; flex-shrink: 0;">
+            24H
+        </span>
+    </div>
+
+    <!-- Khi ĐÃ ĐẶT TÂM TRẠNG: Thẻ hiển thị Vibe hiện tại dạng Sticker màu sắc -->
+    <div th:if="${myMood != null}">
+        <div class="mood-active-card p-2 rounded-3 mb-2" th:classappend="'note--' + ${myMood.colorTheme}">
+            <div class="d-flex align-items-center gap-2">
+                <!-- Avatar của bạn -->
+                <div class="mood-avatar-wrap flex-shrink-0" style="width: 46px; height: 46px;">
+                    <span style="--size: 46px;" th:replace="~{fragments/ui :: avatar(${me.profile}, '')}"></span>
+                    <span class="mood-emoji-badge" th:classappend="'note--' + ${myMood.colorTheme}"
+                          th:text="${myMood.emoji}">🥰</span>
+                </div>
+
+                <!-- Tên + Lời nhắn vibe -->
+                <div class="flex-grow-1 minw-0" style="min-width: 0;">
+                    <div class="small fw-bold text-truncate" style="font-size: .78rem; color: var(--ink-soft);"
+                         th:text="${me.profile.displayName}">Bạn</div>
+                    <div class="fw-bold text-truncate" style="font-family: var(--font-display); font-size: .95rem; line-height: 1.25; color: var(--ink);">
+                        <span class="mood-hero-emoji me-1" th:text="${myMood.emoji}">🥰</span>
+                        <span th:text="${myMood.moodText}">Đang yêu đời</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hàng nút thao tác: Đổi vibe + Gỡ -->
+        <div class="d-flex align-items-center justify-content-between pt-1 px-1">
+            <button type="button" class="btn-al btn-al--white btn-al--sm mood-action-pill py-1 px-2_5 fw-bold"
+                    style="font-size: .75rem; box-shadow: 1.5px 1.5px 0 var(--ink);"
+                    data-bs-toggle="modal" data-bs-target="#customMoodModal">
+                ✏️ Đổi vibe
+            </button>
+            <form method="post" th:action="@{/mood/delete}" class="d-inline">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="${currentPath}">
+                <button type="submit" class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold mood-remove-btn"
+                        style="font-size: .75rem;">
+                    Gỡ vibe
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Khi CHƯA ĐẶT TÂM TRẠNG: Khung lời mời & Danh sách chip 1 chạm -->
+    <div th:if="${myMood == null}">
+        <div class="mood-prompt-box mb-2 text-center">
+            <p class="mb-0 text-soft small" style="font-size: .76rem; line-height: 1.35;">
+                Hôm nay bạn thấy thế nào? Chọn 1 vibe bên dưới nhé! ✨
+            </p>
+        </div>
+        <div class="mood-chips">
+            <th:block th:each="p : ${moodPresets}">
+                <form method="post" th:action="@{/mood}" class="d-inline">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input type="hidden" name="emoji" th:value="${p.emoji}">
+                    <input type="hidden" name="moodText" th:value="${p.moodText}">
+                    <input type="hidden" name="colorTheme" th:value="${p.colorTheme}">
+                    <input type="hidden" name="next" th:value="${currentPath}">
+                    <button type="submit" class="mood-chip" th:classappend="'mood-chip--' + ${p.colorTheme}">
+                        <span th:text="${p.emoji}">🥰</span>
+                        <span th:text="${p.moodText}">Đang yêu đời</span>
+                    </button>
+                </form>
+            </th:block>
+            <button type="button" class="mood-chip mood-chip--custom" data-bs-toggle="modal" data-bs-target="#customMoodModal">
+                <span>✏️</span> <span>Tự viết...</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- ==================== THANH VIBE & CHUỖI NHẮN TIN HỘI BẠN BÈ (TRÊN FEED) ==================== -->
+<section th:fragment="friendsMoodBar" class="note mb-3 p-3 friends-mood-card" th:if="${friendVibes != null and !#lists.isEmpty(friendVibes)}" style="box-shadow: 4px 4px 0 var(--ink);">
+    <!-- Tiêu đề: Gọn gàng trên 1 dòng, không xuống hàng lộn xộn -->
+    <div class="d-flex align-items-center justify-content-between mb-2 fw-bold small" style="font-family: var(--font-display);">
+        <div class="d-flex align-items-center gap-1 text-truncate" style="font-size: .92rem; min-width: 0;">
+            <span class="mood-sparkle-icon">✨</span>
+            <span class="text-truncate">Vibe hội bạn bè</span>
+        </div>
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+            <th:block th:if="${#lists.size(friendVibes) > 3}">
+                <button type="button" class="btn btn-sm btn-outline-dark p-0 d-inline-flex align-items-center justify-content-center rounded-circle mood-scroll-arrow"
+                        style="width: 20px; height: 20px; font-size: .75rem; font-weight: 800; border-width: 1.5px; line-height: 1;"
+                        onclick="document.getElementById('friendsMoodTrack').scrollBy({left: -130, behavior: 'smooth'})"
+                        title="Cuộn sang trái">‹</button>
+                <button type="button" class="btn btn-sm btn-outline-dark p-0 d-inline-flex align-items-center justify-content-center rounded-circle mood-scroll-arrow"
+                        style="width: 20px; height: 20px; font-size: .75rem; font-weight: 800; border-width: 1.5px; line-height: 1;"
+                        onclick="document.getElementById('friendsMoodTrack').scrollBy({left: 130, behavior: 'smooth'})"
+                        title="Cuộn sang phải">›</button>
+            </th:block>
+            <span class="badge border border-dark rounded-pill small px-2 py-0_5 fw-bold"
+                  style="font-size: .68rem; background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink);"
+                  th:text="${#lists.size(friendVibes)} + ' bạn'">2 bạn</span>
+        </div>
+    </div>
+
+    <!-- Thanh trượt các bạn bè -->
+    <div class="mood-track" id="friendsMoodTrack">
+        <a th:each="fv : ${friendVibes}" th:href="@{/u/{u}(u=${fv.user.username})}" class="mood-track-item"
+           th:title="${fv.itemTitle(T(java.time.Instant).now())}">
+            <div class="mood-friend-crown-wrap">
+                <!-- Huy hiệu chuỗi nhắn tin trực tiếp với bạn bè nổi trên đỉnh đầu avatar -->
+                <div class="mood-streak-crown"
+                     th:if="${fv.hasStreak()}"
+                     th:classappend="${fv.streakCrownClass()}"
+                     th:title="${fv.streakTitle()}">
+                    <span class="mood-streak-flame">🔥</span>
+                    <span class="mood-streak-count" th:text="${fv.streakDays()}">1</span>
+                </div>
+
+                <!-- Avatar bạn bè -->
+                <div class="mood-avatar-wrap">
+                    <span style="--size: 46px;" th:replace="~{fragments/ui :: avatar(${fv.user}, '')}"></span>
+                    <!-- Emoji badge tâm trạng (nếu có) -->
+                    <span class="mood-emoji-badge" th:if="${fv.hasMood()}"
+                          th:classappend="'note--' + ${fv.mood.colorTheme}" th:text="${fv.mood.emoji}">🥰</span>
+                </div>
+            </div>
+
+            <!-- Tên bạn bè -->
+            <span class="text-truncate w-100 fw-bold mood-friend-name" th:text="${fv.user.displayName}">Bạn bè</span>
+
+            <!-- Status/Vibe tóm tắt bên dưới tên giúp story bar sống động -->
+            <span class="text-truncate w-100 mood-friend-sub"
+                  th:if="${fv.hasMood()}"
+                  th:text="${fv.mood.moodText}">Đang yêu đời</span>
+            <span class="text-truncate w-100 mood-friend-sub"
+                  th:if="${!fv.hasMood() and fv.hasStreak()}"
+                  th:text="'🔥 ' + ${fv.streakDays()} + ' ngày'">🔥 1 ngày</span>
+        </a>
+    </div>
+    <script>
+        (function() {
+            var track = document.getElementById('friendsMoodTrack');
+            if (track) {
+                track.addEventListener('wheel', function(e) {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        track.scrollLeft += e.deltaY;
+                    }
+                }, { passive: false });
+            }
+        })();
+    </script>
+</section>
+
+<!-- ==================== PILL BADGE TÂM TRẠNG (TRANG CÁ NHÂN) ==================== -->
+<div th:fragment="moodBadge(mood)" class="d-inline-flex align-items-center" th:if="${mood != null or (isOwner and me != null)}">
+    <!-- Khi đã có mood -->
+    <th:block th:if="${mood != null}">
+        <!-- Nếu là chủ tài khoản: Nút bấm tương tác để đổi vibe -->
+        <button type="button" th:if="${isOwner}"
+                class="profile-mood-pill"
+                th:classappend="'note--' + ${mood.colorTheme}"
+                data-bs-toggle="modal" data-bs-target="#customMoodModal"
+                title="Bấm để đổi vibe hôm nay">
+            <span th:text="${mood.emoji}">🥰</span>
+            <span th:text="${mood.moodText}">Đang yêu đời</span>
+            <span class="profile-mood-pencil" style="font-size: .75rem; opacity: .75;">✏️</span>
+        </button>
+        <!-- Nếu là khách xem trang: Hiển thị dạng chip đẹp mắt -->
+        <span th:unless="${isOwner}"
+              class="profile-mood-pill"
+              th:classappend="'note--' + ${mood.colorTheme}"
+              th:title="'Vibe hôm nay của ' + (${owner != null ? owner.profile.displayName : 'người này'})">
+            <span th:text="${mood.emoji}">🥰</span>
+            <span th:text="${mood.moodText}">Đang yêu đời</span>
+        </span>
+    </th:block>
+
+    <!-- Khi chưa có mood và là chủ trang: Nút mời đặt vibe -->
+    <button type="button" th:if="${isOwner and mood == null}"
+            class="profile-mood-pill profile-mood-pill--empty"
+            data-bs-toggle="modal" data-bs-target="#customMoodModal"
+            title="Chọn vibe để bạn bè biết hôm nay bạn thế nào">
+        <span>✨</span> <span>+ Đặt vibe hôm nay</span>
+    </button>
+</div>
+
+<!-- ==================== MODAL TỰ VIẾT TÂM TRẠNG ==================== -->
+<div th:fragment="customMoodModal" class="modal fade" id="customMoodModal" tabindex="-1" aria-labelledby="customMoodTitle" aria-hidden="true" th:if="${me != null}">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content note note--taped p-4" method="post" th:action="@{/mood}" novalidate>
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <input type="hidden" name="next" th:value="${currentPath}">
+
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="fs-4">🌈</span>
+                <h2 class="h5 mb-0 fw-bold" id="customMoodTitle" style="font-family: var(--font-display);">Tâm trạng hôm nay của bạn</h2>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-soft">Chọn biểu tượng cảm xúc (Emoji):</label>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Yêu đời">
+                        <input type="radio" name="emoji" value="🥰" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '🥰')) == '🥰'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🥰</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Vui vẻ">
+                        <input type="radio" name="emoji" value="😊" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '😊'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">😊</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Hào hứng / Quẩy">
+                        <input type="radio" name="emoji" value="🥳" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🥳'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🥳</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Cực ngầu / Đang chill">
+                        <input type="radio" name="emoji" value="😎" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '😎'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">😎</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Phấn khởi / Tỏa sáng">
+                        <input type="radio" name="emoji" value="🤩" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🤩'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🤩</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Cần dỗ dành / Mềm lòng">
+                        <input type="radio" name="emoji" value="🥺" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🥺'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🥺</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Cạn năng lượng / Buồn ngủ">
+                        <input type="radio" name="emoji" value="😴" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '😴'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">😴</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Tan chảy / Bất lực">
+                        <input type="radio" name="emoji" value="🫠" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🫠'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🫠</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Buồn bã / Khóc">
+                        <input type="radio" name="emoji" value="😭" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '😭'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">😭</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Quạo / Bực mình">
+                        <input type="radio" name="emoji" value="😤" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '😤'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">😤</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Quá tải / Nổ não">
+                        <input type="radio" name="emoji" value="🤯" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🤯'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🤯</span>
+                    </label>
+                    <label class="cursor-pointer" style="cursor: pointer;" title="Suy ngẫm / Trầm tư">
+                        <input type="radio" name="emoji" value="🤔" class="btn-check"
+                               th:checked="${(myMood != null ? myMood.emoji : (ownerMood != null ? ownerMood.emoji : '')) == '🤔'}">
+                        <span class="btn btn-sm btn-outline-dark rounded-circle p-1 fs-5">🤔</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="customMoodText" class="form-label fw-bold small text-soft">Lời nhắn tâm trạng (tối đa 60 ký tự):</label>
+                <input type="text" id="customMoodText" name="moodText" class="input-al w-100" maxlength="60" required
+                       placeholder="Ví dụ: Đang uống trà sữa ngắm mưa rơi..."
+                       th:value="${myMood != null ? myMood.moodText : ''}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-soft">Màu giấy note:</label>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="lemon" class="form-check-input mt-0"
+                               th:checked="${(myMood != null ? myMood.colorTheme : 'lemon') == 'lemon'}">
+                        <span class="badge" style="background:#FFF6BF; color:#16121F; border:1.5px solid #16121F;">Vàng</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="pink" class="form-check-input mt-0"
+                               th:checked="${(myMood != null ? myMood.colorTheme : '') == 'pink'}">
+                        <span class="badge" style="background:#FFE3EC; color:#16121F; border:1.5px solid #16121F;">Hồng</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="mint" class="form-check-input mt-0"
+                               th:checked="${(myMood != null ? myMood.colorTheme : '') == 'mint'}">
+                        <span class="badge" style="background:#D3F6E6; color:#16121F; border:1.5px solid #16121F;">Xanh Mint</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="lavender" class="form-check-input mt-0"
+                               th:checked="${(myMood != null ? myMood.colorTheme : '') == 'lavender'}">
+                        <span class="badge" style="background:#E7DFFF; color:#16121F; border:1.5px solid #16121F;">Tím</span>
+                    </label>
+                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
+                        <input type="radio" name="colorTheme" value="sky" class="form-check-input mt-0"
+                               th:checked="${(myMood != null ? myMood.colorTheme : '') == 'sky'}">
+                        <span class="badge" style="background:#DDF1FF; color:#16121F; border:1.5px solid #16121F;">Xanh Mây</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 pt-2 border-top border-dark border-opacity-10">
+                <button type="button" class="btn-al btn-al--white btn-al--sm" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn-al btn-al--pink btn-al--sm">Lưu tâm trạng</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
