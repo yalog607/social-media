@@ -38,6 +38,30 @@ class CommentControllerIT extends IntegrationTest {
     }
 
     @Test
+    void readsCommentsOfAPublicPost() throws Exception {
+        User owner = createUser();
+        Post post = publicPost(owner);
+        comments.create(owner.getId(), post.getId(), null, "bình luận mẫu");
+
+        mvc.perform(get("/api/posts/" + post.getId() + "/comments").with(asUser(createUser())))
+                .andExpect(status().isOk());
+    }
+
+    @Autowired com.aloute.service.comment.CommentReactionService commentReactions;
+
+    @Test
+    void readsCommentsWithReactions() throws Exception {
+        User owner = createUser();
+        User reactor = createUser();
+        Post post = publicPost(owner);
+        Comment comment = comments.create(owner.getId(), post.getId(), null, "bình luận có cảm xúc");
+        commentReactions.toggle(reactor.getId(), comment.getId(), com.aloute.model.reaction.ReactionType.LOVE);
+
+        mvc.perform(get("/api/posts/" + post.getId() + "/comments").with(asUser(reactor)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void guestCannotReadComments() throws Exception {
         Post post = publicPost(createUser());
         comments.create(createUser().getId(), post.getId(), null, "xin chào");

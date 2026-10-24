@@ -309,11 +309,18 @@
   document.addEventListener('show.bs.modal', async function (event) {
     const modal = event.target;
     const trigger = event.relatedTarget;
-    if (modal.id !== 'reactorsModal' || !trigger || !trigger.dataset.postId) return;
+    if (modal.id !== 'reactorsModal' || !trigger) return;
+    let url = null;
+    if (trigger.dataset.postId) {
+      url = '/api/posts/' + trigger.dataset.postId + '/reactions';
+    } else if (trigger.dataset.commentId) {
+      url = '/api/comments/' + trigger.dataset.commentId + '/reactions';
+    }
+    if (!url) return;
     const box = modal.querySelector('[data-reactors-list]');
     box.textContent = 'Đang tải…';
     try {
-      const response = await window.Aloute.api('/api/posts/' + trigger.dataset.postId + '/reactions', { headers: { Accept: 'text/html' } });
+      const response = await window.Aloute.api(url, { headers: { Accept: 'text/html' } });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       box.innerHTML = await response.text();
     } catch (error) {
@@ -321,11 +328,12 @@
     }
   });
 
-  // ---------- Cảm xúc: bấm để thả/đổi/bỏ, cập nhật số đếm ngay không cần tải lại trang ----------
+  // ---------- Cảm xúc bài viết: bấm để thả/đổi/bỏ ----------
   document.addEventListener('click', async function (event) {
     const chip = event.target.closest('.reaction-chip');
     if (!chip || chip.disabled) return;
     const actions = chip.closest('[data-post-id]');
+    if (!actions) return;
     const postId = actions.dataset.postId;
     const type = chip.dataset.type;
     try {
@@ -345,6 +353,76 @@
     }
   });
 
+  // ---------- Cảm xúc bình luận: bấm để thả/đổi/bỏ ----------
+  const commentEmojiLabels = {
+    'LOVE': { emoji: '❤️', label: 'Yêu thích' },
+    'HAHA': { emoji: '😂', label: 'Haha' },
+    'FIRE': { emoji: '🔥', label: 'Cháy quá' },
+    'WOW': { emoji: '😮', label: 'Wow' },
+    'SAD': { emoji: '😢', label: 'Buồn ghê' }
+  };
+
+  document.addEventListener('click', async function (event) {
+    const chip = event.target.closest('.comment-reaction-chip');
+    const reactBtn = event.target.closest('.comment-react-btn');
+    if (!chip && !reactBtn) return;
+
+    let commentId = null;
+    let type = null;
+
+    if (chip) {
+      commentId = chip.dataset.commentId;
+      type = chip.dataset.type;
+    } else if (reactBtn) {
+      commentId = reactBtn.dataset.commentId;
+      type = reactBtn.dataset.mine || 'LOVE';
+    }
+
+    if (!commentId || !type) return;
+
+    try {
+      const response = await window.Aloute.api('/api/comments/' + commentId + '/reaction?type=' + type, { method: 'POST' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+
+      const commentEl = document.getElementById('comment-' + commentId) || (chip || reactBtn).closest('.comment');
+      if (!commentEl) return;
+
+      const btn = commentEl.querySelector('.comment-react-btn');
+      if (btn) {
+        btn.dataset.mine = data.mine || '';
+        btn.classList.toggle('is-reacted', !!data.mine);
+        const labelEl = btn.querySelector('.comment-react-label');
+        if (labelEl) {
+          if (data.mine && commentEmojiLabels[data.mine]) {
+            labelEl.textContent = commentEmojiLabels[data.mine].emoji + ' ' + commentEmojiLabels[data.mine].label;
+          } else {
+            labelEl.textContent = 'Thích';
+          }
+        }
+      }
+
+      const badge = commentEl.querySelector('.comment-reactions-badge');
+      if (badge) {
+        badge.classList.toggle('d-none', data.total <= 0);
+        badge.classList.toggle('is-single', data.total === 1);
+        const countEl = badge.querySelector('.comment-reactions-count');
+        if (countEl) {
+          countEl.textContent = String(data.total);
+          countEl.classList.toggle('d-none', data.total <= 1);
+        }
+
+        badge.querySelectorAll('.cr-emoji').forEach(function (emojiSpan) {
+          const t = emojiSpan.className.replace(/.*cr-emoji--([A-Z]+).*/, '$1');
+          const count = data.counts[t] || 0;
+          emojiSpan.classList.toggle('d-none', count <= 0);
+        });
+      }
+    } catch (error) {
+      window.Aloute.toast('Chưa thả được cảm xúc bình luận, thử lại nhé.', 'error');
+    }
+  });
+
   // ---------- Bình luận: mở/đóng, tải danh sách, thêm, trả lời, xóa ----------
   function commentSectionOf(el) {
     return el.closest('.post').querySelector('.post-comments');
@@ -356,7 +434,9 @@
       const response = await window.Aloute.api(url, { headers: { Accept: 'text/html' } });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       list.innerHTML = await response.text();
+      section.dataset.loaded = 'true';
     } catch (error) {
+      delete section.dataset.loaded;
       window.Aloute.toast('Chưa tải được bình luận, thử lại nhé.', 'error');
     }
   }
@@ -368,7 +448,6 @@
     const wasHidden = section.hidden;
     section.hidden = !wasHidden;
     if (wasHidden && !section.dataset.loaded) {
-      section.dataset.loaded = 'true';
       loadComments(section, toggle.dataset.commentsUrl);
     }
   });

@@ -12,6 +12,7 @@ import com.aloute.model.chat.Message;
 import com.aloute.model.chat.MessageAttachment;
 import com.aloute.repository.chat.MessageRepository;
 
+import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.common.RateAction;
 import com.aloute.service.mention.MentionService;
 import com.aloute.dto.feed.Cursor;
@@ -46,10 +47,11 @@ public class MessageService {
     private final RateLimiter rateLimiter;
     private final Clock clock;
     private final MentionService mentions;
+    private final MessageReactionService messageReactions;
 
     public MessageService(MessageRepository messages, UserRepository users, ChatService chats,
                           ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock,
-                          MentionService mentions) {
+                          MentionService mentions, MessageReactionService messageReactions) {
         this.mentions = mentions;
         this.messages = messages;
         this.users = users;
@@ -57,6 +59,7 @@ public class MessageService {
         this.attachments = attachments;
         this.rateLimiter = rateLimiter;
         this.clock = clock;
+        this.messageReactions = messageReactions;
     }
 
     /**
@@ -103,7 +106,7 @@ public class MessageService {
                     chats.memberViews(conversationId).stream().map(MemberView::id).collect(java.util.stream.Collectors.toSet()), text);
         }
         java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return toView(saved, chats.nicknames(conversationId), usernameToNickname);
+        return toView(saved, chats.nicknames(conversationId), usernameToNickname, ReactionSummary.EMPTY);
     }
 
     /**
@@ -139,9 +142,15 @@ public class MessageService {
         }
         String next = hasMore ? new Cursor(rows.get(rows.size() - 1).getCreatedAt(), rows.get(rows.size() - 1).getId()).encode() : null;
         Collections.reverse(rows);
+        return new MessagePage(toViews(rows, viewerId, conversationId), next);
+    }
+
+    private List<MessageView> toViews(List<Message> rows, UUID viewerId, UUID conversationId) {
         Map<UUID, String> nicknames = chats.nicknames(conversationId);
         java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return new MessagePage(rows.stream().map(m -> toView(m, nicknames, usernameToNickname)).toList(), next);
+        List<UUID> ids = rows.stream().map(Message::getId).toList();
+        Map<UUID, ReactionSummary> rxMap = messageReactions.summarizeAll(ids, viewerId);
+        return rows.stream().map(m -> toView(m, nicknames, usernameToNickname, rxMap.getOrDefault(m.getId(), ReactionSummary.EMPTY))).toList();
     }
 
     private java.util.Map<String, String> getUsernameToNicknameMap(UUID conversationId) {
@@ -153,7 +162,7 @@ public class MessageService {
     }
 
     /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
-    private static MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname) {
+    private static MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname, ReactionSummary reactions) {
         User sender = m.getSender();
         Profile profile = sender.getProfile();
         AttachmentView attachmentView = m.getAttachment() == null ? null : new AttachmentView(
@@ -170,7 +179,8 @@ public class MessageService {
                 attachmentView,
                 m.getCreatedAt(),
                 m.isPinned(),
-                m.isSystem());
+                m.isSystem(),
+                reactions != null ? reactions : ReactionSummary.EMPTY);
     }
 
     @Transactional
@@ -231,38 +241,26 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<MessageView> getPinnedMessages(UUID viewerId, UUID conversationId) {
         chats.requireMembership(viewerId, conversationId);
-        Map<UUID, String> nicknames = chats.nicknames(conversationId);
-        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return messages.findByConversationIdAndPinnedTrueOrderByCreatedAtDesc(conversationId)
-                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+        return toViews(messages.findByConversationIdAndPinnedTrueOrderByCreatedAtDesc(conversationId), viewerId, conversationId);
     }
 
     @Transactional(readOnly = true)
     public List<MessageView> searchMessages(UUID viewerId, UUID conversationId, String keyword) {
         chats.requireMembership(viewerId, conversationId);
-        Map<UUID, String> nicknames = chats.nicknames(conversationId);
         if (keyword == null || keyword.trim().isEmpty()) return Collections.emptyList();
-        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return messages.searchByContent(conversationId, keyword.trim())
-                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+        return toViews(messages.searchByContent(conversationId, keyword.trim()), viewerId, conversationId);
     }
 
     @Transactional(readOnly = true)
     public List<MessageView> getMediaMessages(UUID viewerId, UUID conversationId) {
         chats.requireMembership(viewerId, conversationId);
-        Map<UUID, String> nicknames = chats.nicknames(conversationId);
-        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return messages.findMediaMessages(conversationId)
-                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+        return toViews(messages.findMediaMessages(conversationId), viewerId, conversationId);
     }
 
     @Transactional(readOnly = true)
     public List<MessageView> getLinkMessages(UUID viewerId, UUID conversationId) {
         chats.requireMembership(viewerId, conversationId);
-        Map<UUID, String> nicknames = chats.nicknames(conversationId);
-        java.util.Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
-        return messages.findLinkMessages(conversationId)
-                .stream().map(m -> toView(m, nicknames, usernameToNickname)).toList();
+        return toViews(messages.findLinkMessages(conversationId), viewerId, conversationId);
     }
 
     /** Bỏ ký tự điều khiển, cắt khoảng trắng hai đầu, kiểm tra độ dài — cùng quy tắc với bình luận/bài viết. */

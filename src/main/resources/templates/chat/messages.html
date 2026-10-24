@@ -14,7 +14,7 @@
             </div>
             
             <!-- Tin nhắn bình thường -->
-            <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'">
+            <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'" th:attr="data-id=${m.id}">
                 <a th:href="@{/{user}(user=${m.sender.username})}">
                     <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
                 </a>
@@ -23,18 +23,43 @@
                         <span class="msg-sender mb-0" th:text="${m.sender.displayName}">Tên</span>
                         <svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
                     </div>
-                    <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
-                        <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
-                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
-                           th:href="${m.attachment.url}" target="_blank" rel="noopener">
-                            <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
-                        </a>
-                        <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
-                               class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
-                        <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="btn-al btn-al--white rounded-pill d-inline-block mt-1"
-                           th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener" style="color: var(--ink); border: 2px solid var(--ink); padding: 0.5rem 1rem; font-weight: bold; background: white;">file.pdf</a>
-                        <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
-                    </span>
+                    <div class="msg-bubble-wrap position-relative">
+                        <div class="msg-reaction-bar" th:if="${me != null}">
+                            <button type="button" class="msg-reaction-btn"
+                                    th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
+                                    th:attr="data-mid=${m.id}, data-cid=${conversation.id}, data-type=${type.name()}"
+                                    th:title="${type.label()}">
+                                <span th:text="${type.emoji()}"></span>
+                            </button>
+                        </div>
+                        <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                            <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
+                            <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
+                               th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                                <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
+                            </a>
+                            <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
+                                   class="msg-attachment-video" th:src="${m.attachment.url}" controls></video>
+                            <a th:if="${m.attachment != null and m.attachment.kind.name() == 'FILE'}" class="btn-al btn-al--white rounded-pill d-inline-block mt-1"
+                               th:href="${m.attachment.url}" th:text="${m.attachment.originalName}" target="_blank" rel="noopener" style="color: var(--ink); border: 2px solid var(--ink); padding: 0.5rem 1rem; font-weight: bold; background: white;">file.pdf</a>
+                            <span th:if="${!#strings.isEmpty(m.contentHtml)}" th:utext="${m.contentHtml}">Nội dung</span>
+                        </span>
+                        <div class="msg-reactions-badge" th:id="'msg-reactions-' + ${m.id}"
+                             th:classappend="${(m.reactions == null or m.reactions.total() == 0) ? 'd-none' : (m.reactions.total() == 1 ? 'is-single' : '')}"
+                             role="button" tabindex="0" title="Xem ai đã thả cảm xúc"
+                             data-bs-toggle="modal" data-bs-target="#reactorsModal"
+                             th:attr="data-mid=${m.id}, data-cid=${conversation.id}">
+                            <span class="msg-reactions-emojis">
+                                <span th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
+                                      th:class="'mr-emoji mr-emoji--' + ${type.name()}"
+                                      th:classappend="${(m.reactions == null or m.reactions.count(type) == 0) ? 'd-none' : ''}"
+                                      th:text="${type.emoji()}"></span>
+                            </span>
+                            <span class="msg-reactions-count"
+                                  th:classappend="${(m.reactions != null and m.reactions.total() > 1) ? '' : 'd-none'}"
+                                  th:text="${m.reactions != null ? m.reactions.total() : 0}">0</span>
+                        </div>
+                    </div>
                     <span class="msg-time d-flex align-items-center gap-2">
                         <span th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
                         <th:block th:with="isSender=${m.sender.id == me.id}, canPin=${header.group and canManage}, canDelete=${isSender or (header.group and canManage)}">
