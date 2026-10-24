@@ -11,25 +11,6 @@
 
     <div th:replace="~{fragments/composer :: composer}"></div>
 
-    <!-- Nhắc hoàn thiện hồ sơ: chỉ hiện khi còn thiếu, biến mất khi xong -->
-    <section class="note note--lemon mb-4" aria-labelledby="hello"
-             th:if="${me.profile.avatarUrl == null or me.profile.bio == null or #strings.isEmpty(me.profile.bio)}">
-        <h2 id="hello" class="h4 mb-2" th:text="'Chào ' + ${me.profile.displayName} + '!'">Chào bạn!</h2>
-        <p class="text-soft mb-2">Hoàn thiện hồ sơ để mọi người nhận ra bạn nhé.</p>
-        <ul class="todo">
-            <li th:classappend="${me.profile.avatarUrl != null} ? 'done'">
-                <span class="tick" aria-hidden="true" th:text="${me.profile.avatarUrl != null} ? '✓' : ''"></span>
-                <span class="label">Thêm ảnh đại diện</span>
-                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.avatarUrl != null}" th:href="@{/settings}">Thêm</a>
-            </li>
-            <li th:classappend="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? 'done'">
-                <span class="tick" aria-hidden="true" th:text="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? '✓' : ''"></span>
-                <span class="label">Viết vài dòng giới thiệu</span>
-                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)}" th:href="@{/settings}">Viết</a>
-            </li>
-        </ul>
-    </section>
-
     <div id="feed" class="feed">
         <th:block th:replace="~{feed/list :: list}"></th:block>
     </div>
@@ -48,21 +29,37 @@
     </section>
 
     <div th:replace="~{fragments/post-modals :: modals}"></div>
+    <div th:replace="~{fragments/mood :: customMoodModal}"></div>
 </main>
 
 <aside class="app-rail">
-    <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
+    <!-- Bảng tâm trạng hôm nay của bạn -->
+    <div th:replace="~{fragments/mood :: moodWidget}"></div>
 
-    <section class="note note--lemon tilt-r" aria-labelledby="role-title">
-        <h2 id="role-title" class="h3 mb-2">Vai trò của bạn</h2>
-        <p class="mb-2"><span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span></p>
-        <p class="mb-0 text-soft" th:switch="${me.primaryRole().name()}">
-            <span th:case="'ADMIN'">Bạn quản lý toàn hệ thống: nhân sự, cấu hình và nhật ký.</span>
-            <span th:case="'MANAGER'">Bạn kiểm duyệt nội dung và hỗ trợ người dùng.</span>
-            <span th:case="'CREATOR'">Bạn có công cụ Creator: thống kê, hẹn giờ đăng, huy hiệu fan.</span>
-            <span th:case="*">Bạn đăng bài, kết bạn và nhắn tin thoải mái.</span>
-        </p>
+    <!-- Vibe hôm nay của hội bạn bè -->
+    <div th:replace="~{fragments/mood :: friendsMoodBar}"></div>
+
+    <!-- Nhắc hoàn thiện hồ sơ: chỉ hiện khi còn thiếu, biến mất khi xong -->
+    <section class="note note--lemon mb-3 profile-todo-card" aria-labelledby="hello"
+             th:if="${me.profile.avatarUrl == null or me.profile.bio == null or #strings.isEmpty(me.profile.bio)}">
+        <h2 id="hello" class="h4 mb-2" th:text="'Chào ' + ${me.profile.displayName} + '!'">Chào bạn!</h2>
+        <p class="text-soft mb-2 small">Hoàn thiện hồ sơ để mọi người nhận ra bạn nhé.</p>
+        <ul class="todo">
+            <li class="todo-item" th:classappend="${me.profile.avatarUrl != null} ? 'done'">
+                <span class="tick" aria-hidden="true" th:text="${me.profile.avatarUrl != null} ? '✓' : ''"></span>
+                <span class="label small">Thêm ảnh đại diện</span>
+                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.avatarUrl != null}" th:href="@{/settings}">Thêm</a>
+            </li>
+            <li class="todo-item" th:classappend="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? 'done'">
+                <span class="tick" aria-hidden="true" th:text="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)} ? '✓' : ''"></span>
+                <span class="label small">Viết vài dòng giới thiệu</span>
+                <a class="ms-auto btn-al btn-al--sm" th:unless="${me.profile.bio != null and !#strings.isEmpty(me.profile.bio)}" th:href="@{/settings}">Viết</a>
+            </li>
+        </ul>
     </section>
+
+    <!-- Chủ đề thịnh hành -->
+    <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
 </aside>
 </body>
 </html>

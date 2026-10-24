@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#FFF8EC">
+    <title>Alô, cả hội đâu rồi? · ALOUTE</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/5.3.8/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+    <link rel="stylesheet" href="/css/aloute.css">
+</head>
+<body data-auth="false">
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+        <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></g></symbol>
+        <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></g></symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></g></symbol>
+        <symbol id="i-star" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></g></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></g></symbol>
+        <symbol id="i-crown" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19h18"/><path d="M4 19L3 8l5 4 4-7 4 7 5-4-1 11"/></g></symbol>
+        <symbol id="i-logout" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M16 8l4 4-4 4M20 12H9"/></g></symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.2s-7.2-4.4-9.6-9.1A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.6 5.1c-2.4 4.7-9.6 9.1-9.6 9.1z"/></g></symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 0 1 12 0c0 4.5 1.5 6 2 7H4c.5-1 2-2.5 2-7z"/><path d="M9.5 20a2.5 2.5 0 0 0 5 0"/></g></symbol>
+        <symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v11H8l-5 4z"/></g></symbol>
+        <symbol id="i-paperclip" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12.5l7-7a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></g></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M8 11l4 4 4-4M4 19h16"/></g></symbol>
+        <symbol id="i-send" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12L4 4l5.5 8L4 20z"/></g></symbol>
+        <symbol id="i-flame" viewBox="0 0 24 24">
+            <path fill="#FF7200" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+            <path fill="#FFEA00" stroke="var(--ink)" stroke-width="1.5" stroke-linejoin="round" d="M12 18a2 2 0 0 1-2-2c0-1 1-1.5 2-3 1 1.5 2 2 2 3a2 2 0 0 1-2 2z"/>
+        </symbol>
+    </defs>
+</svg>
+<a class="skip-link" href="#main">Bỏ qua, tới nội dung chính</a>
+
+<!-- ============ Khung ứng dụng (đã đăng nhập) ============ -->
+
+
+<!-- ============ Khung công khai (chưa đăng nhập) ============ -->
+
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="logo" href="/" aria-label="ALOUTE, về trang chủ">aloute</a>
+            <form class="topbar-search" method="get" action="/search" role="search">
+    <input type="search" name="q" class="input-al input-al--sm" placeholder="Tìm người, bài viết, #hashtag"
+           aria-label="Tìm kiếm" maxlength="100" value="">
+</form>
+            <span class="ms-auto"></span>
+            <a class="btn-al btn-al--ghost btn-al--sm d-none d-sm-inline-flex" href="/login">Đăng nhập</a>
+            <a class="btn-al btn-al--pink btn-al--sm" href="/register">Tạo tài khoản</a>
+        </div>
+    </header>
+    <div id="main">
+        
+        <main>
+    <section class="hero" aria-labelledby="hero-title">
+        <div>
+            <h1 id="hero-title">Alô, cả hội đâu rồi?</h1>
+            <p class="lead">Đăng ảnh, khoe clip, nhắn nhóm và làm fan cứng của người mình thích. Tất cả ở một chỗ, không cần lịch sự quá.</p>
+            <div class="hero-cta">
+                <a class="btn-al btn-al--pink btn-al--lg" href="/register">Tạo tài khoản</a>
+                <a class="btn-al btn-al--white btn-al--lg" href="/login">Tôi có tài khoản rồi</a>
+            </div>
+        </div>
+
+        <!-- Mặt bàn sticker: minh họa, không phải nội dung thật -->
+        <div class="desk" aria-hidden="true">
+            <article class="note note--taped d-post">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="avatar" style="--size:40px; background:var(--lavender)">M</span>
+                    <div><strong>mochi.02</strong><div class="text-soft" style="font-size:.85rem">vừa xong</div></div>
+                </div>
+                <div class="mock-img"></div>
+                <p class="mb-2 fw-semibold">Chiều nay ai đi ăn kem không? 🍦</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="sticker sticker--pink" style="--rot:-2deg">❤️ 128</span>
+                    <span class="sticker" style="--rot:2deg">😂 34</span>
+                    <span class="sticker sticker--sky" style="--rot:-1deg"><span class="icon-flame d-inline-block">🔥</span> 51</span>
+                </div>
+            </article>
+
+            <div class="note note--mint d-chat">
+                <span class="bubble bubble--in">tối nay học nhóm ở đâu?</span>
+                <span class="bubble bubble--out">quán cũ, 7h nha 📚</span>
+                <span class="bubble bubble--in mb-0">ok, nhớ mang sạc dự phòng</span>
+            </div>
+
+            <span class="sticker sticker--lavender d-badge" style="font-size:1.05rem">Creator ✦</span>
+            <span class="sticker sticker--round sticker--tangerine d-star">✨</span>
+            <span class="sticker sticker--pink d-fan">Fan cứng 💗</span>
+        </div>
+    </section>
+
+    <section class="feature-strip" aria-label="Bạn làm được gì ở ALOUTE">
+        <article class="note note--pink tilt-l">
+            <h3>Bảng tin của riêng bạn</h3>
+            <p>Đăng chữ, ảnh, video. Bạn bè thả tim, bình luận, chia sẻ.</p>
+        </article>
+        <article class="note note--mint tilt-r">
+            <h3>Nhắn tin liền tay</h3>
+            <p>Chat đôi, chat nhóm, gửi file. Tin đến là thấy ngay.</p>
+        </article>
+        <article class="note note--lemon tilt-l">
+            <h3>Có người theo dõi?</h3>
+            <p>Lên Creator để xem thống kê, hẹn giờ đăng và tặng huy hiệu cho fan cứng.</p>
+        </article>
+    </section>
+</main>
+    </div>
+    <footer class="site-footer">aloute · làm bởi sinh viên, cho cả hội</footer>
+
+
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+<script src="/webjars/bootstrap/5.3.8/js/bootstrap.bundle.min.js"></script>
+<script src="/js/aloute.js"></script>
+<script src="/js/feed.js"></script>
+<script src="/js/mention.js"></script>
+<script src="/js/lightbox.js"></script>
+<script src="/js/profile.js"></script>
+</body>
+</html>

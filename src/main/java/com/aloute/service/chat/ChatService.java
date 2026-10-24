@@ -77,7 +77,7 @@ public class ChatService {
     }
 
     /** So sánh theo chuỗi hex, giống {@code FriendService#pair}, để chuẩn hóa cặp id không phụ thuộc thứ tự gọi. */
-    static String directKey(UUID a, UUID b) {
+    public static String directKey(UUID a, UUID b) {
         return a.toString().compareTo(b.toString()) < 0 ? a + "_" + b : b + "_" + a;
     }
 
@@ -513,7 +513,9 @@ public class ChatService {
         }
 
         Map<UUID, Streak> streakById = streaks.forConversations(mine.stream()
-                .map(ConversationMember::getConversation).map(Conversation::getId).toList());
+                .map(ConversationMember::getConversation)
+                .filter(c -> !c.isGroup())
+                .map(Conversation::getId).toList());
         List<ConversationSummaryView> views = new ArrayList<>();
         for (ConversationMember membership : mine) {
             Conversation conversation = membership.getConversation();

@@ -14,6 +14,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     Optional<Conversation> findByDirectKey(String directKey);
 
+    java.util.List<Conversation> findByDirectKeyIn(java.util.Collection<String> directKeys);
+
     @Query("select c from Conversation c where c.id = :id and c.type = com.aloute.model.chat.ConversationType.GROUP")
     Optional<Conversation> findGroupById(@Param("id") UUID id);
 }
