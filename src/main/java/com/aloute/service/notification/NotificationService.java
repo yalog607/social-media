@@ -5,6 +5,7 @@ import com.aloute.model.notification.Notification;
 import com.aloute.model.notification.NotificationType;
 import com.aloute.repository.notification.NotificationRepository;
 
+import com.aloute.model.comment.Comment;
 import com.aloute.model.post.Post;
 import com.aloute.dto.post.PostView;
 import com.aloute.model.user.Profile;
@@ -55,6 +56,11 @@ public class NotificationService {
     @Transactional
     public void postReacted(UUID actorId, Post post) {
         notify(post.getAuthor().getId(), actorId, NotificationType.POST_REACTION, post);
+    }
+
+    @Transactional
+    public void commentReacted(UUID actorId, Comment comment) {
+        notify(comment.getAuthor().getId(), actorId, NotificationType.COMMENT_REACTION, comment.getPost());
     }
 
     @Transactional
@@ -228,6 +234,7 @@ public class NotificationService {
             case FRIEND_ACCEPTED -> name + " đã chấp nhận lời mời kết bạn của bạn";
             case NEW_FOLLOWER -> name + " đã bắt đầu theo dõi bạn";
             case POST_REACTION -> name + " đã bày tỏ cảm xúc về bài viết của bạn";
+            case COMMENT_REACTION -> name + " đã bày tỏ cảm xúc về bình luận của bạn";
             case POST_COMMENT -> name + " đã bình luận về bài viết của bạn";
             case COMMENT_REPLY -> name + " đã trả lời bình luận của bạn";
             case POST_SHARED -> name + " đã chia sẻ bài viết của bạn";

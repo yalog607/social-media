@@ -18,5 +18,6 @@ public enum NotificationType {
     MENTION,
     SUPPORT,
     REPORT,
-    GUESTBOOK_ENTRY
+    GUESTBOOK_ENTRY,
+    COMMENT_REACTION
 }

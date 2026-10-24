@@ -1,6 +1,7 @@
 package com.aloute.service.comment;
 
 import com.aloute.dto.comment.CommentView;
+import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.exception.comment.CommentNotFoundException;
 import com.aloute.exception.comment.InvalidCommentException;
 import com.aloute.model.comment.Comment;
@@ -51,10 +52,12 @@ public class CommentService {
     private final FanService fans;
     private final MentionService mentions;
     private final MediaService media;
+    private final CommentReactionService commentReactions;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
-                          FanService fans, MentionService mentions, MediaService media) {
+                          FanService fans, MentionService mentions, MediaService media,
+                          CommentReactionService commentReactions) {
         this.media = media;
         this.fans = fans;
         this.mentions = mentions;
@@ -64,6 +67,7 @@ public class CommentService {
         this.rateLimiter = rateLimiter;
         this.notifications = notifications;
         this.clock = clock;
+        this.commentReactions = commentReactions;
     }
 
     /**
@@ -140,6 +144,8 @@ public class CommentService {
         List<Comment> flat = comments.findByPostId(postId);
         Map<UUID, FanBadge> badges = fans.badgesFor(post.getAuthor().getId(),
                 flat.stream().map(c -> c.getAuthor().getId()).distinct().toList());
+        List<UUID> allCommentIds = flat.stream().map(Comment::getId).toList();
+        Map<UUID, ReactionSummary> reactionsByComment = commentReactions.summarizeAll(allCommentIds, viewerId);
 
         Map<UUID, List<Comment>> repliesByParent = new LinkedHashMap<>();
         List<Comment> roots = new ArrayList<>();
@@ -159,15 +165,15 @@ public class CommentService {
             }
             List<CommentView> replyViews = replies.stream()
                     .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
-                    .map(reply -> toView(reply, viewerId, List.of(), badges))
+                    .map(reply -> toView(reply, viewerId, List.of(), badges, reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY)))
                     .toList();
-            views.add(toView(root, viewerId, replyViews, badges));
+            views.add(toView(root, viewerId, replyViews, badges, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY)));
         }
         return views;
     }
 
     private static CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
-                                      Map<UUID, FanBadge> badges) {
+                                      Map<UUID, FanBadge> badges, ReactionSummary reactions) {
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
@@ -182,7 +188,8 @@ public class CommentService {
                 mine,
                 deleted,
                 replies,
-                badges.get(author.getId()));
+                badges.get(author.getId()),
+                reactions);
     }
 
     /** Nếu giao dịch không commit (rollback hoặc commit lỗi) thì xóa file ảnh đã ghi ra đĩa. */
