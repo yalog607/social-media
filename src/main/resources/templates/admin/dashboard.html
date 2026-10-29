@@ -10,8 +10,48 @@
     </div>
     <th:block th:replace="~{admin/nav :: tabs('dashboard')}"></th:block>
 
+    <!-- Bộ lọc thời gian -->
+    <div class="note mb-3 p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <span class="small text-soft me-1">Khoảng thời gian:</span>
+                <a class="btn-al btn-al--sm" th:classappend="${overviewData.period() == 'TODAY'} ? 'btn-al--role' : 'btn-al--white'"
+                   th:href="@{/admin(period='TODAY')}">Hôm nay</a>
+                <a class="btn-al btn-al--sm" th:classappend="${overviewData.period() == '7_DAYS'} ? 'btn-al--role' : 'btn-al--white'"
+                   th:href="@{/admin(period='7_DAYS')}">7 ngày qua</a>
+                <a class="btn-al btn-al--sm" th:classappend="${overviewData.period() == '30_DAYS'} ? 'btn-al--role' : 'btn-al--white'"
+                   th:href="@{/admin(period='30_DAYS')}">30 ngày qua</a>
+                <a class="btn-al btn-al--sm" th:classappend="${overviewData.period() == 'THIS_MONTH'} ? 'btn-al--role' : 'btn-al--white'"
+                   th:href="@{/admin(period='THIS_MONTH')}">Tháng này</a>
+                <a class="btn-al btn-al--sm" th:classappend="${overviewData.period() == 'ALL'} ? 'btn-al--role' : 'btn-al--white'"
+                   th:href="@{/admin(period='ALL')}">Toàn thời gian</a>
+            </div>
+            <span class="small text-soft" th:text="'Múi giờ: GMT+7 · ' + ${overviewData.periodLabel()}">7 ngày qua</span>
+        </div>
+        <form method="get" th:action="@{/admin}" class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top" style="border-color: var(--line) !important;">
+            <input type="hidden" name="period" value="CUSTOM">
+            <span class="small text-soft">Tùy chọn:</span>
+            <label class="small text-soft mb-0" for="fromInput">Từ</label>
+            <input id="fromInput" type="date" name="from" class="input-al input-al--sm" style="width: auto;" th:value="${overviewData.fromDate()}">
+            <label class="small text-soft mb-0" for="toInput">Đến</label>
+            <input id="toInput" type="date" name="to" class="input-al input-al--sm" style="width: auto;" th:value="${overviewData.toDate()}">
+            <button type="submit" class="btn-al btn-al--white btn-al--sm">Áp dụng</button>
+        </form>
+    </div>
+
+    <!-- Nhóm 1: Chỉ số phát sinh trong kỳ -->
+    <h2 class="h5 mb-2 mt-4">Chỉ số phát sinh theo kỳ (<span th:text="${overviewData.periodLabel()}"></span>)</h2>
+    <section class="stat-grid mb-4">
+        <div class="note stat" th:each="e : ${overviewData.periodStats()}">
+            <span class="stat-label" th:text="${e.key}">Nhãn</span>
+            <strong class="stat-value" th:text="${e.value}">0</strong>
+        </div>
+    </section>
+
+    <!-- Nhóm 2: Chỉ số tích lũy toàn hệ thống -->
+    <h2 class="h5 mb-2">Chỉ số tích lũy toàn hệ thống</h2>
     <section class="stat-grid">
-        <div class="note stat" th:each="e : ${overview}">
+        <div class="note stat" th:each="e : ${overviewData.systemStats()}">
             <span class="stat-label" th:text="${e.key}">Nhãn</span>
             <strong class="stat-value" th:text="${e.value}">0</strong>
         </div>

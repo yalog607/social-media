@@ -12,17 +12,21 @@
 
     <form method="get" th:action="@{/admin/users}" class="d-flex gap-2 mb-3">
         <input name="q" class="input-al" th:value="${q}" placeholder="Tìm theo username, email hoặc tên" aria-label="Tìm người dùng">
+        <input type="hidden" name="size" th:value="${usersPage.size()}">
         <button type="submit" class="btn-al btn-al--sm">Tìm</button>
     </form>
-    <p class="note note--sky empty" th:if="${#lists.isEmpty(users)}">Không tìm thấy ai.</p>
-    <table class="table-al" th:unless="${#lists.isEmpty(users)}">
+    <p class="note note--sky empty" th:if="${usersPage.totalItems() == 0}">Không tìm thấy ai.</p>
+    <table class="table-al" th:unless="${usersPage.totalItems() == 0}">
         <thead><tr><th>Tài khoản</th><th>Vai trò</th><th>Trạng thái</th><th></th></tr></thead>
         <tbody>
-        <tr th:each="u : ${users}">
+        <tr th:each="u : ${usersPage.items()}">
             <td><a th:href="@{/u/{u}(u=${u.username()})}" th:text="${u.displayName()}">Tên</a><br>
                 <span class="text-soft small" th:text="${u.email()}">email</span></td>
             <td th:text="${u.roles()}">USER</td>
-            <td th:text="${u.status()}">ACTIVE</td>
+            <td>
+                <span th:text="${u.status()}">ACTIVE</span>
+                <span th:if="${u.isSuspended()}" class="badge bg-danger ms-1 text-white small" style="font-size: 0.75rem;">ĐANG KHÓA</span>
+            </td>
             <td th:unless="${u.isAdmin() or u.isDeleted()}">
                 <div class="d-flex flex-wrap gap-1">
                     <form method="post" th:if="${u.isActive()}" th:action="@{/admin/users/{id}/suspend(id=${u.id()})}">
@@ -44,6 +48,8 @@
         </tr>
         </tbody>
     </table>
+
+    <div th:replace="~{fragments/pagination :: pager(${usersPage}, '/admin/users')}"></div>
 </main>
 </body>
 </html>

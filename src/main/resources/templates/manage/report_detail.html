@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Chi tiết xử lý báo cáo', ~{::main}, 'manage', ~{})}">
+<head><title>Chi tiết xử lý báo cáo</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Kiểm duyệt</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{manage/nav :: tabs('reports_history')}"></th:block>
+
+    <div class="mb-3">
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/manage/reports/history}">← Quay lại danh sách báo cáo</a>
+    </div>
+
+    <!-- Thông tin kết quả xử lý & Truy vết -->
+    <section class="note mb-3 p-4" style="border-left: 6px solid #6366f1;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <h2 class="h4 mb-0">Quyết định xử lý kiểm duyệt</h2>
+            <span th:if="${report.action() == 'SUSPEND'}" class="badge bg-danger text-white fs-6 p-2">Khóa tài khoản</span>
+            <span th:if="${report.action() == 'WARN'}" class="badge bg-warning text-dark fs-6 p-2">Cảnh cáo</span>
+            <span th:if="${report.action() == 'REMOVE_CONTENT'}" class="badge bg-primary text-white fs-6 p-2">Gỡ nội dung</span>
+            <span th:if="${report.action() == 'DISMISS'}" class="badge bg-secondary text-white fs-6 p-2">Bác bỏ (Không vi phạm)</span>
+            <span th:if="${report.action() == null}" class="badge bg-info text-white fs-6 p-2" th:text="${report.status()}">RESOLVED</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <p class="mb-1 text-soft small">Người xử lý:</p>
+                <p class="mb-2 fw-bold" th:text="${report.handlerName() != null} ? ${report.handlerName()} : '—'">Kiểm duyệt viên</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1 text-soft small">Thời điểm xử lý:</p>
+                <p class="mb-2 fw-bold" th:if="${report.handledAt() != null}">
+                    <span th:text="${@timeAgo.format(report.handledAt())}">vừa xong</span>
+                    <span class="text-soft font-monospace small" th:text="'(' + ${@timeAgo.full(report.handledAt())} + ')'"></span>
+                </p>
+                <p class="mb-2 fw-bold" th:unless="${report.handledAt() != null}">—</p>
+            </div>
+            <div class="col-12" th:if="${report.handlingNote() != null and !report.handlingNote().isBlank()}">
+                <p class="mb-1 text-soft small">Lý do / Ghi chú từ người kiểm duyệt:</p>
+                <blockquote class="note note--mint mb-0 p-2" style="white-space: pre-line;" th:text="${report.handlingNote()}">
+                    Ghi chú...
+                </blockquote>
+            </div>
+        </div>
+    </section>
+
+    <!-- Nội dung đối tượng bị báo cáo (Truy vết) -->
+    <section class="note mb-3 p-4">
+        <h3 class="h5 mb-3 border-bottom pb-2">Đối tượng và nội dung bị báo cáo</h3>
+
+        <div class="mb-3">
+            <span class="role-chip" th:text="${report.targetType()}">POST</span>
+            <span class="text-soft ms-2">Người sở hữu: </span>
+            <strong th:text="${report.ownerName() != null} ? ${report.ownerName()} : '—'">Tác giả</strong>
+            <span th:if="${report.contentRemoved()}" class="badge bg-secondary ms-2 small">Nội dung này hiện đã bị gỡ</span>
+        </div>
+
+        <div class="mb-3">
+            <p class="mb-1 text-soft small">Nội dung trích đoạn tại thời điểm xử lý:</p>
+            <blockquote class="note note--lemon mb-0 p-3" style="font-size: 1rem; white-space: pre-line;"
+                        th:if="${report.contentSnapshot() != null and !report.contentSnapshot().isBlank()}"
+                        th:text="${report.contentSnapshot()}">
+                Nội dung vi phạm...
+            </blockquote>
+            <p class="text-soft small italic" th:unless="${report.contentSnapshot() != null and !report.contentSnapshot().isBlank()}">
+                (Không có trích đoạn văn bản)
+            </p>
+        </div>
+
+        <div class="d-flex gap-2" th:if="${report.targetType() == 'POST' and !report.contentRemoved()}">
+            <a class="btn-al btn-al--white btn-al--sm" th:href="@{/posts/{id}(id=${report.targetId()})}" target="_blank">
+                Mở bài viết gốc ↗
+            </a>
+        </div>
+    </section>
+
+    <!-- Chi tiết báo cáo ban đầu -->
+    <section class="note mb-3 p-4">
+        <h3 class="h5 mb-3 border-bottom pb-2">Thông tin phiếu báo cáo</h3>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <span class="text-soft small">Người gửi báo cáo:</span>
+                <p class="fw-bold mb-2" th:text="${report.reporterName()}">Người dùng</p>
+            </div>
+            <div class="col-md-6">
+                <span class="text-soft small">Thời điểm gửi:</span>
+                <p class="fw-bold mb-2">
+                    <span th:text="${@timeAgo.format(report.createdAt())}">1 ngày trước</span>
+                    <span class="text-soft small" th:text="'(' + ${@timeAgo.full(report.createdAt())} + ')'"></span>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <span class="text-soft small">Lý do báo cáo:</span>
+                <p class="fw-bold mb-2" th:text="${report.reason()}">SPAM</p>
+            </div>
+            <div class="col-12" th:if="${report.detail() != null and !report.detail().isBlank()}">
+                <span class="text-soft small">Mô tả bổ sung từ người báo cáo:</span>
+                <p class="p-2 rounded bg-light border mb-0" th:text="${report.detail()}">Chi tiết</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Các báo cáo trùng cùng được giải quyết -->
+    <section class="note mb-3 p-4" th:if="${coReports != null and !#lists.isEmpty(coReports)}">
+        <h3 class="h5 mb-2 border-bottom pb-2">
+            Các báo cáo khác về cùng đối tượng (<span th:text="${#lists.size(coReports)}">1</span>)
+        </h3>
+        <p class="small text-soft mb-2">Hệ thống đã tự động đóng đồng thời các báo cáo này trong cùng lần xử lý:</p>
+        <div class="list-group">
+            <div class="list-group-item p-2 mb-1 border rounded" th:each="cr : ${coReports}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        Báo cáo bởi <strong th:text="${cr.reporterName()}">Tên</strong> ·
+                        Lý do: <span class="badge bg-light text-dark border" th:text="${cr.reason()}">SPAM</span>
+                        <span class="text-soft small ms-1" th:if="${cr.detail() != null}" th:text="'- ' + ${cr.detail()}"></span>
+                    </div>
+                    <span class="small text-soft" th:text="${@timeAgo.format(cr.createdAt())}">vừa xong</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

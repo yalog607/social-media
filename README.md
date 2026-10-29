@@ -13,7 +13,7 @@ Trạng thái: đăng ký/đăng nhập, phân quyền 4 vai trò, hồ sơ, b�
 
 ```bash
 docker compose up -d postgres mailhog
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
 Mở http://localhost:8080. Email "quên mật khẩu" xem ở http://localhost:8025 (MailHog).

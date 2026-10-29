@@ -172,4 +172,64 @@ class AdminServiceIT extends IntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("tạm ngừng nhận đăng ký")));
     }
+
+    @Test
+    void overviewFiltersMetricsByTimePeriodsAndDateRanges() {
+        var today = admin.overview("TODAY", null, null);
+        assertThat(today.period()).isEqualTo("TODAY");
+        assertThat(today.periodStats()).containsKeys("Đăng ký mới", "Bài viết mới", "Bình luận mới", "Quyết định xử phạt");
+        assertThat(today.systemStats()).containsKeys("Tổng người dùng", "Xu đang lưu hành");
+
+        var custom = admin.overview("CUSTOM", java.time.LocalDate.now().minusDays(3), java.time.LocalDate.now());
+        assertThat(custom.period()).isEqualTo("CUSTOM");
+        assertThat(custom.fromDate()).isEqualTo(java.time.LocalDate.now().minusDays(3));
+        assertThat(custom.toDate()).isEqualTo(java.time.LocalDate.now());
+
+        var month = admin.overview("THIS_MONTH", null, null);
+        assertThat(month.period()).isEqualTo("THIS_MONTH");
+        assertThat(month.periodLabel()).contains("Tháng này");
+    }
+
+    @Test
+    void searchAndManagersSupportPagination() {
+        User u1 = createUser();
+        User u2 = createUser();
+        var searchPage = admin.search("", 0, 1);
+        assertThat(searchPage.size()).isEqualTo(1);
+        assertThat(searchPage.items()).hasSize(1);
+        assertThat(searchPage.totalItems()).isGreaterThanOrEqualTo(2);
+        assertThat(searchPage.totalPages()).isGreaterThanOrEqualTo(2);
+        assertThat(searchPage.hasNext()).isTrue();
+
+        User adminUser = createUser(Role.ADMIN);
+        admin.grantManager(adminUser.getId(), u1.getUsername());
+        var mgrPage = admin.managers(0, 10);
+        assertThat(mgrPage.totalItems()).isGreaterThanOrEqualTo(1);
+        assertThat(mgrPage.items()).extracting(StaffMember::id).contains(u1.getId());
+    }
+
+    @Test
+    void auditSearchCombinesActorActionAndDateFilters() {
+        User adminUser = createUser(Role.ADMIN);
+        User target = createUser();
+        admin.suspend(adminUser.getId(), target.getId(), "vi phạm điều khoản");
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        var result = audit.search(0, 10, "USER_SUSPENDED", adminUser.getUsername(), today.minusDays(1), today.plusDays(1));
+        assertThat(result.items()).isNotEmpty();
+        assertThat(result.items().get(0).action()).isEqualTo("USER_SUSPENDED");
+        assertThat(result.items().get(0).actorUsername()).isEqualTo(adminUser.getUsername());
+
+        var emptyResult = audit.search(0, 10, "USER_SUSPENDED", "khong-ton-tai-username", null, null);
+        assertThat(emptyResult.items()).isEmpty();
+    }
+
+    @Test
+    void adminReportsEndpointsAccessibleOnlyByAdmin() throws Exception {
+        User adminUser = createUser(Role.ADMIN);
+        User manager = createUser(Role.MANAGER);
+
+        mvc.perform(get("/admin/reports").with(asUser(adminUser))).andExpect(status().isOk());
+        mvc.perform(get("/admin/reports").with(asUser(manager))).andExpect(status().isForbidden());
+    }
 }

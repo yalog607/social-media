@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Lịch sử báo cáo', ~{::main}, 'admin', ~{})}">
+<head><title>Lịch sử báo cáo đã xử lý</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Quản trị</h1>
+        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
+    </div>
+    <th:block th:replace="~{admin/nav :: tabs('reports')}"></th:block>
+
+    <!-- Bộ lọc -->
+    <form method="get" th:action="@{/admin/reports}" class="note mb-3 p-3">
+        <input type="hidden" name="size" th:value="${reportsPage.size()}">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="small text-soft mb-1" for="targetTypeSelect">Loại đối tượng:</label>
+                <select id="targetTypeSelect" name="targetType" class="input-al w-100">
+                    <option value="" th:selected="${targetType == null or targetType == ''}">— Tất cả đối tượng —</option>
+                    <option value="POST" th:selected="${targetType == 'POST'}">Bài viết (POST)</option>
+                    <option value="COMMENT" th:selected="${targetType == 'COMMENT'}">Bình luận (COMMENT)</option>
+                    <option value="USER" th:selected="${targetType == 'USER'}">Tài khoản (USER)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="small text-soft mb-1" for="actionSelect">Quyết định xử lý:</label>
+                <select id="actionSelect" name="action" class="input-al w-100">
+                    <option value="" th:selected="${action == null or action == ''}">— Tất cả quyết định —</option>
+                    <option value="SUSPEND" th:selected="${action == 'SUSPEND'}">Khóa tài khoản</option>
+                    <option value="WARN" th:selected="${action == 'WARN'}">Cảnh cáo</option>
+                    <option value="REMOVE_CONTENT" th:selected="${action == 'REMOVE_CONTENT'}">Gỡ nội dung</option>
+                    <option value="DISMISS" th:selected="${action == 'DISMISS'}">Bác bỏ</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="small text-soft mb-1" for="fromInput">Từ ngày:</label>
+                <input id="fromInput" type="date" name="from" class="input-al w-100" th:value="${from}">
+            </div>
+            <div class="col-md-2">
+                <label class="small text-soft mb-1" for="toInput">Đến ngày:</label>
+                <input id="toInput" type="date" name="to" class="input-al w-100" th:value="${to}">
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn-al btn-al--sm flex-grow-1">Lọc</button>
+                <a th:if="${targetType != null or action != null or from != null or to != null}"
+                   th:href="@{/admin/reports}" class="btn-al btn-al--white btn-al--sm" title="Xóa bộ lọc">✕</a>
+            </div>
+        </div>
+    </form>
+
+    <p class="note note--sky empty" th:if="${reportsPage.totalItems() == 0}">Chưa có báo cáo nào đã xử lý phù hợp điều kiện lọc.</p>
+    <table class="table-al" th:unless="${reportsPage.totalItems() == 0}">
+        <thead>
+        <tr>
+            <th>Thời điểm</th>
+            <th>Đối tượng</th>
+            <th>Người vi phạm</th>
+            <th>Lý do</th>
+            <th>Quyết định</th>
+            <th>Người xử lý</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="r : ${reportsPage.items()}">
+            <td th:title="${r.handledAt() != null} ? ${@timeAgo.full(r.handledAt())} : ''"
+                th:text="${r.handledAt() != null} ? ${@timeAgo.format(r.handledAt())} : '—'">vừa xong</td>
+            <td>
+                <span class="role-chip small" style="font-size: 0.75rem;" th:text="${r.targetType()}">POST</span>
+                <span th:if="${r.contentRemoved()}" class="badge bg-secondary ms-1 small" style="font-size:0.7rem;">Đã gỡ</span>
+            </td>
+            <td>
+                <span th:text="${r.ownerName() != null} ? ${r.ownerName()} : '—'">Tên</span>
+            </td>
+            <td>
+                <strong th:text="${r.reason()}">SPAM</strong>
+            </td>
+            <td>
+                <span th:if="${r.action() == 'SUSPEND'}" class="badge bg-danger text-white small">Khóa tài khoản</span>
+                <span th:if="${r.action() == 'WARN'}" class="badge bg-warning text-dark small">Cảnh cáo</span>
+                <span th:if="${r.action() == 'REMOVE_CONTENT'}" class="badge bg-primary text-white small">Gỡ nội dung</span>
+                <span th:if="${r.action() == 'DISMISS'}" class="badge bg-secondary text-white small">Bác bỏ</span>
+                <span th:if="${r.action() == null}" th:text="${r.status()}">RESOLVED</span>
+            </td>
+            <td th:text="${r.handlerName() != null} ? ${r.handlerName()} : '—'">Kiểm duyệt viên</td>
+            <td>
+                <a class="btn-al btn-al--white btn-al--sm" th:href="@{/admin/reports/{id}(id=${r.id()})}">Xem chi tiết</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div th:replace="~{fragments/pagination :: pager(${reportsPage}, '/admin/reports')}"></div>
+</main>
+</body>
+</html>

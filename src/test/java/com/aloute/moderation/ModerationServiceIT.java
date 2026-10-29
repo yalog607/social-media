@@ -219,4 +219,95 @@ class ModerationServiceIT extends IntegrationTest {
         mvc.perform(post("/manage/reports/" + id).param("action", "DISMISS").with(csrf()).with(asUser(manager)))
                 .andExpect(status().is3xxRedirection());
     }
+
+    @Test
+    void reportResolutionStoresActionNoteSnapshotAndOwnerId() {
+        User manager = createUser(Role.MANAGER);
+        User author = createUser();
+        Post post = publicPost(author);
+        UUID reportId = report(createUser(), ReportTargetType.POST, post.getId());
+
+        moderation.handle(manager.getId(), reportId, ReportAction.REMOVE_CONTENT, "vi phạm bản quyền");
+
+        var reportRow = jdbc.queryForMap(
+                "select action, handling_note, content_snapshot, target_owner_id from reports where id = ?",
+                reportId);
+        assertThat(reportRow.get("action")).isEqualTo("REMOVE_CONTENT");
+        assertThat(reportRow.get("handling_note")).isEqualTo("vi phạm bản quyền");
+        assertThat(reportRow.get("content_snapshot")).isEqualTo("bài vi phạm");
+        assertThat(reportRow.get("target_owner_id")).isEqualTo(author.getId());
+    }
+
+    @Test
+    void resolvedReportsFiltersAndPagination() {
+        User manager = createUser(Role.MANAGER);
+        User author = createUser();
+        Post post1 = publicPost(author);
+        UUID r1 = report(createUser(), ReportTargetType.POST, post1.getId());
+        moderation.handle(manager.getId(), r1, ReportAction.REMOVE_CONTENT, "spam");
+
+        Post post2 = publicPost(author);
+        Comment comment = comments.create(author.getId(), post2.getId(), null, "bình luận test");
+        UUID r2 = report(createUser(), ReportTargetType.COMMENT, comment.getId());
+        moderation.handle(manager.getId(), r2, ReportAction.DISMISS, "hợp lệ");
+
+        var allResolved = moderation.resolvedReports(0, 10, null, null, null, null);
+        assertThat(allResolved.items()).isNotEmpty();
+        assertThat(allResolved.totalItems()).isGreaterThanOrEqualTo(2);
+
+        var postOnly = moderation.resolvedReports(0, 10, "POST", null, null, null);
+        assertThat(postOnly.items()).allMatch(i -> "POST".equals(i.targetType()));
+
+        var dismissOnly = moderation.resolvedReports(0, 10, null, "DISMISS", null, null);
+        assertThat(dismissOnly.items()).allMatch(i -> "DISMISS".equals(i.action()));
+
+        var detail = moderation.getResolvedReport(r1);
+        assertThat(detail).isNotNull();
+        assertThat(detail.action()).isEqualTo("REMOVE_CONTENT");
+        assertThat(detail.contentSnapshot()).isEqualTo("bài vi phạm");
+        assertThat(detail.targetOwnerId()).isEqualTo(author.getId());
+    }
+
+    @Test
+    void coReportsAndSuspendedReportLink() {
+        User manager = createUser(Role.MANAGER);
+        User author = createUser();
+        Post post = publicPost(author);
+        UUID r1 = report(createUser(), ReportTargetType.POST, post.getId());
+        UUID r2 = report(createUser(), ReportTargetType.POST, post.getId());
+
+        moderation.handle(manager.getId(), r1, ReportAction.SUSPEND, "hành vi độc hại");
+
+        var coReports = moderation.getCoReports(r1);
+        assertThat(coReports).extracting(com.aloute.dto.moderation.ResolvedReportItem::id).contains(r2);
+
+        var suspendedList = moderation.suspended();
+        var suspended = suspendedList.stream().filter(s -> s.userId().equals(author.getId())).findFirst().orElseThrow();
+        assertThat(suspended.reportId()).isEqualTo(r1);
+    }
+
+    @Test
+    void reportHistoryEndpointsAreAccessible() throws Exception {
+        User manager = createUser(Role.MANAGER);
+        User author = createUser();
+        Post post = publicPost(author);
+        UUID reportId = report(createUser(), ReportTargetType.POST, post.getId());
+        moderation.handle(manager.getId(), reportId, ReportAction.REMOVE_CONTENT, "tiêu chuẩn cộng đồng");
+
+        mvc.perform(get("/manage/reports/history").with(asUser(manager)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Gỡ nội dung")));
+
+        mvc.perform(get("/manage/reports/history/" + reportId).with(asUser(manager)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("bài vi phạm")))
+                .andExpect(content().string(containsString("tiêu chuẩn cộng đồng")));
+
+        User adminUser = createUser(Role.ADMIN);
+        mvc.perform(get("/admin/reports/" + reportId).with(asUser(adminUser)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("bài vi phạm")))
+                .andExpect(content().string(containsString("tiêu chuẩn cộng đồng")));
+    }
 }
+
