@@ -20,8 +20,8 @@ public final class SafeRedirect {
         if (!internal) {
             return HOME;
         }
-        // Tránh vòng lặp chuyển hướng quay về trang xác thực
-        if (value.startsWith("/login") || value.startsWith("/register") || value.startsWith("/auth/")) {
+        // Tránh vòng lặp chuyển hướng quay về trang xác thực hoặc form action
+        if (value.startsWith("/login") || value.startsWith("/register") || value.startsWith("/auth/") || value.startsWith("/mood")) {
             return HOME;
         }
         return value;

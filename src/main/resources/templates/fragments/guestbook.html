@@ -14,40 +14,45 @@
             <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
 
             <div class="mb-3">
-                <textarea name="content" class="input-al w-100" rows="3" maxlength="500" required
+                <textarea id="guestbookTextarea" name="content" class="input-al w-100" rows="3" maxlength="500" required
                           placeholder="Viết vài dòng chúc mừng, nhắn gửi kỷ niệm học trò hay đôi lời dễ thương..."
                           th:text="${draftContent != null} ? ${draftContent} : ''"
-                          style="min-height: 90px;"></textarea>
+                          style="min-height: 90px; background-color: #FFFCE6;"></textarea>
             </div>
 
             <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
                 <!-- Chọn màu giấy note pastel -->
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="fw-bold text-soft small">Màu giấy:</span>
-                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
-                        <input type="radio" name="colorTheme" value="lemon" checked class="form-check-input mt-0"
-                               th:checked="${draftColor == null or draftColor == 'lemon'}">
-                        <span class="badge" style="background:#FFF6BF; color:#16121F; border:1.5px solid #16121F;">Vàng</span>
+                    <label class="guestbook-color-label" title="Vàng chanh">
+                        <input type="radio" name="colorTheme" value="lemon" checked class="guestbook-color-radio"
+                               th:checked="${draftColor == null or draftColor == 'lemon'}"
+                               onchange="updateGuestbookPreviewColor(this.value)">
+                        <span class="guestbook-color-chip guestbook-color-chip--lemon">Vàng</span>
                     </label>
-                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
-                        <input type="radio" name="colorTheme" value="pink" class="form-check-input mt-0"
-                               th:checked="${draftColor == 'pink'}">
-                        <span class="badge" style="background:#FFE3EC; color:#16121F; border:1.5px solid #16121F;">Hồng</span>
+                    <label class="guestbook-color-label" title="Hồng pastel">
+                        <input type="radio" name="colorTheme" value="pink" class="guestbook-color-radio"
+                               th:checked="${draftColor == 'pink'}"
+                               onchange="updateGuestbookPreviewColor(this.value)">
+                        <span class="guestbook-color-chip guestbook-color-chip--pink">Hồng</span>
                     </label>
-                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
-                        <input type="radio" name="colorTheme" value="mint" class="form-check-input mt-0"
-                               th:checked="${draftColor == 'mint'}">
-                        <span class="badge" style="background:#D3F6E6; color:#16121F; border:1.5px solid #16121F;">Xanh Mint</span>
+                    <label class="guestbook-color-label" title="Xanh mint">
+                        <input type="radio" name="colorTheme" value="mint" class="guestbook-color-radio"
+                               th:checked="${draftColor == 'mint'}"
+                               onchange="updateGuestbookPreviewColor(this.value)">
+                        <span class="guestbook-color-chip guestbook-color-chip--mint">Xanh Mint</span>
                     </label>
-                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
-                        <input type="radio" name="colorTheme" value="lavender" class="form-check-input mt-0"
-                               th:checked="${draftColor == 'lavender'}">
-                        <span class="badge" style="background:#E7DFFF; color:#16121F; border:1.5px solid #16121F;">Tím</span>
+                    <label class="guestbook-color-label" title="Tím lavender">
+                        <input type="radio" name="colorTheme" value="lavender" class="guestbook-color-radio"
+                               th:checked="${draftColor == 'lavender'}"
+                               onchange="updateGuestbookPreviewColor(this.value)">
+                        <span class="guestbook-color-chip guestbook-color-chip--lavender">Tím</span>
                     </label>
-                    <label class="d-inline-flex align-items-center gap-1 cursor-pointer" style="cursor: pointer;">
-                        <input type="radio" name="colorTheme" value="sky" class="form-check-input mt-0"
-                               th:checked="${draftColor == 'sky'}">
-                        <span class="badge" style="background:#DDF1FF; color:#16121F; border:1.5px solid #16121F;">Xanh Mây</span>
+                    <label class="guestbook-color-label" title="Xanh mây">
+                        <input type="radio" name="colorTheme" value="sky" class="guestbook-color-radio"
+                               th:checked="${draftColor == 'sky'}"
+                               onchange="updateGuestbookPreviewColor(this.value)">
+                        <span class="guestbook-color-chip guestbook-color-chip--sky">Xanh Mây</span>
                     </label>
                 </div>
 
@@ -66,7 +71,7 @@
                 </div>
 
                 <div>
-                    <button type="submit" class="btn-al btn-al--lemon btn-al--sm">
+                    <button type="submit" class="btn-al btn-al--lemon btn-al--sm fw-bold">
                         <span>📌 Dán mẩu lưu bút</span>
                     </button>
                 </div>
@@ -88,7 +93,7 @@
     <!-- Danh sách các mẩu lưu bút -->
     <div class="row g-4" th:if="${!#lists.isEmpty(guestbookEntries)}">
         <div class="col-12 col-md-6" th:each="entry, stat : ${guestbookEntries}">
-            <article class="note note--taped h-100 p-3 position-relative d-flex flex-column"
+            <article class="note note--taped guestbook-card h-100 p-3 position-relative d-flex flex-column"
                      th:classappend="${'note--' + entry.colorTheme} + ' ' + (${stat.index % 2 == 0} ? 'tilt-l' : 'tilt-r') + ' ' + (${entry.isHidden} ? 'opacity-75' : '')"
                      style="min-height: 180px; box-shadow: 4px 4px 0 var(--ink);">
 
@@ -104,13 +109,13 @@
                     </div>
 
                     <!-- Sticker góc -->
-                    <span class="fs-4 ms-auto" th:text="${entry.stickerIcon}" th:title="'Sticker ' + ${entry.stickerIcon}">🌸</span>
+                    <span class="guestbook-sticker ms-auto" th:text="${entry.stickerIcon}" th:title="'Sticker ' + ${entry.stickerIcon}">🌸</span>
                 </div>
 
                 <!-- Badges: ĐÃ GHIM / ĐANG ẨN -->
                 <div class="d-flex gap-1 mb-2" th:if="${entry.isPinned or entry.isHidden}">
-                    <span class="badge bg-warning text-dark border border-dark small fw-bold" th:if="${entry.isPinned}">📌 ĐÃ GHIM</span>
-                    <span class="badge bg-secondary text-white border border-dark small fw-bold" th:if="${entry.isHidden}">👁️ ĐÃ ẨN</span>
+                    <span class="badge bg-warning text-dark border border-dark small fw-bold" style="box-shadow: 1.5px 1.5px 0 var(--ink);" th:if="${entry.isPinned}">📌 ĐÃ GHIM</span>
+                    <span class="badge bg-secondary text-white border border-dark small fw-bold" style="box-shadow: 1.5px 1.5px 0 var(--ink);" th:if="${entry.isHidden}">👁️ ĐÃ ẨN</span>
                 </div>
 
                 <!-- Nội dung mẩu note -->
@@ -127,23 +132,23 @@
                     <form method="post" th:if="${entry.canPin}" th:action="@{/guestbook/{id}/pin(id=${entry.id})}">
                         <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                         <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
-                        <button type="submit" class="btn btn-sm btn-link text-dark text-decoration-none p-0 fw-bold small"
-                                th:text="${entry.isPinned} ? 'Bỏ ghim' : '📌 Ghim'"></button>
+                        <button type="submit" class="guestbook-action-btn"
+                                th:text="${entry.isPinned} ? '📌 Bỏ ghim' : '📌 Ghim'"></button>
                     </form>
 
                     <!-- Ẩn / Hiện -->
                     <form method="post" th:if="${entry.canHide}" th:action="@{/guestbook/{id}/hide(id=${entry.id})}">
                         <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                         <input type="hidden" name="next" th:value="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
-                        <button type="submit" class="btn btn-sm btn-link text-secondary text-decoration-none p-0 small"
-                                th:text="${entry.isHidden} ? '👁️ Hiện lại' : 'Ẩn'"></button>
+                        <button type="submit" class="guestbook-action-btn"
+                                th:text="${entry.isHidden} ? '👁️ Hiện lại' : '👁️ Ẩn'"></button>
                     </form>
 
                     <!-- Xóa -->
                     <button type="button" th:if="${entry.canDelete}"
-                            class="btn btn-sm btn-link text-danger text-decoration-none p-0 small"
+                            class="guestbook-action-btn guestbook-action-btn--delete"
                             data-bs-toggle="modal" data-bs-target="#deleteGuestbookModal"
-                            th:attr="data-delete-url=@{/guestbook/{id}/delete(id=${entry.id})}">Gỡ bỏ</button>
+                            th:attr="data-delete-url=@{/guestbook/{id}/delete(id=${entry.id})}">🗑️ Gỡ bỏ</button>
                 </div>
             </article>
         </div>
@@ -176,6 +181,26 @@
     </div>
 
     <script>
+        function updateGuestbookPreviewColor(color) {
+            const ta = document.getElementById('guestbookTextarea');
+            if (!ta) return;
+            const colorMap = {
+                lemon: '#FFFCE6',
+                pink: '#FFF0F5',
+                mint: '#E8FAF2',
+                lavender: '#F3EFFF',
+                sky: '#EDF7FF'
+            };
+            ta.style.backgroundColor = colorMap[color] || '#FFFCE6';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkedRadio = document.querySelector('input[name="colorTheme"]:checked');
+            if (checkedRadio) {
+                updateGuestbookPreviewColor(checkedRadio.value);
+            }
+        });
+
         document.addEventListener('show.bs.modal', function (event) {
             const modal = event.target;
             if (modal && modal.id === 'deleteGuestbookModal') {

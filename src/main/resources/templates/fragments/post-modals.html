@@ -142,6 +142,54 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal báo cáo bài viết cho Ban quản trị nhóm -->
+    <div class="modal fade" id="groupReportModal" tabindex="-1" aria-labelledby="groupReportModalLabel" aria-hidden="true" th:if="${me != null}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="groupReportForm" class="modal-content note note--white" method="post" action="">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="next" th:value="${currentPath}">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h5 mb-0" id="groupReportModalLabel">🚩 Báo cáo bài viết cho Ban quản trị nhóm</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-soft mb-3">Báo cáo sẽ được chuyển trực tiếp đến Ban quản trị nhóm để kiểm duyệt và xử lý.</p>
+                    <div class="field">
+                        <label for="groupReportReason" class="form-label fw-bold small">Lý do báo cáo <span class="text-danger">*</span></label>
+                        <select id="groupReportReason" name="reason" class="input-al w-100" required>
+                            <option value="Vi phạm nội quy nhóm">Vi phạm nội quy nhóm</option>
+                            <option value="Nội dung spam, quảng cáo không đúng chỗ">Nội dung spam, quảng cáo không đúng chỗ</option>
+                            <option value="Xúc phạm, thù địch thành viên khác">Xúc phạm, thù địch thành viên khác</option>
+                            <option value="Thông tin sai lệch, lừa đảo">Thông tin sai lệch, lừa đảo</option>
+                            <option value="Lý do khác">Lý do khác</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--ink text-danger">Gửi báo cáo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('groupReportModal');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function (event) {
+                    const btn = event.relatedTarget;
+                    if (!btn) return;
+                    const gid = btn.getAttribute('data-group-id');
+                    const pid = btn.getAttribute('data-post-id');
+                    const form = document.getElementById('groupReportForm');
+                    if (form && gid && pid) {
+                        form.action = '/groups/' + gid + '/posts/' + pid + '/report';
+                    }
+                });
+            }
+        });
+    </script>
 </th:block>
 
 </body>

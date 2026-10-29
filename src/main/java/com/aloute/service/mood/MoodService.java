@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -35,10 +36,10 @@ public class MoodService {
             new MoodPreset("🥺", "Cần được dỗ dành", "mint"),
             new MoodPreset("🤯", "Quá tải, nổ tung đầu", "lavender"),
             new MoodPreset("😎", "Tự tin, đang chill", "mint"),
-            new MoodPreset("🤔", "Đang suy tư", "sky")
-    );
+            new MoodPreset("🤔", "Đang suy tư", "sky"));
 
-    private static final Set<String> ALLOWED_COLORS = Set.of("lemon", "pink", "mint", "lavender", "sky");
+    private static final Set<String> ALLOWED_COLORS = Set.of("lemon", "pink", "mint", "lavender", "sky", "peach",
+            "rose", "coral", "sunshine");
 
     private final DailyMoodRepository moods;
     private final UserRepository users;
@@ -106,7 +107,8 @@ public class MoodService {
                 : "lemon";
 
         Instant now = clock.instant();
-        Instant expiresAt = now.plus(24, ChronoUnit.HOURS);
+        ZoneId zone = clock.getZone() != null ? clock.getZone() : ZoneId.systemDefault();
+        Instant expiresAt = now.atZone(zone).toLocalDate().plusDays(1).atStartOfDay(zone).toInstant();
 
         DailyMood mood = moods.findByUserId(userId).orElseGet(() -> {
             DailyMood newMood = new DailyMood();
@@ -129,10 +131,7 @@ public class MoodService {
         if (userId == null) {
             return;
         }
-        moods.findByUserId(userId).ifPresent(mood -> {
-            mood.setExpiresAt(clock.instant().minus(1, ChronoUnit.SECONDS));
-            moods.save(mood);
-        });
+        moods.findByUserId(userId).ifPresent(moods::delete);
     }
 
     private MoodView toView(DailyMood m) {
@@ -143,7 +142,6 @@ public class MoodService {
                 m.getMoodText(),
                 m.getColorTheme(),
                 m.getUpdatedAt(),
-                m.getExpiresAt()
-        );
+                m.getExpiresAt());
     }
 }

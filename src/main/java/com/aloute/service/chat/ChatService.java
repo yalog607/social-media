@@ -116,6 +116,8 @@ public class ChatService {
         conversation.setDirectKey(key);
         conversation.setCreatedBy(users.getReferenceById(actorId));
         conversation.setCreatedAt(clock.instant());
+        conversation.setSocialGroup(false);
+        conversation.setChatEnabled(true);
         conversations.save(conversation);
         addMemberRow(conversation, actorId, GroupRole.MEMBER);
         addMemberRow(conversation, targetId, GroupRole.MEMBER);
@@ -151,6 +153,8 @@ public class ChatService {
         conversation.setTitle(cleanTitle);
         conversation.setCreatedBy(users.getReferenceById(actorId));
         conversation.setCreatedAt(clock.instant());
+        conversation.setSocialGroup(false);
+        conversation.setChatEnabled(true);
         conversations.save(conversation);
         addMemberRow(conversation, actorId, GroupRole.OWNER);
         for (UUID otherId : others) {
@@ -498,7 +502,9 @@ public class ChatService {
     /** Danh sách hội thoại của {@code userId}, mới nhất trước, kèm tên/avatar/xem trước đã dựng sẵn theo góc nhìn của họ. */
     @Transactional(readOnly = true)
     public List<ConversationSummaryView> listFor(UUID userId) {
-        List<ConversationMember> mine = members.findWithConversationForUser(userId);
+        List<ConversationMember> mine = members.findWithConversationForUser(userId).stream()
+                .filter(m -> !m.getConversation().isSocialGroup() || m.getConversation().isChatEnabled())
+                .toList();
         if (mine.isEmpty()) {
             return List.of();
         }

@@ -129,30 +129,39 @@
       body.appendChild(senderRow);
     }
 
+    if (m.reply) {
+      var replyBox = document.createElement('div');
+      replyBox.className = 'msg-reply-container' + (mine ? ' is-mine' : '');
+      replyBox.title = 'Nhấn để xem tin nhắn gốc';
+      if (m.reply.messageId) replyBox.dataset.mid = m.reply.messageId;
+      replyBox.dataset.snippet = m.reply.snippet;
+      replyBox.onclick = function () {
+        if (typeof scrollToRepliedMessage === 'function') {
+          scrollToRepliedMessage(m.reply.messageId, m.reply.snippet);
+        }
+      };
+      var indicator = document.createElement('div');
+      indicator.className = 'msg-reply-indicator';
+      var isRepliedToMe = !isGroup;
+      var titleText = mine
+        ? ('Bạn đã trả lời ' + m.reply.senderName)
+        : (m.sender.displayName + ' đã trả lời ' + (isRepliedToMe ? 'bạn' : m.reply.senderName));
+      indicator.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg><span>' + escapeText(titleText) + '</span>';
+      
+      var snippetEl = document.createElement('div');
+      snippetEl.className = 'msg-reply-snippet-bubble';
+      snippetEl.textContent = m.reply.snippet;
+
+      replyBox.appendChild(indicator);
+      replyBox.appendChild(snippetEl);
+      body.appendChild(replyBox);
+    }
+
+    var row = document.createElement('div');
+    row.className = 'msg-row d-flex align-items-center gap-2' + (mine ? ' flex-row-reverse' : '');
+
     var bubbleWrap = document.createElement('div');
     bubbleWrap.className = 'msg-bubble-wrap position-relative';
-
-    var reactionBar = document.createElement('div');
-    reactionBar.className = 'msg-reaction-bar';
-    var emojis = [
-      { type: 'LOVE', emoji: '❤️', label: 'Yêu thích' },
-      { type: 'HAHA', emoji: '😂', label: 'Haha' },
-      { type: 'FIRE', emoji: '🔥', label: 'Cháy quá' },
-      { type: 'WOW', emoji: '😮', label: 'Wow' },
-      { type: 'SAD', emoji: '😢', label: 'Buồn ghê' }
-    ];
-    emojis.forEach(function (e) {
-      var rBtn = document.createElement('button');
-      rBtn.type = 'button';
-      rBtn.className = 'msg-reaction-btn';
-      rBtn.dataset.mid = m.id;
-      rBtn.dataset.cid = conversationId;
-      rBtn.dataset.type = e.type;
-      rBtn.title = e.label;
-      rBtn.innerHTML = '<span>' + e.emoji + '</span>';
-      reactionBar.appendChild(rBtn);
-    });
-    bubbleWrap.appendChild(reactionBar);
 
     var bubble = document.createElement('span');
     bubble.className = 'bubble ' + (mine ? 'bubble--out' : 'bubble--in');
@@ -172,6 +181,13 @@
 
     var emojisSpan = document.createElement('span');
     emojisSpan.className = 'msg-reactions-emojis';
+    var emojis = [
+      { type: 'LOVE', emoji: '❤️', label: 'Yêu thích' },
+      { type: 'HAHA', emoji: '😂', label: 'Haha' },
+      { type: 'FIRE', emoji: '🔥', label: 'Cháy quá' },
+      { type: 'WOW', emoji: '😮', label: 'Wow' },
+      { type: 'SAD', emoji: '😢', label: 'Buồn ghê' }
+    ];
     emojis.forEach(function (e) {
       var s = document.createElement('span');
       s.className = 'mr-emoji mr-emoji--' + e.type + ' d-none';
@@ -184,10 +200,83 @@
     countSpan.className = 'msg-reactions-count d-none';
     countSpan.textContent = '0';
     badge.appendChild(countSpan);
-
     bubbleWrap.appendChild(badge);
-    body.appendChild(bubbleWrap);
 
+    // 3 tác nhân bên cạnh (cảm xúc, trả lời, khác)
+    var actions = document.createElement('div');
+    actions.className = 'msg-actions';
+
+    // 1. Bày tỏ cảm xúc
+    var reactContainer = document.createElement('div');
+    reactContainer.className = 'msg-reaction-container';
+    var reactBtn = document.createElement('button');
+    reactBtn.type = 'button';
+    reactBtn.className = 'msg-action-btn msg-action-btn--react';
+    reactBtn.title = 'Bày tỏ cảm xúc';
+    reactBtn.setAttribute('aria-label', 'Bày tỏ cảm xúc');
+    reactBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="15.01" y2="9"></line></svg>';
+
+    var reactionBar = document.createElement('div');
+    reactionBar.className = 'msg-reaction-bar';
+    emojis.forEach(function (e) {
+      var rBtn = document.createElement('button');
+      rBtn.type = 'button';
+      rBtn.className = 'msg-reaction-btn';
+      rBtn.dataset.mid = m.id;
+      rBtn.dataset.cid = conversationId;
+      rBtn.dataset.type = e.type;
+      rBtn.title = e.label;
+      rBtn.innerHTML = '<span>' + e.emoji + '</span>';
+      reactionBar.appendChild(rBtn);
+    });
+    reactContainer.appendChild(reactBtn);
+    reactContainer.appendChild(reactionBar);
+    actions.appendChild(reactContainer);
+
+    // 2. Trả lời
+    var replyBtn = document.createElement('button');
+    replyBtn.type = 'button';
+    replyBtn.className = 'msg-action-btn msg-action-btn--reply';
+    replyBtn.title = 'Trả lời';
+    replyBtn.setAttribute('aria-label', 'Trả lời');
+    replyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>';
+    replyBtn.addEventListener('click', function () {
+      if (typeof startReply === 'function') {
+        startReply(m.id, m.sender.displayName);
+      }
+    });
+    actions.appendChild(replyBtn);
+
+    // 3. Khác (Ghim, Sửa, Xóa)
+    var moreDropdown = document.createElement('div');
+    moreDropdown.className = 'dropdown msg-more-dropdown';
+    var moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'msg-action-btn msg-action-btn--more';
+    moreBtn.setAttribute('data-bs-toggle', 'dropdown');
+    moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.title = 'Khác';
+    moreBtn.setAttribute('aria-label', 'Khác');
+    moreBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>';
+
+    var dropdownMenu = document.createElement('ul');
+    dropdownMenu.className = 'dropdown-menu menu-al msg-dropdown-menu' + (mine ? ' dropdown-menu-end' : '');
+    var menuHtml = '';
+    if (mine) {
+      menuHtml += '<li><button class="dropdown-item" type="button" onclick="editMessage(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg><span>Sửa tin nhắn</span></button></li>';
+    }
+    menuHtml += '<li><button class="dropdown-item" type="button" onclick="copyMessageText(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Sao chép văn bản</span></button></li>';
+    if (mine) {
+      menuHtml += '<li><hr class="dropdown-divider my-1"></li><li><button class="dropdown-item text-danger" type="button" onclick="confirmDeleteMessage(\'' + conversationId + '\', \'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Xóa tin nhắn</span></button></li>';
+    }
+    dropdownMenu.innerHTML = menuHtml;
+    moreDropdown.appendChild(moreBtn);
+    moreDropdown.appendChild(dropdownMenu);
+    actions.appendChild(moreDropdown);
+
+    row.appendChild(bubbleWrap);
+    row.appendChild(actions);
+    body.appendChild(row);
     var time = document.createElement('span');
     time.className = 'msg-time';
     time.textContent = 'vừa xong';
@@ -200,6 +289,8 @@
     chatWindow.appendChild(msg);
     if (follow) scrollToBottom();
   }
+
+  function escapeText(text) { var d = document.createElement("div"); d.textContent = text || ""; return d.innerHTML; }
 
   function attachmentHtml(a) {
     if (!a) return '';
@@ -241,9 +332,42 @@
   }
 
   // Bấm vào nút cảm xúc trên thanh nổi để thả/đổi/bỏ
+  
+  // Click vào nút mặt cười để bật / tắt thanh cảm xúc (Chỉ click mới hiện - Hình 2)
+  document.addEventListener('click', function (event) {
+    var reactBtn = event.target.closest('.msg-action-btn--react');
+    if (reactBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      var container = reactBtn.closest('.msg-reaction-container');
+      if (!container) return;
+      var bar = container.querySelector('.msg-reaction-bar');
+      if (!bar) return;
+
+      var wasOpen = bar.classList.contains('is-open');
+      document.querySelectorAll('.msg-reaction-bar.is-open').forEach(function (el) {
+        el.classList.remove('is-open');
+      });
+      if (!wasOpen) {
+        bar.classList.add('is-open');
+      }
+      return;
+    }
+
+    // Click ra ngoài thì đóng thanh cảm xúc
+    if (!event.target.closest('.msg-reaction-bar')) {
+      document.querySelectorAll('.msg-reaction-bar.is-open').forEach(function (el) {
+        el.classList.remove('is-open');
+      });
+    }
+  });
+
   document.addEventListener('click', async function (event) {
     var btn = event.target.closest('.msg-reaction-btn');
     if (!btn || !btn.dataset.mid || !btn.dataset.type) return;
+
+    var bar = btn.closest('.msg-reaction-bar');
+    if (bar) bar.classList.remove('is-open');
 
     var mid = btn.dataset.mid;
     var cid = btn.dataset.cid || conversationId;
@@ -362,6 +486,11 @@
     event.preventDefault();
     var content = textarea.value.trim();
     if (!content && !attachedFile) return;
+
+    if (window.chatReplyState) {
+      content = '[reply:' + window.chatReplyState.messageId + ':@' + window.chatReplyState.senderName + ': "' + window.chatReplyState.snippet + '"]\n' + content;
+      if (typeof cancelReply === 'function') cancelReply();
+    }
 
     var body = new FormData();
     if (content) body.append('content', content);

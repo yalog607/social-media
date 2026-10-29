@@ -1,6 +1,7 @@
 package com.aloute.dto.post;
 
 import com.aloute.dto.category.CategoryView;
+import com.aloute.model.chat.GroupRole;
 import com.aloute.model.media.MediaKind;
 import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.user.Role;
@@ -40,9 +41,28 @@ public record PostView(
         Integer unlockPrice,
         boolean locked,
         CategoryView category,
-        boolean isPinned) {
+        boolean isPinned,
+        boolean isAnonymous,
+        UUID groupId,
+        GroupInfo group) {
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
+    }
+
+    public record GroupInfo(
+            UUID id,
+            String title,
+            String avatarUrl,
+            GroupRole authorRole,
+            GroupRole viewerRole
+    ) {
+        public boolean canViewerModerate() {
+            return viewerRole != null && viewerRole.canModerate();
+        }
+
+        public boolean isViewerMember() {
+            return viewerRole != null;
+        }
     }
 
     public record MediaView(MediaKind kind, String url, String contentType) {

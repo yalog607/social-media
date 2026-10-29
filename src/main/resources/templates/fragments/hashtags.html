@@ -2,13 +2,37 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Khung hashtag đang hot. Tham số: list (List<HashtagResult>). -->
-<section th:fragment="trending(list)" class="note note--mint tilt-l mb-3" aria-labelledby="trending-title" th:if="${!#lists.isEmpty(list)}">
-    <h2 id="trending-title" class="h3 mb-2">Đang hot</h2>
-    <ul class="trending-list">
-        <li th:each="item : ${list}">
-            <a th:href="@{/tags/{tag}(tag=${item.tag})}" th:text="'#' + ${item.tag}">#tag</a>
-            <span class="trending-count" th:text="${item.postCount}">0</span>
+<!-- Khung hashtag đang hot ALOUTE Neo-Brutalism siêu nổi bật. Tham số: list (List<HashtagResult>). -->
+<section th:fragment="trending(list)" class="note mb-3 p-3 trending-card" aria-labelledby="trending-title" th:if="${list != null and !#lists.isEmpty(list)}">
+    <!-- Header: icon lửa + tiêu đề + badge thịnh hành nhấp nháy -->
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="trending-fire-icon" aria-hidden="true">🔥</span>
+            <h2 id="trending-title" class="h4 mb-0 fw-bold text-uppercase trending-heading">Đang Hot</h2>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+            <span class="trending-hot-badge badge border border-2 border-dark rounded-pill px-2 py-1 fw-bold">
+                <span class="trending-live-dot"></span>
+                <span>Xu hướng</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Danh sách hashtag nổi bật dạng Neo-Brutalism cards -->
+    <ul class="trending-list-modern list-unstyled m-0 p-0 d-flex flex-column gap-2">
+        <li th:each="item, stat : ${list}" class="trending-item">
+            <a th:href="@{/tags/{tag}(tag=${item.tag})}" class="trending-link d-flex align-items-center justify-content-between text-decoration-none">
+                <div class="d-flex align-items-center gap-2 minw-0" style="min-width: 0;">
+                    <!-- Badge thứ hạng: #1, #2, #3 nổi bật -->
+                    <span class="trending-rank-badge" th:classappend="'trending-rank--' + ${stat.count}">
+                        <span th:if="${stat.count == 1}">👑</span>
+                        <span th:text="${stat.count}">1</span>
+                    </span>
+                    <span class="trending-tag-name text-truncate fw-bold" th:text="'#' + ${item.tag}">#tag</span>
+                </div>
+                <span class="trending-count-badge badge border border-dark rounded-pill fw-bold"
+                      th:text="${item.postCount} + ' bài'">1 bài</span>
+            </a>
         </li>
     </ul>
 </section>
