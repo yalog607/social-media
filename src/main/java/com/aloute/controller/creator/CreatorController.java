@@ -52,6 +52,7 @@ public class CreatorController {
                             @RequestParam(defaultValue = "7") int days, Model model) {
         model.addAttribute("active", "creator");
         model.addAttribute("insights", insights.insights(me.id(), days == 30 ? 30 : 7));
+        model.addAttribute("followHistorySinceUtc", insights.followHistorySinceUtc());
         return "creator/dashboard";
     }
 
