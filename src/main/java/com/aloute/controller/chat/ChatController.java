@@ -22,6 +22,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -57,7 +59,7 @@ public class ChatController {
     }
 
     @GetMapping("/messages/{id}")
-    public String view(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+    public String view(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         if (!chats.isMember(me.id(), id)) {
             if (chats.exists(id)) {
                 return "chat/not_member";
@@ -66,6 +68,10 @@ public class ChatController {
             }
         }
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         chats.markRead(me.id(), id);
         List<PostView.AuthorView> members = chats.membersOf(id);
         List<UUID> memberIds = members.stream().map(PostView.AuthorView::id).toList();
@@ -97,8 +103,12 @@ public class ChatController {
     /** Mảnh HTML các tin cũ hơn con trỏ {@code before}, để chat.js chèn lên đầu khung chat khi cuộn lên. */
     @GetMapping("/api/conversations/{id}/messages")
     public String older(@PathVariable UUID id, @RequestParam(required = false) String before,
-                        @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+                        @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("page", messagesService.history(me.id(), id, before));
@@ -108,15 +118,19 @@ public class ChatController {
     /** Mảnh HTML kết quả tìm kiếm tin nhắn. */
     @GetMapping("/api/conversations/{id}/search")
     public String search(@PathVariable UUID id, @RequestParam String keyword,
-                         @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+                         @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("searchResults", messagesService.searchMessages(me.id(), id, keyword));
         return "chat/search :: results";
     }
 
-    @PostMapping("/messages/start")
+    @RequestMapping(value = "/messages/start", method = {RequestMethod.GET, RequestMethod.POST})
     public String start(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String username,
                         RedirectAttributes flash) {
         User target = users.findByUsername(username).filter(User::isActive)

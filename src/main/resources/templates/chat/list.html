@@ -7,39 +7,79 @@
     <div class="page-title"><h1>Tin nhắn</h1></div>
 
     <section class="note note--sky mb-4" th:if="${!#lists.isEmpty(friends)}">
-        <h2 class="h4 mb-3">Nhắn tin mới</h2>
-        <div class="mb-4 p-3 fw-bold text-ink" style="background: var(--lemon); border: var(--line); border-radius: 8px; box-shadow: 2px 2px 0 var(--ink);">
-            <div class="mb-2 d-flex align-items-center gap-2">
+        <h2 class="h4 mb-3 d-flex align-items-center gap-2">
+            <span>💬 Nhắn tin mới</span>
+        </h2>
+        <div class="mb-3 p-3 fw-bold text-ink" style="background: var(--lemon); border: var(--line); border-radius: 12px; box-shadow: 2.5px 2.5px 0 var(--ink);">
+            <div class="mb-1 d-flex align-items-center gap-2">
                 Nhắn tin cùng hội bạn để giữ chuỗi <span class="icon-flame d-inline-block">🔥</span>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 small">
                 Cả nhóm cùng tám chuyện, giữ chuỗi mỗi ngày <span class="icon-flame d-inline-block">🔥</span>
             </div>
         </div>
-        <form class="chat-new-form" method="post" th:action="@{/messages/start}">
-            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <select class="input-al" name="username" required data-custom-select>
-                <option value="" disabled selected>Chọn một người bạn...</option>
-                <option th:each="f : ${friends}" th:value="${f.username}" th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</option>
-            </select>
-            <button type="submit" class="btn-al btn-al--pink btn-al--sm">Bắt đầu trò chuyện</button>
-        </form>
 
-        <details>
-            <summary class="btn-al btn-al--white btn-al--sm" style="display:inline-block; cursor:pointer">Tạo nhóm</summary>
-            <form method="post" th:action="@{/messages/group}" class="mt-3">
+        <!-- DANH SÁCH BẠN BÈ HIỆN AVATAR ĐỂ CHỌN NHẮN TIN TRỰC TIẾP -->
+        <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                <span class="fw-bold small text-ink" style="font-family: var(--font-display);">Chọn bạn bè để bắt đầu trò chuyện:</span>
+                <!-- Huy hiệu đếm số lượng bạn bè -->
+                <span class="badge border border-dark rounded-pill px-2 py-0_5 fw-bold text-ink"
+                      style="font-size: .72rem; background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink);"
+                      th:text="'👥 ' + ${#lists.size(friends)} + ' bạn bè'">👥 1 bạn bè</span>
+            </div>
+
+            <!-- Ô tìm kiếm bạn bè nhanh khi danh sách nhiều -->
+            <div class="mb-2" th:if="${#lists.size(friends) > 4}">
+                <input type="text" id="chatFriendFilter" class="input-al w-100" placeholder="🔍 Tìm nhanh bạn bè theo tên..."
+                       style="padding: .4rem .85rem; font-size: .85rem; border-radius: var(--r-pill);" autocomplete="off">
+            </div>
+
+            <!-- Track bạn bè hiển thị Avatar nổi bật -->
+            <div class="chat-friends-track d-flex gap-2 pb-2 overflow-x-auto" id="chatFriendsList">
+                <a th:each="f : ${friends}"
+                   th:href="@{/messages/start(username=${f.username})}"
+                   th:attr="data-search=${#strings.toLowerCase(f.displayName + ' ' + f.username)}"
+                   class="chat-friend-card d-flex flex-column align-items-center p-2 text-decoration-none text-center rounded-3 border border-2 border-dark"
+                   style="width: 110px; min-width: 110px; background: var(--white); box-shadow: 2px 2px 0 var(--ink); cursor: pointer;"
+                   th:title="'Nhắn tin với ' + ${f.displayName}">
+                    <div class="position-relative mb-1">
+                        <span style="--size: 46px;" th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+                    </div>
+                    <span class="fw-bold text-truncate w-100 text-ink" style="font-size: .84rem; line-height: 1.2;" th:text="${f.displayName}">Tên</span>
+                    <span class="text-soft text-truncate w-100 mb-1" style="font-size: .7rem;" th:text="'@' + ${f.username}">@user</span>
+                    <span class="btn-al btn-al--lemon btn-al--sm py-0 px-2 fw-bold w-100 text-center" style="font-size: .7rem; border-width: 1.5px; border-radius: var(--r-pill);">
+                        Nhắn tin
+                    </span>
+                </a>
+            </div>
+        </div>
+
+        <!-- TẠO NHÓM MỚI KÈM AVATAR BẠN BÈ TRONG DANH SÁCH CHỌN -->
+        <details class="chat-group-details mt-2">
+            <summary class="btn-al btn-al--white btn-al--sm fw-bold d-inline-flex align-items-center gap-1.5" style="cursor: pointer; box-shadow: 2px 2px 0 var(--ink);">
+                <span>👥 Tạo nhóm mới</span>
+            </summary>
+            <form method="post" th:action="@{/messages/group}" class="mt-3 p-3 rounded-3 border border-2 border-dark" style="background: var(--paper-2); box-shadow: 3px 3px 0 var(--ink);">
                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                <div class="field">
-                    <label for="groupTitle">Tên nhóm</label>
-                    <input class="input-al" id="groupTitle" type="text" name="title" maxlength="100" required>
+                <div class="field mb-3">
+                    <label for="groupTitle" class="fw-bold small mb-1">Tên nhóm</label>
+                    <input class="input-al w-100" id="groupTitle" type="text" name="title" maxlength="100" placeholder="Nhập tên nhóm trò chuyện..." required>
                 </div>
-                <div class="chat-group-picker">
-                    <label th:each="f : ${friends}">
-                        <input type="checkbox" name="memberIds" th:value="${f.id}">
-                        <span th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên</span>
-                    </label>
+                <div class="field mb-3">
+                    <label class="fw-bold small mb-1">Chọn thành viên tham gia nhóm:</label>
+                    <div class="chat-group-picker p-2 rounded-3 border border-2 border-dark" style="background: var(--white); max-height: 220px; overflow-y: auto;">
+                        <label th:each="f : ${friends}" class="d-flex align-items-center gap-2 p-1_5 rounded hover-bg cursor-pointer mb-1" style="cursor: pointer;">
+                            <input type="checkbox" name="memberIds" th:value="${f.id}" class="form-check-input mt-0">
+                            <span style="--size: 32px;" th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+                            <div class="minw-0 flex-grow-1">
+                                <span class="fw-bold d-block text-truncate small" th:text="${f.displayName}">Tên</span>
+                                <span class="text-soft d-block text-truncate" style="font-size: .72rem;" th:text="'@' + ${f.username}">@user</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
-                <button type="submit" class="btn-al btn-al--pink btn-al--sm">Tạo nhóm</button>
+                <button type="submit" class="btn-al btn-al--pink btn-al--sm fw-bold">Tạo nhóm</button>
             </form>
         </details>
     </section>
@@ -69,7 +109,27 @@
             <p>Bắt đầu nhắn tin với một người bạn ở trên nhé.</p>
         </section>
     </section>
-    <script th:src="@{/js/custom-select.js}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterInput = document.getElementById('chatFriendFilter');
+            const track = document.getElementById('chatFriendsList');
+            if (filterInput && track) {
+                filterInput.addEventListener('input', function () {
+                    const q = filterInput.value.trim().toLowerCase();
+                    const cards = track.querySelectorAll('.chat-friend-card');
+                    cards.forEach(c => {
+                        const searchData = c.getAttribute('data-search') || '';
+                        if (!q || searchData.includes(q)) {
+                            c.style.display = '';
+                        } else {
+                            c.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </main>
 </body>
 </html>

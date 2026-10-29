@@ -69,6 +69,33 @@ public final class PostTextRenderer {
         }
         url.appendTail(withUrls);
 
-        return withUrls.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
+        // Huy hiệu Khoảnh khắc trong tin nhắn chat: [Khoảnh khắc](/stories/UUID) hoặc [Khoảnh khắc 24H]
+        java.util.regex.Matcher storyLinkMatcher = java.util.regex.Pattern.compile("\\[Khoảnh khắc(?: 24H)?\\](?:\\(/stories/([a-fA-F0-9\\-]+)\\))?").matcher(withUrls);
+        StringBuilder withStories = new StringBuilder(withUrls.length() + 32);
+        while (storyLinkMatcher.find()) {
+            String storyId = storyLinkMatcher.group(1);
+            String href = storyId != null ? "/stories/" + storyId : "/";
+            String dataAttr = storyId != null ? " data-story-id=\"" + storyId + "\"" : "";
+            String badgeHtml = "<a href=\"" + href + "\" class=\"story-chat-badge text-decoration-none\"" + dataAttr + " title=\"Nhấn để xem khoảnh khắc\">"
+                    + "<span class=\"story-chat-badge-pill\">📸 Khoảnh khắc ↗</span></a>";
+            storyLinkMatcher.appendReplacement(withStories, Matcher.quoteReplacement(badgeHtml));
+        }
+        storyLinkMatcher.appendTail(withStories);
+
+        // Trích dẫn trả lời tin nhắn: [reply:@Tên: "Nội dung"] hoặc [Trả lời @Tên: "Nội dung"]
+        java.util.regex.Matcher replyMatcher = java.util.regex.Pattern.compile("\\[(?:reply|Trả lời) @([^:\\]]+): (?:&quot;|\")(.*?)(?:&quot;|\")\\]").matcher(withStories);
+        StringBuilder withReplies = new StringBuilder(withStories.length() + 64);
+        while (replyMatcher.find()) {
+            String sender = replyMatcher.group(1);
+            String snippet = replyMatcher.group(2);
+            String quoteHtml = "<div class=\"msg-reply-quote\"><div class=\"msg-reply-quote-head\">"
+                    + "<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"currentColor\" style=\"vertical-align:-1px;margin-right:3px;\"><path d=\"M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z\"/></svg>"
+                    + "<strong>@" + sender + "</strong></div><div class=\"msg-reply-quote-body\">"
+                    + snippet + "</div></div>";
+            replyMatcher.appendReplacement(withReplies, Matcher.quoteReplacement(quoteHtml));
+        }
+        replyMatcher.appendTail(withReplies);
+
+        return withReplies.toString().replaceAll("\\r\\n|\\r|\\n", "<br>");
     }
 }

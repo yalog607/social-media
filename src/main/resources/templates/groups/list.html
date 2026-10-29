@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Hội nhóm', ~{::main}, 'groups', ~{})}">
+<head><title>Hội nhóm</title></head>
+<body>
+<main>
+    <div class="page-title d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1 fw-bold">👥 Hội nhóm</h1>
+            <p class="text-soft small mb-0">Khám phá các cộng đồng sở thích, học tập và kết nối cùng bạn bè.</p>
+        </div>
+        <button type="button" class="btn-al btn-al--pink" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+            ➕ Tạo nhóm mới
+        </button>
+    </div>
+
+    <!-- Tabs chuyển đổi -->
+    <div class="search-tabs mb-4">
+        <a th:href="@{/groups(tab='my')}" th:classappend="${tab == 'my'} ? 'is-active'">
+            Nhóm của tôi (<span th:text="${#lists.size(myGroups)}">0</span>)
+        </a>
+        <a th:href="@{/groups(tab='discover', q=${q})}" th:classappend="${tab == 'discover'} ? 'is-active'">
+            Khám phá
+        </a>
+    </div>
+
+    <!-- Tab 1: Nhóm của tôi -->
+    <div th:if="${tab == 'my'}">
+        <div th:if="${#lists.isEmpty(myGroups)}" class="note note--white text-center py-5" style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 3px 3px 0 var(--ink);">
+            <div class="fs-1 mb-2">👥</div>
+            <h3 class="h5 mb-2 fw-bold">Bạn chưa tham gia nhóm nào</h3>
+            <p class="text-soft mb-4">Hãy khám phá các nhóm cộng đồng hoặc tạo nhóm mới để cùng giao lưu, chia sẻ bài viết!</p>
+            <div class="d-flex justify-content-center gap-2">
+                <a th:href="@{/groups(tab='discover')}" class="btn-al btn-al--mint">🔍 Khám phá ngay</a>
+                <button type="button" class="btn-al btn-al--white" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                    ➕ Tạo nhóm mới
+                </button>
+            </div>
+        </div>
+
+        <div class="group-grid" th:unless="${#lists.isEmpty(myGroups)}">
+            <div class="group-card" th:each="g : ${myGroups}">
+                <div class="group-card-header">
+                    <a th:href="@{/groups/{id}(id=${g.id})}" class="group-avatar" style="text-decoration: none;">
+                        <img th:if="${g.avatarUrl != null}" th:src="${g.avatarUrl}" alt="Ảnh nhóm" loading="lazy">
+                        <span th:unless="${g.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(g.title, 0, 1))}">G</span>
+                    </a>
+                    <div class="group-card-info">
+                        <h2 class="group-title">
+                            <a th:href="@{/groups/{id}(id=${g.id})}" th:text="${g.title}" style="color: inherit; text-decoration: none;">Tên nhóm</a>
+                        </h2>
+                        <div class="group-meta-row">
+                            <span class="group-badge group-badge--members">
+                                👥 <span th:text="${g.memberCount} + ' thành viên'">3 thành viên</span>
+                            </span>
+                            <span class="group-badge"
+                                  th:classappend="${g.myRole != null and g.myRole.name() == 'OWNER'} ? 'bg-warning text-dark' : (${g.myRole != null and g.myRole.name() == 'ADMIN'} ? 'bg-primary text-white' : (${g.myRole != null and g.myRole.name() == 'MODERATOR'} ? 'bg-info text-dark' : 'group-badge--role'))"
+                                  th:if="${g.myRole != null}" th:text="${g.myRole.label()}">Thành viên</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="group-desc" th:text="${#strings.isEmpty(g.description)} ? 'Chưa có mô tả cho nhóm này.' : ${g.description}">
+                    Mô tả nhóm
+                </p>
+
+                <div class="group-card-actions d-flex gap-2">
+                    <a class="btn-al btn-al--mint flex-grow-1 text-center fw-bold text-nowrap d-inline-flex align-items-center justify-content-center gap-1" th:href="@{/groups/{id}(id=${g.id})}">
+                        <span>Xem nhóm</span>
+                    </a>
+                    <a th:if="${g.chatEnabled}" class="btn-al btn-al--lavender text-center d-inline-flex align-items-center justify-content-center px-3" style="min-width: 44px; flex-shrink: 0;" th:href="@{/messages/{id}(id=${g.id})}" title="Phòng chat nhóm">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Khám phá -->
+    <div th:if="${tab == 'discover'}">
+        <!-- Ô tìm kiếm -->
+        <form class="search-form mb-4" method="get" th:action="@{/groups}">
+            <input type="hidden" name="tab" value="discover">
+            <input class="input-al" type="search" name="q" th:value="${q}" placeholder="Tìm kiếm nhóm theo tên hoặc mô tả...">
+            <button type="submit" class="btn-al btn-al--ink">Tìm</button>
+            <a th:if="${!#strings.isEmpty(q)}" th:href="@{/groups(tab='discover')}" class="btn-al btn-al--white">Xóa lọc</a>
+        </form>
+
+        <div th:if="${#lists.isEmpty(discoverGroups)}" class="note note--white text-center py-5" style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 3px 3px 0 var(--ink);">
+            <div class="fs-1 mb-2">🔍</div>
+            <h3 class="h5 mb-2 fw-bold">Không tìm thấy nhóm phù hợp</h3>
+            <p class="text-soft mb-3" th:if="${!#strings.isEmpty(q)}" th:text="'Không có kết quả nào cho từ khóa: ' + ${q}"></p>
+            <p class="text-soft mb-3" th:if="${#strings.isEmpty(q)}">Hiện tại chưa có nhóm nào trong danh sách khám phá.</p>
+            <button type="button" class="btn-al btn-al--pink" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                ➕ Hãy là người đầu tiên tạo nhóm!
+            </button>
+        </div>
+
+        <div class="group-grid" th:unless="${#lists.isEmpty(discoverGroups)}">
+            <div class="group-card" th:each="g : ${discoverGroups}">
+                <div class="group-card-header">
+                    <a th:href="@{/groups/{id}(id=${g.id})}" class="group-avatar" style="text-decoration: none;">
+                        <img th:if="${g.avatarUrl != null}" th:src="${g.avatarUrl}" alt="Ảnh nhóm" loading="lazy">
+                        <span th:unless="${g.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(g.title, 0, 1))}">G</span>
+                    </a>
+                    <div class="group-card-info">
+                        <h2 class="group-title">
+                            <a th:href="@{/groups/{id}(id=${g.id})}" th:text="${g.title}" style="color: inherit; text-decoration: none;">Tên nhóm</a>
+                        </h2>
+                        <div class="group-meta-row">
+                            <span class="group-badge group-badge--members">
+                                👥 <span th:text="${g.memberCount} + ' thành viên'">3 thành viên</span>
+                            </span>
+                            <span class="group-badge group-badge--approval" th:if="${g.approvalRequired}">
+                                🔒 Cần duyệt
+                            </span>
+                            <span class="group-badge group-badge--public" th:unless="${g.approvalRequired}">
+                                🌐 Mở tự do
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="group-desc" th:text="${#strings.isEmpty(g.description)} ? 'Chưa có mô tả cho nhóm này.' : ${g.description}">
+                    Mô tả nhóm
+                </p>
+
+                <div class="group-card-actions">
+                    <!-- Nếu đã là thành viên -->
+                    <div th:if="${g.isMember}" class="d-flex gap-2 w-100">
+                        <a class="btn-al btn-al--mint flex-grow-1 text-center fw-bold text-nowrap d-inline-flex align-items-center justify-content-center gap-1" th:href="@{/groups/{id}(id=${g.id})}">
+                            <span>Xem nhóm</span>
+                        </a>
+                        <a th:if="${g.chatEnabled}" class="btn-al btn-al--lavender text-center d-inline-flex align-items-center justify-content-center px-3" style="min-width: 44px; flex-shrink: 0;" th:href="@{/messages/{id}(id=${g.id})}" title="Phòng chat nhóm">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        </a>
+                    </div>
+
+                    <!-- Nếu đang chờ duyệt -->
+                    <div th:if="${!g.isMember and g.isPending}" class="d-flex gap-2 w-100">
+                        <button type="button" class="btn-al btn-al--lemon flex-grow-1" disabled>
+                            ⏳ Đang chờ duyệt
+                        </button>
+                        <form method="post" th:action="@{/groups/{id}/cancel-request(id=${g.id})}">
+                            <input type="hidden" name="redirectUrl" value="/groups?tab=discover">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <button type="submit" class="btn-al btn-al--white" title="Hủy yêu cầu">Hủy</button>
+                        </form>
+                    </div>
+
+                    <!-- Nếu chưa tham gia và cần duyệt -->
+                    <a th:if="${!g.isMember and !g.isPending and g.approvalRequired}" th:href="@{/groups/{id}(id=${g.id})}" class="btn-al btn-al--sky w-100 text-center">
+                        📩 Xin tham gia nhóm
+                    </a>
+
+                    <!-- Nếu chưa tham gia và mở tự do -->
+                    <form th:if="${!g.isMember and !g.isPending and !g.approvalRequired}" method="post" th:action="@{/groups/{id}/join(id=${g.id})}" class="w-100">
+                        <input type="hidden" name="redirectUrl" value="/groups?tab=discover">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--pink w-100 text-center">
+                            ➕ Tham gia ngay
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tạo nhóm mới -->
+    <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note note--white" method="post" th:action="@{/groups/create}" enctype="multipart/form-data"
+                  style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 4px 4px 0 var(--ink);">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h4 mb-0 fw-bold" id="createGroupModalLabel">✨ Tạo nhóm mới</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body py-3">
+                    <div class="field mb-3">
+                        <label class="form-label fw-bold small" for="newGroupTitle">Tên nhóm <span class="text-danger">*</span></label>
+                        <input class="input-al w-100" id="newGroupTitle" type="text" name="title" maxlength="100" placeholder="Ví dụ: Sinh viên UTE, CLB Nhiếp ảnh..." required>
+                    </div>
+
+                    <div class="field mb-3">
+                        <label class="form-label fw-bold small" for="newGroupDesc">Mô tả nhóm</label>
+                        <textarea class="input-al w-100" id="newGroupDesc" name="description" rows="2" maxlength="500" placeholder="Giới thiệu về mục đích, sở thích chung của nhóm..."></textarea>
+                    </div>
+
+                    <div class="field mb-3">
+                        <label class="form-label fw-bold small" for="newGroupAvatar">Ảnh đại diện nhóm (tùy chọn)</label>
+                        <input class="input-al w-100" id="newGroupAvatar" type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp">
+                    </div>
+
+                    <div class="field mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="approvalRequiredCheckNew" name="approvalRequired" value="true" style="cursor: pointer;">
+                            <label class="form-check-label fw-bold small" for="approvalRequiredCheckNew" style="cursor: pointer;">
+                                🔒 Cần quản trị viên duyệt khi có người xin vào
+                            </label>
+                        </div>
+                        <small class="text-soft d-block mt-1">Khi bật, thành viên mới phải gửi yêu cầu và chờ duyệt trước khi được vào nhóm.</small>
+                    </div>
+
+                    <div class="field mb-2" th:if="${!#lists.isEmpty(friends)}">
+                        <label class="form-label fw-bold small">Mời bạn bè vào nhóm ngay:</label>
+                        <div class="chat-group-picker" style="max-height: 160px; overflow-y: auto; border: 1.5px solid var(--ink); border-radius: 8px; padding: 8px;">
+                            <label class="d-flex align-items-center gap-2 mb-1 p-1" th:each="f : ${friends}" style="cursor: pointer;">
+                                <input type="checkbox" name="memberIds" th:value="${f.id}" class="form-check-input mt-0">
+                                <span class="small fw-semibold" th:text="${f.displayName} + ' (@' + ${f.username} + ')'">Tên bạn bè</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Tạo nhóm ngay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

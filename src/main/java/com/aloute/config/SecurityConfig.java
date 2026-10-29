@@ -28,7 +28,7 @@ import java.time.Clock;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_STATIC = {
-            "/css/**", "/js/**", "/img/**", "/fonts/**", "/webjars/**", "/favicon.ico", "/uploads/**", "/error"
+            "/css/**", "/js/**", "/img/**", "/fonts/**", "/webjars/**", "/favicon.ico", "/favicon.svg", "/logo-proposals/**", "/uploads/**", "/error"
     };
     // Khách chỉ vào được các trang này (đăng ký/đăng nhập) và trang giới thiệu; mọi nội dung khác bắt buộc đăng nhập.
     private static final String[] PUBLIC_PAGES = {

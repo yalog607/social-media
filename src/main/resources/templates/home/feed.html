@@ -4,10 +4,8 @@
 <head><title>Bảng tin</title></head>
 <body>
 <main>
-    <div class="page-title">
-        <h1>Bảng tin</h1>
-        <span th:replace="~{fragments/ui :: roleChip(${me.primaryRole()})}"></span>
-    </div>
+    <!-- 5. KHOẢNH KHẮC 24H (STORY TRAY Ở ĐỈNH BẢNG TIN) -->
+    <div th:replace="~{fragments/stories :: storyTray(${storyTray}, ${me})}"></div>
 
     <div th:replace="~{fragments/composer :: composer}"></div>
 
@@ -29,14 +27,15 @@
     </section>
 
     <div th:replace="~{fragments/post-modals :: modals}"></div>
-    <div th:replace="~{fragments/mood :: customMoodModal}"></div>
+    <!-- CÁC MODAL CỦA STORY (TẠO MỚI, VIEWER, VIEWERS LIST) -->
+    <div th:replace="~{fragments/stories :: storyModals(${me})}"></div>
 </main>
 
 <aside class="app-rail">
-    <!-- Bảng tâm trạng hôm nay của bạn -->
-    <div th:replace="~{fragments/mood :: moodWidget}"></div>
+    <!-- Chủ đề thịnh hành (Đang hot: hiển thị trước tiên) -->
+    <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
 
-    <!-- Vibe hôm nay của hội bạn bè -->
+    <!-- Danh sách bạn bè & chuỗi trên đầu (Hội bạn bè) -->
     <div th:replace="~{fragments/mood :: friendsMoodBar}"></div>
 
     <!-- Nhắc hoàn thiện hồ sơ: chỉ hiện khi còn thiếu, biến mất khi xong -->
@@ -57,9 +56,6 @@
             </li>
         </ul>
     </section>
-
-    <!-- Chủ đề thịnh hành -->
-    <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
 </aside>
 </body>
 </html>

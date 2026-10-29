@@ -12,6 +12,7 @@ import com.aloute.service.mood.MoodService;
 import com.aloute.service.post.PostService;
 import com.aloute.service.search.SearchService;
 import com.aloute.service.social.FriendService;
+import com.aloute.service.story.StoryService;
 import com.aloute.util.media.MediaLimits;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -33,14 +34,16 @@ public class HomeController {
     private final FriendService friends;
     private final MoodService moodService;
     private final StreakService streaks;
+    private final StoryService storyService;
 
     public HomeController(FeedService feed, SearchService search, FriendService friends,
-                          MoodService moodService, StreakService streaks) {
+                          MoodService moodService, StreakService streaks, StoryService storyService) {
         this.feed = feed;
         this.search = search;
         this.friends = friends;
         this.moodService = moodService;
         this.streaks = streaks;
+        this.storyService = storyService;
     }
 
     /** Khách thấy trang giới thiệu; người đã đăng nhập thấy bảng tin (trang đầu, các trang sau tải bằng /feed). */
@@ -57,6 +60,9 @@ public class HomeController {
         model.addAttribute("tagFriends", friendList);
         model.addAttribute("maxTags", PostService.MAX_TAGS);
 
+        // Khoảnh khắc 24H (Story Tray)
+        model.addAttribute("storyTray", storyService.getStoryTray(principal.id()));
+
         // Tâm trạng của bạn
         model.addAttribute("myMood", moodService.getMyMood(principal.id()).orElse(null));
         model.addAttribute("moodPresets", moodService.getPresets());
@@ -65,11 +71,10 @@ public class HomeController {
         List<UUID> friendIds = friendList.stream().map(AuthorView::id).toList();
         Map<UUID, Streak> friendStreaks = streaks.forUserAndFriends(principal.id(), friendIds);
 
-
         // Danh sách vibe hôm nay của bạn bè
         List<MoodView> friendsMoods = moodService.getFriendsMoods(principal.id());
 
-        // Tập hợp danh sách bạn bè hiển thị ở thanh story (có vibe HOẶC có chuỗi nhắn tin)
+        // Tập hợp danh sách bạn bè hiển thị ở thanh bên: TẤT CẢ BẠN BÈ!
         List<FriendVibeView> friendVibes = new ArrayList<>();
         Set<UUID> addedUserIds = new HashSet<>();
 
@@ -80,14 +85,12 @@ public class HomeController {
             addedUserIds.add(m.user().id());
         }
 
-        // 2. Thêm bạn bè có chuỗi nhắn tin đang hoạt động (dù hôm nay chưa đặt vibe)
+        // 2. Thêm TẤT CẢ các bạn bè còn lại (kèm chuỗi nhắn tin nếu có)
         for (AuthorView f : friendList) {
             if (!addedUserIds.contains(f.id())) {
                 Streak st = friendStreaks.getOrDefault(f.id(), Streak.NONE);
-                if (st.active()) {
-                    friendVibes.add(new FriendVibeView(f, null, st));
-                    addedUserIds.add(f.id());
-                }
+                friendVibes.add(new FriendVibeView(f, null, st));
+                addedUserIds.add(f.id());
             }
         }
 

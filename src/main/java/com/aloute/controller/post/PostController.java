@@ -54,10 +54,11 @@ public class PostController {
                          @RequestParam(required = false) String scheduledAt,
                          @RequestParam(required = false) Integer tzOffset,
                          @RequestParam(required = false) UUID categoryId,
+                         @RequestParam(required = false) UUID groupId, @RequestParam(defaultValue = "false") boolean anonymous,
                          RedirectAttributes flash) {
         try {
             Instant when = ScheduleTime.parse(scheduledAt, tzOffset);
-            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when, categoryId);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when, categoryId, groupId, anonymous);
             flash.addFlashAttribute("notice", when == null ? "Đã đăng bài!" : "Đã hẹn giờ đăng bài!");
         } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
             flash.addFlashAttribute("composerError", e.getMessage());
@@ -68,7 +69,7 @@ public class PostController {
             flash.addFlashAttribute("composerCategoryId", categoryId);
             flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);
         }
-        return "redirect:/";
+        return groupId != null ? "redirect:/groups/" + groupId : "redirect:/";
     }
 
     /** Trang riêng của một bài (địa chỉ để chia sẻ). Khách xem được nếu bài công khai; còn lại 404. */

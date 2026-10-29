@@ -43,6 +43,18 @@ public class ConversationRequest {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Câu trả lời câu hỏi duyệt của người xin gia nhập nhóm. */
+    @Column(length = 500)
+    private String answer;
+
+    public ConversationRequest(Conversation conversation, User user, User inviter, Instant createdAt, String answer) {
+        this.conversation = conversation;
+        this.user = user;
+        this.inviter = inviter;
+        this.createdAt = createdAt;
+        this.answer = answer;
+    }
+
     public ConversationRequest(Conversation conversation, User user, User inviter, Instant createdAt) {
         this.conversation = conversation;
         this.user = user;

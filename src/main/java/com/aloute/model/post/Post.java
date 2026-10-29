@@ -84,8 +84,16 @@ public class Post {
     @Column(name = "category_id")
     private UUID categoryId;
 
+    /** Hội nhóm chứa bài viết này; null = bài viết cá nhân/bảng tin chung. */
+    @Column(name = "group_id")
+    private UUID groupId;
+
     @Column(name = "is_pinned", nullable = false)
     private boolean isPinned = false;
+
+    /** Đăng bài ẩn danh trong hội nhóm. */
+    @Column(name = "is_anonymous", nullable = false)
+    private boolean anonymous = false;
 
     /** Giá (Xu) để mở khóa nội dung; null nghĩa là bài miễn phí. Chỉ Creator đặt được. */
     @Column(name = "unlock_price")

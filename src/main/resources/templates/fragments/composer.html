@@ -3,99 +3,419 @@
 <body>
 
 <!--
-  Ô đăng bài ở đầu bảng tin. Cần trong model: me, mediaLimits (maxImages, maxImageMb, maxVideoMb, maxChars).
-  Sau khi đăng lỗi, server chuyển hướng về và trả lại composerError, composerContent, composerVisibility.
+  Ô đăng bài: gồm thanh kích hoạt tinh gọn ở đầu bảng tin và hộp thoại (Modal) soạn thảo đầy đủ kèm bản xem trước (Live Preview).
+  Cần trong model: me, mediaLimits (maxImages, maxImageMb, maxVideoMb, maxChars).
 -->
-<section th:fragment="composer" class="composer note note--taped mb-4" aria-labelledby="composer-title">
-    <h2 id="composer-title" class="visually-hidden">Đăng bài mới</h2>
+<section th:fragment="composer" class="composer-wrapper mb-4">
+    <!-- 1. THANH VIẾT BÀI 1 DÒNG GỌN GÀNG CĂN CHỈNH ĐẸP MẮT -->
+    <div class="composer-trigger-card" data-bs-toggle="modal" data-bs-target="#composerModal"
+         role="button" tabindex="0" aria-label="Mở khung tạo bài viết">
+        <div class="d-flex align-items-center gap-3 w-100">
+            <!-- Avatar bên trái -->
+            <span class="avatar flex-shrink-0" style="width: 42px; height: 42px;">
+                <img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt="" loading="lazy">
+                <span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span>
+            </span>
 
-    <div class="alert-al alert-al--error" role="alert" th:if="${composerError != null}">
-        <p th:text="${composerError}">Lỗi</p>
+            <!-- Khung nhập dạng pill căng tràn cân đối -->
+            <div class="composer-trigger-pill flex-grow-1 minw-0">
+                <span class="text-truncate" th:text="${groupId != null ? 'Viết gì đó cho nhóm...' : (me.profile.displayName + ' ơi, bạn đang nghĩ gì thế?')}">Nhựt Hưng ơi, bạn đang nghĩ gì thế?</span>
+            </div>
+        </div>
     </div>
 
-    <form th:action="@{/posts}" method="post" enctype="multipart/form-data" data-composer novalidate
-          th:attr="data-max-images=${mediaLimits.maxImages}, data-max-image-mb=${mediaLimits.maxImageMb}, data-max-video-mb=${mediaLimits.maxVideoMb}, data-max-chars=${mediaLimits.maxChars}"
-          th:with="chosen=${composerVisibility != null ? composerVisibility : (me.profile.defaultPostVisibility.name() == 'PUBLIC' ? 'PUBLIC' : 'PRIVATE')}">
-        <div class="field mb-2">
-            <label for="composerText" class="visually-hidden">Nội dung bài viết</label>
-            <textarea id="composerText" name="content" class="input-al" rows="3" maxlength="2000"
-                      placeholder="Hôm nay có gì hot? Thêm #hashtag để mọi người tìm thấy bài của bạn."
-                      th:text="${composerContent}"></textarea>
+    <!-- 2. HỘP THOẠI SOẠN THẢO BÀI VIẾT KÈM BẢN XEM TRƯỚC (MODAL TƯƠNG TỰ HÌNH 2) -->
+    <div class="modal fade" id="composerModal" tabindex="-1" aria-labelledby="composerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+            <form th:action="@{/posts}" method="post" enctype="multipart/form-data" data-composer novalidate
+                  class="modal-content note note--white p-0 overflow-hidden"
+                  style="border: 2.5px solid var(--ink); border-radius: var(--r-card); box-shadow: 6px 6px 0 var(--ink);"
+                  th:attr="data-max-images=${mediaLimits.maxImages}, data-max-image-mb=${mediaLimits.maxImageMb}, data-max-video-mb=${mediaLimits.maxVideoMb}, data-max-chars=${mediaLimits.maxChars}"
+                  th:with="chosen=${composerVisibility != null ? composerVisibility : (me.profile.defaultPostVisibility.name() == 'PUBLIC' ? 'PUBLIC' : 'PRIVATE')}">
+
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="groupId" th:if="${groupId != null}" th:value="${groupId}">
+                <input type="hidden" th:if="${composerError != null}" data-has-composer-error value="true">
+
+                <!-- Header Modal -->
+                <div class="modal-header px-4 py-3 border-bottom d-flex align-items-center justify-content-between"
+                     style="border-bottom: 2px solid var(--ink) !important; background: var(--paper-2, #F8F5EE);">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="font-size: 1.3rem;">✨</span>
+                        <h2 class="h5 mb-0 fw-bold text-ink" id="composerModalLabel" th:text="${groupId != null ? 'Tạo bài viết trong nhóm' : 'Tạo bài viết'}">Tạo bài viết</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <!-- Body Modal (2 Cột giống Hình 2) -->
+                <div class="modal-body p-4">
+                    <div class="alert-al alert-al--error mb-3" role="alert" th:if="${composerError != null}">
+                        <p th:text="${composerError}">Lỗi</p>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- CỘT TRÁI (COL 1): KHUNG SOẠN THẢO BÀI ĐĂNG -->
+                        <div class="col-12 col-lg-7 d-flex flex-column gap-3">
+                            <!-- Hàng tác giả + Quyền xem + Ẩn danh -->
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="avatar flex-shrink-0" style="width: 44px; height: 44px;">
+                                    <img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt="" loading="lazy">
+                                    <span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span>
+                                </span>
+                                <div>
+                                    <div class="fw-bold text-ink" style="font-size: 0.95rem;" th:text="${me.profile.displayName}">Tên người dùng</div>
+                                    <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                        <!-- Chọn quyền xem -->
+                                        <select id="composerVisibility" name="visibility" class="form-select form-select-sm"
+                                                style="border: 1.5px solid var(--ink); border-radius: var(--r-pill); font-size: 0.78rem; font-weight: 700; width: auto; padding: 2px 24px 2px 10px;">
+                                            <option value="PUBLIC" th:selected="${chosen == 'PUBLIC'}">🌐 Công khai</option>
+                                            <option value="FRIENDS" th:selected="${chosen == 'FRIENDS'}">👥 Bạn bè</option>
+                                            <option value="PRIVATE" th:selected="${chosen == 'PRIVATE'}">🔒 Chỉ mình tôi</option>
+                                        </select>
+
+                                        <!-- Đăng ẩn danh nếu trong nhóm -->
+                                        <label class="d-inline-flex align-items-center gap-1 cursor-pointer user-select-none mb-0 px-2 py-0.5"
+                                               th:if="${groupId != null}"
+                                               style="border: 1.5px solid var(--ink); border-radius: var(--r-pill); background: var(--lemon); font-size: 0.78rem; font-weight: 700; cursor: pointer;">
+                                            <input type="checkbox" name="anonymous" value="true" class="form-check-input mt-0" data-anonymous-toggle>
+                                            <span>🎭 Đăng ẩn danh</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ô nhập nội dung văn bản -->
+                            <div class="field">
+                                <textarea id="composerText" name="content" class="input-al w-100" rows="4" maxlength="2000"
+                                          style="resize: vertical; font-size: 1.05rem;"
+                                          th:placeholder="${groupId != null ? 'Viết gì đó cho các thành viên trong nhóm...' : (me.profile.displayName + ' ơi, bạn đang nghĩ gì thế? Thêm #hashtag để mọi người tìm thấy...')}"
+                                          placeholder="Hôm nay có gì hot? Thêm #hashtag để mọi người tìm thấy bài của bạn."
+                                          th:text="${composerContent}"></textarea>
+                            </div>
+
+                            <!-- Khung kéo thả / thêm ảnh hoặc video (Dashed Box tương tự hình 2) -->
+                            <div class="composer-dropzone" id="composerDropzone">
+                                <input type="file" id="composerImages" name="images" class="visually-hidden" multiple
+                                       accept="image/jpeg,image/png,image/gif,image/webp">
+                                <input type="file" id="composerVideo" name="video" class="visually-hidden"
+                                       accept="video/mp4,video/webm">
+
+                                <div class="py-2">
+                                    <div style="font-size: 2rem;">📷</div>
+                                    <div class="fw-bold mt-1 text-ink">Thêm ảnh hoặc video</div>
+                                    <div class="small text-soft">hoặc kéo và thả vào đây</div>
+                                    <div class="d-flex justify-content-center gap-2 mt-2">
+                                        <label for="composerImages" class="btn-al btn-al--sm btn-al--sky cursor-pointer m-0">
+                                            Chọn ảnh
+                                        </label>
+                                        <label for="composerVideo" class="btn-al btn-al--sm btn-al--lavender cursor-pointer m-0">
+                                            Chọn video
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Khu vực xem trước ảnh/video đã chọn (để xóa) -->
+                            <div class="previews" data-previews aria-live="polite"></div>
+                            <p class="field-error text-danger small fw-bold" data-composer-error role="alert" hidden></p>
+
+                            <!-- Tùy chọn mở rộng: Gắn thẻ, Danh mục, Trả phí, Hẹn giờ -->
+                            <details class="composer-more" id="composerMoreDetails" th:with="hasExtras=${composerCategoryId != null or composerUnlockPrice != null or composerScheduledAt != null or (composerTagged != null and !#lists.isEmpty(composerTagged))}"
+                                     th:attr="open=${hasExtras} ? 'open'">
+                                <summary class="btn-al btn-al--sm btn-al--white">⚙️ Tùy chọn thêm (Gắn thẻ, Danh mục...)</summary>
+                                <div class="p-3 mt-2 note note--white" style="border: 1.5px solid var(--ink); border-radius: 8px;">
+                                    <!-- Danh mục -->
+                                    <th:block th:with="cats=${@categoryService.active()}">
+                                        <div class="field mb-3" th:if="${!#lists.isEmpty(cats)}">
+                                            <label for="composerCategory" class="form-label small fw-bold">Danh mục chủ đề</label>
+                                            <select id="composerCategory" name="categoryId" class="input-al w-100">
+                                                <option value="">Không chọn danh mục</option>
+                                                <option th:each="c : ${cats}" th:value="${c.id}" th:text="${c.name}"
+                                                        th:selected="${composerCategoryId != null and composerCategoryId == c.id}">Danh mục</option>
+                                            </select>
+                                        </div>
+                                    </th:block>
+
+                                    <!-- Gắn thẻ bạn bè -->
+                                    <div class="field mb-3" th:if="${!#lists.isEmpty(tagFriends)}" th:with="picked=${composerTagged != null ? composerTagged : T(java.util.List).of()}">
+                                        <label class="form-label small fw-bold">Gắn thẻ bạn bè (tối đa <span th:text="${maxTags}">10</span> người):</label>
+                                        <div class="chat-group-picker" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--ink); border-radius: 6px; padding: 6px;">
+                                            <label th:each="f : ${tagFriends}" class="d-flex align-items-center gap-1.5 p-1 mb-0 cursor-pointer">
+                                                <input type="checkbox" name="taggedUserIds" th:value="${f.id}" th:checked="${#lists.contains(picked, f.id)}">
+                                                <span class="small" th:text="${f.displayName}">Bạn</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Creator: Bài trả phí -->
+                                    <div class="field mb-3" th:if="${caps != null and caps.contains('CREATOR')}">
+                                        <label for="composerPrice" class="form-label small fw-bold">Nội dung trả phí (Xu mở khóa)</label>
+                                        <input id="composerPrice" name="unlockPrice" type="number" class="input-al w-100" min="1" max="1000"
+                                               placeholder="Để trống nếu bài miễn phí" th:value="${composerUnlockPrice}">
+                                    </div>
+
+                                    <!-- Creator: Hẹn giờ đăng -->
+                                    <div class="field mb-2" th:if="${caps != null and caps.contains('CREATOR')}">
+                                        <label for="composerSchedule" class="form-label small fw-bold">Hẹn giờ đăng bài</label>
+                                        <input id="composerSchedule" name="scheduledAt" type="datetime-local" class="input-al w-100" th:value="${composerScheduledAt}">
+                                        <input type="hidden" name="tzOffset" data-tz-offset>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Đếm ký tự + Nút Đăng bài -->
+                            <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                                <span class="composer-count text-soft small">
+                                    <span data-count>0</span>/<span th:text="${mediaLimits.maxChars}">2000</span> ký tự
+                                </span>
+                                <button type="submit" class="btn-al btn-al--pink px-4 py-2 fw-bold" data-composer-submit>
+                                    Đăng bài
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- CỘT PHẢI (COL 2): BẢN XEM TRƯỚC (LIVE PREVIEW TƯƠNG TỰ HÌNH 2) -->
+                        <div class="col-12 col-lg-5">
+                            <div style="position: sticky; top: 1rem;">
+                                <h3 class="h6 fw-bold mb-3 d-flex align-items-center gap-1.5 text-soft">
+                                    <span>👁️</span> <span>Bản xem trước</span>
+                                </h3>
+
+                                <div class="composer-preview-card">
+                                    <!-- TRƯỜNG HỢP 1: BẢN XEM TRƯỚC KHI Ở TRONG NHÓM -->
+                                    <th:block th:if="${groupId != null and group != null}">
+                                        <div class="d-flex align-items-start gap-2 mb-2">
+                                            <!-- Cụm Avatar nhóm + Góc avatar tác giả / 🕶️ -->
+                                            <div style="position: relative; width: 44px; height: 44px; flex-shrink: 0;">
+                                                <div style="width: 40px; height: 40px; border-radius: 10px; overflow: hidden; border: 2px solid var(--ink); background: #FFE45E; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: var(--ink);">
+                                                    <img th:if="${group.avatarUrl != null}" th:src="${group.avatarUrl}" alt="Ảnh nhóm" style="width: 100%; height: 100%; object-fit: cover;">
+                                                    <span th:unless="${group.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(group.title, 0, 1))}">G</span>
+                                                </div>
+                                                <!-- Badge góc dưới phải: Avatar hoặc 🕶️ -->
+                                                <div data-preview-corner-badge
+                                                     style="position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; border-radius: 50%; overflow: hidden; border: 1.5px solid #ffffff; display: flex; align-items: center; justify-content: center; background: #FFF8EC; font-size: 0.65rem; font-weight: 700; color: var(--ink); box-shadow: 1px 1px 0 rgba(0,0,0,0.3);">
+                                                    <img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+                                                    <span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1" style="min-width: 0;">
+                                                <div class="fw-bold text-ink text-truncate" style="font-size: 0.95rem; line-height: 1.25;" th:text="${group.title}">Tên nhóm</div>
+                                                <div class="text-soft small d-flex align-items-center gap-1 flex-wrap" style="font-size: 0.8rem; margin-top: 2px;">
+                                                    <span class="text-ink fw-semibold" data-preview-author-name th:text="${me.profile.displayName}">Tên người dùng</span>
+                                                    <span th:if="${myRole != null}" data-preview-role-badge class="badge px-1.5 py-0"
+                                                          th:classappend="${myRole.name() == 'OWNER'} ? 'bg-warning text-dark' : (${myRole.name() == 'ADMIN'} ? 'bg-primary text-white' : (${myRole.name() == 'MODERATOR'} ? 'bg-info text-dark' : 'bg-light text-dark'))"
+                                                          style="font-size: 0.7rem; border: 1px solid var(--ink); border-radius: 4px; font-weight: 700; line-height: 1.3;"
+                                                          th:text="${myRole.label()}">Chủ nhóm</span>
+                                                    <span>·</span>
+                                                    <span>Vừa xong</span>
+                                                    <span>·</span>
+                                                    <span data-preview-visibility-icon>🌐</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </th:block>
+
+                                    <!-- TRƯỜNG HỢP 2: BẢN XEM TRƯỚC BÀI ĐĂNG CÁ NHÂN -->
+                                    <th:block th:unless="${groupId != null and group != null}">
+                                        <div class="d-flex align-items-start gap-2 mb-2">
+                                            <span class="avatar flex-shrink-0" style="width: 38px; height: 38px;" data-preview-avatar>
+                                                <img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt="" loading="lazy">
+                                                <span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span>
+                                            </span>
+                                            <div class="flex-grow-1" style="min-width: 0;">
+                                                <div class="fw-bold text-ink text-truncate" style="font-size: 0.92rem;" data-preview-author-name th:text="${me.profile.displayName}">Tên người dùng</div>
+                                                <div class="text-soft small d-flex align-items-center gap-1">
+                                                    <span>Vừa xong</span>
+                                                    <span>·</span>
+                                                    <span data-preview-visibility-icon>🌐</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </th:block>
+
+                                    <!-- Text Preview -->
+                                    <div class="composer-preview-text text-muted fst-italic mb-3" data-preview-text>
+                                        Nội dung bài viết sẽ hiển thị ở đây...
+                                    </div>
+
+                                    <!-- Media Preview Mirror -->
+                                    <div class="composer-preview-media my-2 text-center" data-preview-media style="display:none; max-height:220px; overflow:hidden; border-radius:8px; border:1.5px solid var(--ink); background:#16121F;">
+                                    </div>
+
+                                    <!-- Mock Action Buttons -->
+                                    <div class="d-flex align-items-center justify-content-around pt-2 border-top text-soft small">
+                                        <span>❤️ Cảm xúc</span>
+                                        <span>💬 Bình luận</span>
+                                        <span>↗ Chia sẻ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <div class="previews" data-previews aria-live="polite"></div>
-        <p class="field-error" data-composer-error role="alert" hidden></p>
+    <!-- Script kết nối Live Preview và Dropzone -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('[data-composer]');
+            if (!form) return;
 
-        <div class="composer-tools">
-            <span class="file-pick">
-                <input type="file" id="composerImages" name="images" class="visually-hidden" multiple
-                       accept="image/jpeg,image/png,image/gif,image/webp">
-                <label for="composerImages" class="btn-al btn-al--sm btn-al--sky">Thêm ảnh</label>
-            </span>
-            <span class="file-pick">
-                <input type="file" id="composerVideo" name="video" class="visually-hidden"
-                       accept="video/mp4,video/webm">
-                <label for="composerVideo" class="btn-al btn-al--sm btn-al--lavender">Thêm video</label>
-            </span>
+            const textInput = form.querySelector('textarea[name="content"]');
+            const previewText = form.querySelector('[data-preview-text]');
+            const visSelect = form.querySelector('select[name="visibility"]');
+            const previewVisIcon = form.querySelector('[data-preview-visibility-icon]');
+            const anonToggle = form.querySelector('[data-anonymous-toggle]');
+            const previewAuthorName = form.querySelector('[data-preview-author-name]');
+            const defaultAuthorName = previewAuthorName ? previewAuthorName.textContent : '';
+            const cornerBadge = form.querySelector('[data-preview-corner-badge]');
+            const defaultCornerBadgeHtml = cornerBadge ? cornerBadge.innerHTML : '';
+            const roleBadge = form.querySelector('[data-preview-role-badge]');
+            const previewMediaContainer = form.querySelector('[data-preview-media]');
+            const previewsContainer = form.querySelector('[data-previews]');
 
-            <label for="composerVisibility" class="visually-hidden">Ai xem được bài này</label>
-            <select id="composerVisibility" name="visibility" class="input-al composer-visibility">
-                <option value="PUBLIC" th:selected="${chosen == 'PUBLIC'}">Công khai</option>
-                <option value="PRIVATE" th:selected="${chosen == 'PRIVATE'}">Chỉ mình tôi</option>
-                <option value="FRIENDS">Bạn bè</option>
-            </select>
+            // Cập nhật văn bản xem trước
+            if (textInput && previewText) {
+                textInput.addEventListener('input', function () {
+                    const text = textInput.value.trim();
+                    if (text) {
+                        previewText.textContent = text;
+                        previewText.classList.remove('text-muted', 'fst-italic');
+                    } else {
+                        previewText.textContent = 'Nội dung bài viết sẽ hiển thị ở đây...';
+                        previewText.classList.add('text-muted', 'fst-italic');
+                    }
+                });
+            }
 
-            <span class="composer-count ms-auto"><span data-count>0</span>/<span th:text="${mediaLimits.maxChars}">2000</span></span>
-            <button type="submit" class="btn-al btn-al--pink" data-composer-submit>Đăng bài</button>
-        </div>
+            // Cập nhật biểu tượng quyền xem
+            if (visSelect && previewVisIcon) {
+                visSelect.addEventListener('change', function () {
+                    if (visSelect.value === 'PUBLIC') previewVisIcon.textContent = '🌐';
+                    else if (visSelect.value === 'FRIENDS') previewVisIcon.textContent = '👥';
+                    else previewVisIcon.textContent = '🔒';
+                });
+            }
 
-        <details class="composer-more mt-2" th:with="hasExtras=${composerCategoryId != null or composerUnlockPrice != null or composerScheduledAt != null or (composerTagged != null and !#lists.isEmpty(composerTagged))}"
-                 th:attr="open=${hasExtras} ? 'open'">
-            <summary class="btn-al btn-al--sm btn-al--white">Tùy chọn thêm</summary>
-            <div class="mt-2">
-        <th:block th:with="cats=${@categoryService.active()}">
-            <div class="field mt-2" th:if="${!#lists.isEmpty(cats)}">
-                <label for="composerCategory" class="field-hint">Danh mục (không bắt buộc)</label>
-                <select id="composerCategory" name="categoryId" class="input-al">
-                    <option value="">Không chọn danh mục</option>
-                    <option th:each="c : ${cats}" th:value="${c.id}" th:text="${c.name}"
-                            th:selected="${composerCategoryId != null and composerCategoryId == c.id}">Danh mục</option>
-                </select>
-            </div>
-        </th:block>
+            // Cập nhật tên tác giả ẩn danh
+            if (anonToggle) {
+                anonToggle.addEventListener('change', function () {
+                    if (anonToggle.checked) {
+                        if (previewAuthorName) previewAuthorName.textContent = 'Người tham gia ẩn danh (Bạn)';
+                        if (cornerBadge) cornerBadge.innerHTML = '🕶️';
+                        if (roleBadge) roleBadge.style.display = 'none';
+                    } else {
+                        if (previewAuthorName) previewAuthorName.textContent = defaultAuthorName;
+                        if (cornerBadge) cornerBadge.innerHTML = defaultCornerBadgeHtml;
+                        if (roleBadge) roleBadge.style.display = '';
+                    }
+                });
+            }
 
-        <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
-            <label for="composerPrice" class="field-hint">Bài trả phí (không bắt buộc): giá mở khóa bằng Xu</label>
-            <input id="composerPrice" name="unlockPrice" type="number" class="input-al" min="1" max="1000"
-                   placeholder="Để trống nếu bài miễn phí" th:value="${composerUnlockPrice}">
-        </div>
+            // Tự động đồng bộ ảnh/video sang khung Live Preview
+            if (previewsContainer && previewMediaContainer) {
+                const observer = new MutationObserver(function () {
+                    const firstItem = previewsContainer.querySelector('img, video');
+                    if (firstItem) {
+                        previewMediaContainer.innerHTML = '';
+                        const clone = firstItem.cloneNode(true);
+                        clone.style.width = '100%';
+                        clone.style.maxHeight = '220px';
+                        clone.style.objectFit = 'contain';
+                        if (clone.tagName.toLowerCase() === 'video') {
+                            clone.controls = true;
+                            clone.muted = true;
+                        }
+                        previewMediaContainer.appendChild(clone);
+                        previewMediaContainer.style.display = 'block';
+                    } else {
+                        previewMediaContainer.innerHTML = '';
+                        previewMediaContainer.style.display = 'none';
+                    }
+                });
+                observer.observe(previewsContainer, { childList: true, subtree: true });
+            }
 
-        <div class="field mt-2" th:if="${caps.contains('CREATOR')}">
-            <label for="composerSchedule" class="field-hint">Hẹn giờ đăng (không bắt buộc)</label>
-            <input id="composerSchedule" name="scheduledAt" type="datetime-local" class="input-al" th:value="${composerScheduledAt}">
-            <input type="hidden" name="tzOffset" data-tz-offset>
-        </div>
+            // Kéo thả file vào Dropzone
+            const dropzone = document.getElementById('composerDropzone');
+            const imgInput = document.getElementById('composerImages');
+            const vidInput = document.getElementById('composerVideo');
 
-        <details class="composer-tags mt-2" th:if="${!#lists.isEmpty(tagFriends)}" th:with="picked=${composerTagged != null ? composerTagged : T(java.util.List).of()}">
-            <summary class="btn-al btn-al--sm btn-al--white">Gắn thẻ bạn bè (tối đa <span th:text="${maxTags}">10</span>)</summary>
-            <div class="chat-group-picker">
-                <label th:each="f : ${tagFriends}">
-                    <input type="checkbox" name="taggedUserIds" th:value="${f.id}" th:checked="${#lists.contains(picked, f.id)}">
-                    <span th:text="${f.displayName}">Bạn</span>
-                </label>
-            </div>
-        </details>
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach(function(eventName) {
+                    dropzone.addEventListener(eventName, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.add('drag-over');
+                    });
+                });
 
-            </div>
-        </details>
+                ['dragleave', 'drop'].forEach(function(eventName) {
+                    dropzone.addEventListener(eventName, function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropzone.classList.remove('drag-over');
+                    });
+                });
 
-        <p class="field-hint mt-2 mb-0">
-            Mẹo: dán ảnh bằng Ctrl+V ngay trong ô viết bài. Tối đa <span th:text="${mediaLimits.maxImages}">4</span> ảnh (mỗi ảnh
-            <span th:text="${mediaLimits.maxImageMb}">8</span> MB) hoặc 1 video MP4/WEBM
-            (<span th:text="${mediaLimits.maxVideoMb}">25</span> MB). Ảnh được xóa thông tin chụp và vị trí;
-            video được giữ nguyên dữ liệu gốc.
-        </p>
-    </form>
+                dropzone.addEventListener('drop', function(e) {
+                    const dt = e.dataTransfer;
+                    if (dt && dt.files && dt.files.length) {
+                        const file = dt.files[0];
+                        if (file.type.startsWith('video/')) {
+                            if (vidInput) {
+                                vidInput.files = dt.files;
+                                vidInput.dispatchEvent(new Event('change'));
+                            }
+                        } else {
+                            if (imgInput) {
+                                imgInput.files = dt.files;
+                                imgInput.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Xử lý các nút trigger nhanh trên thanh viết bài
+            const modalEl = document.getElementById('composerModal');
+            let triggerAction = null;
+            document.querySelectorAll('[data-quick-trigger]').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    triggerAction = btn.getAttribute('data-quick-trigger');
+                });
+            });
+
+            if (modalEl) {
+                modalEl.addEventListener('shown.bs.modal', function () {
+                    if (triggerAction === 'media' && imgInput) {
+                        imgInput.click();
+                    } else if ((triggerAction === 'video' || triggerAction === 'reel') && vidInput) {
+                        vidInput.click();
+                    } else if (triggerAction === 'tag') {
+                        const details = document.getElementById('composerMoreDetails');
+                        if (details) details.open = true;
+                    } else if (triggerAction === 'anon' && anonToggle) {
+                        anonToggle.checked = true;
+                        anonToggle.dispatchEvent(new Event('change'));
+                    } else {
+                        if (textInput) textInput.focus();
+                    }
+                    triggerAction = null;
+                });
+            }
+
+            // Tự động mở modal nếu server trả về lỗi đăng bài
+            if (form.querySelector('[data-has-composer-error]')) {
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            }
+        });
+    </script>
 </section>
 
 </body>

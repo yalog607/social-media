@@ -3,7 +3,7 @@ package com.aloute.dto.mood;
 import com.aloute.dto.chat.Streak;
 import com.aloute.dto.post.PostView.AuthorView;
 
-/** DTO biểu diễn một người bạn trong thanh story bạn bè (kết hợp tâm trạng vibe và chuỗi nhắn tin chatStreak). */
+/** DTO biểu diễn một người bạn trong thanh bạn bè (kết hợp tâm trạng vibe và chuỗi nhắn tin chatStreak). */
 public record FriendVibeView(
         AuthorView user,
         MoodView mood,
@@ -26,16 +26,29 @@ public record FriendVibeView(
     }
 
     public String streakCrownClass() {
+        if (!hasStreak()) {
+            return "mood-streak-crown--zero";
+        }
         return isStreakAtRisk() ? "mood-streak-crown--risk" : "mood-streak-crown--fire";
     }
 
+    public String streakBadgeClass() {
+        return streakCrownClass();
+    }
+
     public String streakTitle() {
-        if (!hasStreak() || chatStreak == null) return "";
         String name = user != null ? user.displayName() : "bạn bè";
-        if (chatStreak.atRisk()) {
-            return "Chuỗi nhắn tin 🔥 " + chatStreak.days() + " ngày! Nhắn hôm nay để giữ chuỗi cùng " + name;
+        if (hasStreak()) {
+            if (isStreakAtRisk()) {
+                return "Chuỗi nhắn tin 🔥 " + streakDays() + " ngày! Nhắn hôm nay để giữ chuỗi cùng " + name;
+            }
+            return "Chuỗi nhắn tin 🔥 " + streakDays() + " ngày cùng " + name;
         }
-        return "Chuỗi nhắn tin 🔥 " + chatStreak.days() + " ngày cùng " + name;
+        return "Chưa có chuỗi · Nhắn tin cùng " + name + " để bắt đầu chuỗi 🔥!";
+    }
+
+    public String streakDisplayTitle() {
+        return streakTitle();
     }
 
     public String itemTitle(java.time.Instant now) {

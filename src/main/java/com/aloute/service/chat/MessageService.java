@@ -162,25 +162,52 @@ public class MessageService {
     }
 
     /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
+    private static final java.util.regex.Pattern REPLY_PATTERN =
+            java.util.regex.Pattern.compile("^\\[(?:reply:|reply\\s*@|Trả lời\\s*@|[^:\\]]+@)(?:([0-9a-fA-F-]{36}):)?(?:@)?([^:\\]]+):\\s*(?:&quot;|\"|\\u201c)(.*?)(?:&quot;|\"|\\u201d)\\]\\r?\\n?");
+
+    /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
     private static MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname, ReactionSummary reactions) {
         User sender = m.getSender();
         Profile profile = sender.getProfile();
         AttachmentView attachmentView = m.getAttachment() == null ? null : new AttachmentView(
                 m.getAttachment().getKind(), m.getAttachment().getUrl(),
                 m.getAttachment().getContentType(), m.getAttachment().getOriginalName());
-                
+
+        MessageView.ReplyView reply = null;
+        String rawContent = m.getContent();
+        String contentToRender = rawContent;
+        if (rawContent != null && !rawContent.isEmpty()) {
+            java.util.regex.Matcher rm = REPLY_PATTERN.matcher(rawContent);
+            if (rm.find()) {
+                String midStr = rm.group(1);
+                UUID repliedMid = null;
+                if (midStr != null && !midStr.isBlank()) {
+                    try {
+                        repliedMid = UUID.fromString(midStr.trim());
+                    } catch (IllegalArgumentException ignored) {}
+                }
+                reply = new MessageView.ReplyView(repliedMid, rm.group(2).trim(), rm.group(3).trim());
+                contentToRender = rawContent.substring(rm.end()).stripLeading();
+            }
+        }
+
+        String contentHtml = contentToRender == null || contentToRender.isEmpty()
+                ? ""
+                : PostTextRenderer.toSafeHtml(contentToRender, username -> usernameToNickname.get(username));
+
         return new MessageView(
                 m.getId(),
                 m.getConversation().getId(),
                 new PostView.AuthorView(sender.getId(), sender.getUsername(),
                         nicknames.getOrDefault(sender.getId(), profile.getDisplayName()),
                         profile.getAvatarUrl(), sender.primaryRole()),
-                m.getContent() == null ? "" : PostTextRenderer.toSafeHtml(m.getContent(), username -> usernameToNickname.get(username)),
+                contentHtml,
                 attachmentView,
                 m.getCreatedAt(),
                 m.isPinned(),
                 m.isSystem(),
-                reactions != null ? reactions : ReactionSummary.EMPTY);
+                reactions != null ? reactions : ReactionSummary.EMPTY,
+                reply);
     }
 
     @Transactional

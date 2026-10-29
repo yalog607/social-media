@@ -41,3 +41,10 @@ uploads/
 
 # Bản sao lưu chứa dữ liệu người dùng: KHÔNG bao giờ commit
 backups/
+
+# Temporary / local files
+nhhung_feed.html
+De_Xuat*
+
+extracted_*.txt
+docx_extracted_text.txt

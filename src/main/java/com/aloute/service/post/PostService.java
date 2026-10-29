@@ -54,10 +54,12 @@ public class PostService {
     private final PostTagRepository tags;
     private final BannedHashtags bannedHashtags;
     private final CategoryService categories;
+    private final com.aloute.repository.chat.ConversationMemberRepository conversationMembers;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
                        RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
-                       PostTagRepository tags, BannedHashtags bannedHashtags, CategoryService categories) {
+                       PostTagRepository tags, BannedHashtags bannedHashtags, CategoryService categories,
+                       com.aloute.repository.chat.ConversationMemberRepository conversationMembers) {
         this.categories = categories;
         this.bannedHashtags = bannedHashtags;
         this.posts = posts;
@@ -68,6 +70,7 @@ public class PostService {
         this.friends = friends;
         this.notifications = notifications;
         this.tags = tags;
+        this.conversationMembers = conversationMembers;
     }
 
     /**
@@ -126,6 +129,23 @@ public class PostService {
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
                        MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
                        UUID categoryId) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, categoryId, null);
+    }
+
+    /**
+     * Như trên, thêm {@code groupId}: bài viết thuộc hội nhóm (null = bài viết công khai/cá nhân).
+     */
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
+                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       UUID categoryId, UUID groupId) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, categoryId, groupId, false);
+    }
+
+    @Transactional
+    public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
+                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       UUID categoryId, UUID groupId, boolean isAnonymous) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
         rejectBannedHashtags(text);
@@ -135,6 +155,12 @@ public class PostService {
         }
         User author = users.findById(authorId).filter(User::isActive)
                 .orElseThrow(() -> new InvalidPostException("Tài khoản này không thể đăng bài."));
+
+        if (groupId != null) {
+            if (!conversationMembers.existsByConversationIdAndUserId(groupId, authorId)) {
+                throw new InvalidPostException("Bạn phải là thành viên của nhóm để đăng bài.");
+            }
+        }
 
         if (unlockPrice != null) {
             if (!author.hasRole(com.aloute.model.user.Role.CREATOR)) {
@@ -157,6 +183,8 @@ public class PostService {
             post.setUnlockPrice(unlockPrice);
             post.setScheduledAt(scheduledAt);
             post.setCategoryId(categoryId);
+            post.setGroupId(groupId);
+            post.setAnonymous(isAnonymous && groupId != null);
             applyContent(post, text);
             for (MediaService.StoredMedia item : stored) {
                 PostMedia entity = new PostMedia();

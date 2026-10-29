@@ -22,6 +22,10 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     long countByConversationId(UUID conversationId);
 
+    @Query("select cm from ConversationMember cm where cm.conversation.id in :conversationIds and cm.user.id in :userIds")
+    List<ConversationMember> findByConversationIdInAndUserIdIn(@Param("conversationIds") java.util.Collection<UUID> conversationIds,
+                                                               @Param("userIds") java.util.Collection<UUID> userIds);
+
     @Query("select cm from ConversationMember cm join fetch cm.user u join fetch u.profile "
             + "where cm.conversation.id = :conversationId order by cm.joinedAt")
     List<ConversationMember> findMembers(@Param("conversationId") UUID conversationId);
