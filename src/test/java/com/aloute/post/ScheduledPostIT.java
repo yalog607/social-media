@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Hẹn giờ đăng bài: bài ẩn với người khác ở mọi nơi cho tới giờ, rồi tự hiện và gửi thông báo gắn thẻ. */
@@ -112,6 +113,32 @@ class ScheduledPostIT extends IntegrationTest {
         publisher.publishDue(); // có thể đăng bài hẹn của test khác dùng chung CSDL, nhưng không được đăng bài đã hủy
         assertThat(jdbc.queryForObject("select scheduled_at is not null from posts where id = ?", Boolean.class, post.getId()))
                 .as("bài đã hủy không được đăng").isTrue();
+    }
+
+    @Test
+    void cancelEndpointOnlyAllowsOwnerAndCancelledPostIsNeverPublished() throws Exception {
+        User creator = createUser(Role.CREATOR);
+        User other = createUser(Role.CREATOR);
+        Post scheduled = schedule(creator, "hủy qua endpoint", Duration.ofHours(1), List.of());
+        String endpoint = "/creator/scheduled/" + scheduled.getId() + "/cancel";
+        mvc.perform(post(endpoint).with(csrf()).with(asUser(other))).andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("select deleted_at is null from posts where id = ?", Boolean.class, scheduled.getId())).isTrue();
+        mvc.perform(post(endpoint).with(csrf()).with(asUser(creator))).andExpect(status().is3xxRedirection());
+        assertThat(jdbc.queryForObject("select deleted_at is not null from posts where id = ?", Boolean.class, scheduled.getId())).isTrue();
+        clock.advance(Duration.ofHours(2));
+        publisher.publishDue();
+        assertThat(jdbc.queryForObject("select scheduled_at is not null from posts where id = ?", Boolean.class, scheduled.getId())).isTrue();
+    }
+
+    @Test
+    void cancelEndpointAfterDueTimeDeletesPostEvenIfPublisherAlreadyRan() throws Exception {
+        User creator = createUser(Role.CREATOR);
+        Post scheduled = schedule(creator, "đã đến giờ", Duration.ofHours(1), List.of());
+        clock.advance(Duration.ofHours(2));
+        publisher.publishDue();
+        mvc.perform(post("/creator/scheduled/" + scheduled.getId() + "/cancel").with(csrf()).with(asUser(creator)))
+                .andExpect(status().is3xxRedirection());
+        assertThat(jdbc.queryForObject("select scheduled_at is null and deleted_at is not null from posts where id = ?", Boolean.class, scheduled.getId())).isTrue();
     }
 
     @Test
