@@ -20,7 +20,7 @@ services:
     image: dpage/pgadmin4:latest
     container_name: aloute-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@aloute.local
+      PGADMIN_DEFAULT_EMAIL: admin@aloute.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
       - "5050:80"
