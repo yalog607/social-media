@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
@@ -162,6 +163,15 @@ public class CommentService {
     public List<CommentView> list(UUID postId, UUID viewerId) {
         posts.getVisible(postId, viewerId);
         List<Comment> flat = comments.findByPostId(postId);
+        Map<String, String> displayNames = new java.util.HashMap<>();
+        Map<String, java.util.Set<String>> legacyNames = new java.util.HashMap<>();
+        for (Comment item : flat) {
+            User user = item.getAuthor();
+            String username = user.getUsername().toLowerCase(java.util.Locale.ROOT);
+            String name = user.getProfile().getDisplayName();
+            displayNames.put(username, name);
+            legacyNames.computeIfAbsent(name, ignored -> new java.util.HashSet<>()).add(username);
+        }
         List<UUID> allCommentIds = flat.stream().map(Comment::getId).toList();
         Map<UUID, ReactionSummary> reactionsByComment = commentReactions.summarizeAll(allCommentIds, viewerId);
 
@@ -183,14 +193,16 @@ public class CommentService {
             }
             List<CommentView> replyViews = replies.stream()
                     .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
-                    .map(reply -> toView(reply, viewerId, List.of(), reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY)))
+                    .map(reply -> toView(reply, viewerId, List.of(), reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY), displayNames, legacyNames))
                     .toList();
-            views.add(toView(root, viewerId, replyViews, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY)));
+            views.add(toView(root, viewerId, replyViews, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY), displayNames, legacyNames));
         }
         return views;
     }
 
-    private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies, ReactionSummary reactions) {
+    private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
+                               ReactionSummary reactions, Map<String, String> displayNames,
+                               Map<String, java.util.Set<String>> legacyNames) {
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
@@ -199,7 +211,7 @@ public class CommentService {
                 comment.getId(),
                 new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
                         profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame()),
-                deleted ? "" : PostTextRenderer.toSafeHtml(comment.getContent()),
+                deleted ? "" : renderComment(comment, displayNames, legacyNames),
                 deleted ? null : comment.getImageUrl(),
                 comment.getCreatedAt(),
                 mine,
@@ -207,6 +219,27 @@ public class CommentService {
                 replies,
                 reactions,
                 deleted ? null : stickerService.toStickerView(comment.getSticker()));
+    }
+
+    private static String renderComment(Comment comment, Map<String, String> displayNames, Map<String, java.util.Set<String>> legacyNames) {
+        String text = comment.getContent();
+        if (text == null) return "";
+        // Bình luận cũ có thể đã lưu @tên hiển thị; chỉ khôi phục liên kết khi xác định được duy nhất một người.
+        if (comment.isReply() && text.startsWith("@")) {
+            var matches = legacyNames.entrySet().stream()
+                    .filter(e -> e.getValue().size() == 1 && text.startsWith("@" + e.getKey() + " "))
+                    .sorted((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length())).toList();
+            if (!matches.isEmpty()) {
+                var match = matches.get(0);
+                String username = match.getValue().iterator().next();
+                String name = HtmlUtils.htmlEscape(match.getKey(), "UTF-8");
+                return "<a class=\"mention\" href=\"/u/" + username + "\">@" + name + "</a>"
+                        + PostTextRenderer.toSafeHtml(text.substring(match.getKey().length() + 1),
+                        key -> displayNames.containsKey(key) ? "@" + HtmlUtils.htmlEscape(displayNames.get(key), "UTF-8") : null);
+            }
+        }
+        return PostTextRenderer.toSafeHtml(text, key -> displayNames.containsKey(key)
+                ? "@" + HtmlUtils.htmlEscape(displayNames.get(key), "UTF-8") : null);
     }
 
     /** Nếu giao dịch không commit (rollback hoặc commit lỗi) thì xóa file ảnh đã ghi ra đĩa. */

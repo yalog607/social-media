@@ -50,6 +50,22 @@ class CommentServiceIT extends IntegrationTest {
     }
 
     @Test
+    void replyMentionsLinkToTheActualAuthorIncludingLegacyDisplayName() {
+        User target = createUser(), responder = createUser();
+        Post post = publicPost(target);
+        Comment root = comments.create(target.getId(), post.getId(), null, "Gốc");
+        String name = target.getProfile().getDisplayName();
+        comments.create(responder.getId(), post.getId(), root.getId(), "@" + target.getUsername() + " chào");
+        comments.create(responder.getId(), post.getId(), root.getId(), "@" + name + " chào");
+        var replies = comments.list(post.getId(), responder.getId()).get(0).replies();
+        assertThat(replies).hasSize(2);
+        for (var reply : replies) {
+            assertThat(reply.contentHtml()).contains("href=\"/u/" + target.getUsername() + "\"")
+                    .contains(">@" + name + "</a>");
+        }
+    }
+
+    @Test
     void createsARootComment() {
         User author = createUser();
         Post post = publicPost(author);

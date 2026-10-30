@@ -66,7 +66,7 @@ public final class SeasonScoring {
         Map<UUID, Aggregate> totals = new HashMap<>();
         for (PostScore post : posts) {
             totals.merge(post.authorId(), new Aggregate(post.authorId(), post.score(), post.publishedAt()),
-                    (a, b) -> new Aggregate(a.authorId(), a.score() + b.score(),
+                    (a, b) -> new Aggregate(a.authorId(), Math.max(a.score(), b.score()),
                             a.firstPostAt().isBefore(b.firstPostAt()) ? a.firstPostAt() : b.firstPostAt()));
         }
         List<Aggregate> sorted = totals.values().stream()

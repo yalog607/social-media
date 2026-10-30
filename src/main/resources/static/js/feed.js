@@ -398,13 +398,13 @@
   });
 
   // Ô "Đang trả lời X": nhắc rõ đang trả lời ai (kiểu Facebook), kèm @Tên chèn sẵn vào nội dung.
-  function showReplyContext(form, parentId, name) {
+  function showReplyContext(form, parentId, name, username) {
     form.dataset.parentId = parentId;
     const chip = form.querySelector('[data-replying-to]');
     chip.querySelector('[data-reply-name]').textContent = name;
     chip.hidden = false;
     const textarea = form.elements.content;
-    textarea.value = '@' + name + ' ';
+    textarea.value = '@' + username + ' ';
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   }
@@ -421,7 +421,7 @@
     const section = commentSectionOf(replyButton);
     const form = section.querySelector('.comment-form');
     if (!form) return;
-    showReplyContext(form, replyButton.dataset.parentId, replyButton.dataset.name);
+    showReplyContext(form, replyButton.dataset.parentId, replyButton.dataset.name, replyButton.dataset.username);
   });
 
   document.addEventListener('click', function (event) {

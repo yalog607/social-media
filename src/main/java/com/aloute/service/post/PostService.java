@@ -214,7 +214,7 @@ public class PostService {
         if (visibility != null) {
             post.setVisibility(visibility);
         }
-        if (!post.isScheduled()) seasonActivity.eligibility(post.getId(), actorId, post.getCreatedAt(), post.getVisibility() == Visibility.PUBLIC, post.getHashtags());
+        if (!post.isScheduled() && !post.isShare()) seasonActivity.eligibility(post.getId(), actorId, post.getCreatedAt(), post.getVisibility() == Visibility.PUBLIC, post.getHashtags());
         if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), actorId, SeasonScoring.Kind.SHARE,
                 post.getId(), post.getVisibility() == Visibility.PUBLIC);
         return post;
@@ -315,7 +315,6 @@ public class PostService {
         share.setSharedPost(original);
         applyContent(share, text);
         Post saved = posts.saveAndFlush(share);
-        seasonActivity.eligibility(saved.getId(), actorId, clock.instant(), true, saved.getHashtags());
         seasonActivity.interaction(original.getId(), actorId, SeasonScoring.Kind.SHARE, saved.getId(), true);
         notifications.postShared(actorId, original);
         return saved;
@@ -348,7 +347,7 @@ public class PostService {
     public void delete(UUID actorId, UUID postId) {
         Post post = ownedLivePost(actorId, postId);
         post.setDeletedAt(clock.instant());
-        if (!post.isScheduled()) seasonActivity.eligibility(postId, actorId, post.getCreatedAt(), false, post.getHashtags());
+        if (!post.isScheduled() && !post.isShare()) seasonActivity.eligibility(postId, actorId, post.getCreatedAt(), false, post.getHashtags());
         if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), actorId, SeasonScoring.Kind.SHARE, postId, false);
     }
 

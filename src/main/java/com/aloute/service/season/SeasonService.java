@@ -225,7 +225,7 @@ public class SeasonService {
     @Transactional(readOnly = true)
     public List<SeasonScoring.PostScore> scores(UUID id) {
         Season season = get(id);
-        List<SeasonScoring.Entry> entries = jdbc.query("select sp.post_id, sp.author_id, sp.published_at, sp.excluded_at from season_posts sp where sp.season_id=? and not exists (select 1 from season_bans b where b.season_id=sp.season_id and b.user_id=sp.author_id)",
+        List<SeasonScoring.Entry> entries = jdbc.query("select sp.post_id, sp.author_id, sp.published_at, sp.excluded_at from season_posts sp join posts p on p.id=sp.post_id where sp.season_id=? and p.shared_post_id is null and not exists (select 1 from season_bans b where b.season_id=sp.season_id and b.user_id=sp.author_id)",
                 (r, n) -> new SeasonScoring.Entry(r.getObject(1, UUID.class), r.getObject(2, UUID.class), r.getTimestamp(3).toInstant(), r.getTimestamp(4) != null), id);
         List<SeasonScoring.Event> events = jdbc.query("select id,post_id,actor_id,kind,source_id,present,occurred_at from season_events where season_id=?",
                 (r, n) -> new SeasonScoring.Event(r.getLong(1), r.getObject(2, UUID.class), r.getObject(3, UUID.class),
