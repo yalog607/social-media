@@ -6,12 +6,15 @@ import com.aloute.repository.post.PostRepository;
 import com.aloute.service.post.PostService;
 import com.aloute.repository.report.ReportRepository;
 import com.aloute.security.AlouteUserPrincipal;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
@@ -21,6 +24,8 @@ import java.util.UUID;
  */
 @Controller
 public class NotificationController {
+
+    private static final int DROPDOWN_LIMIT = 8;
 
     private final NotificationService notifications;
     private final PostRepository posts;
@@ -42,6 +47,22 @@ public class NotificationController {
         model.addAttribute("items", notifications.listRecent(me.id()));
         notifications.markAllRead(me.id());
         return "notification/list";
+    }
+
+    /** Nội dung dropdown chuông: vài thông báo mới nhất, chỉ xem, không đánh dấu đã đọc. */
+    @GetMapping("/notifications/dropdown")
+    public String dropdown(@AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        var recent = notifications.listRecent(me.id());
+        model.addAttribute("items", recent.subList(0, Math.min(recent.size(), DROPDOWN_LIMIT)));
+        return "notification/dropdown :: panel";
+    }
+
+    /** Đánh dấu một thông báo đã đọc khi người dùng bấm vào nó trong dropdown. */
+    @PostMapping("/notifications/{id}/mark-read")
+    @ResponseBody
+    public ResponseEntity<Void> markRead(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id) {
+        notifications.markRead(id, me.id());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/notifications/{id}/read")

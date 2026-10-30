@@ -16,7 +16,7 @@
     <title th:text="${title} + ' · ALOUTE'">ALOUTE</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/fonts.css}">
-    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.31)}">
+    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.32)}">
 </head>
 
 <body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}, data-auth=${me != null}">
@@ -31,6 +31,38 @@
                         th:src="@{/logo-proposals/aloute-sticker-logo.svg}" alt="ALOUTE"></a>
                 <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
                 <span class="ms-auto"></span>
+                <nav class="topbar-actions" aria-label="Lối tắt">
+                    <a class="topbar-icon" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}"
+                        aria-label="Trang chủ" title="Trang chủ" th:attr="aria-current=${active == 'home'} ? 'page'">
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-home" />
+                        </svg>
+                    </a>
+                    <div class="dropdown">
+                        <button class="topbar-icon" th:classappend="${active == 'notifications'} ? 'is-active'"
+                            type="button" id="notif-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            aria-expanded="false" aria-label="Thông báo" title="Thông báo"
+                            th:data-url="@{/notifications/dropdown}">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-bell" />
+                            </svg>
+                            <span class="nav-badge topbar-badge" th:if="${unreadNotifications > 0}"
+                                th:text="${unreadNotifications > 99 ? '99+' : unreadNotifications}">1</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end menu-al notif-menu" aria-labelledby="notif-toggle"
+                            id="notif-panel">
+                            <p class="notif-empty">Đang tải…</p>
+                        </div>
+                    </div>
+                    <a class="topbar-icon" th:classappend="${active == 'messages'} ? 'is-active'" th:href="@{/messages}"
+                        aria-label="Tin nhắn" title="Tin nhắn" th:attr="aria-current=${active == 'messages'} ? 'page'">
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-chat" />
+                        </svg>
+                        <span class="nav-badge topbar-badge" data-unread-messages th:hidden="${unreadMessages == 0}"
+                            th:text="${unreadMessages}">0</span>
+                    </a>
+                </nav>
                 <div class="dropdown">
                     <button class="user-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span th:replace="~{fragments/ui :: avatar(${me.profile}, '')}"></span>
@@ -39,6 +71,10 @@
                     <ul class="dropdown-menu dropdown-menu-end menu-al">
                         <li><a class="dropdown-item" th:href="@{/me}">Trang cá nhân</a></li>
                         <li><a class="dropdown-item" th:href="@{/settings}">Cài đặt</a></li>
+                        <li th:if="${caps.contains('MANAGER')}"><a class="dropdown-item d-flex align-items-center gap-2" th:href="@{/manage}">Kiểm duyệt
+                                <span class="nav-badge" th:if="${pendingReports + pendingSupportTickets > 0}"
+                                    th:text="${pendingReports + pendingSupportTickets}">1</span></a></li>
+                        <li th:if="${caps.contains('ADMIN')}"><a class="dropdown-item" th:href="@{/admin}">Quản trị</a></li>
                         <li><a class="dropdown-item" th:href="@{/support}">Hỗ trợ</a></li>
                         <li><a class="dropdown-item" th:href="@{/reports}">Báo cáo</a></li>
                         <li>
@@ -53,11 +89,6 @@
 
         <div class="app">
             <nav class="side-nav" aria-label="Menu chính">
-                <a class="nav-tab" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}"
-                    th:attr="aria-current=${active == 'home'} ? 'page'">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-home" />
-                    </svg>Trang chủ</a>
                 <a class="nav-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}"
                     th:attr="aria-current=${active == 'profile'} ? 'page'">
                     <svg class="icon" aria-hidden="true">
@@ -73,41 +104,11 @@
                     <svg class="icon" aria-hidden="true">
                         <use href="#i-users" />
                     </svg>Hội nhóm</a>
-                <a class="nav-tab" th:classappend="${active == 'notifications'} ? 'is-active'"
-                    th:href="@{/notifications}" th:attr="aria-current=${active == 'notifications'} ? 'page'">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-bell" />
-                    </svg>Thông báo
-                    <span class="nav-badge" th:if="${unreadNotifications > 0}"
-                        th:text="${unreadNotifications}">1</span></a>
-                <a class="nav-tab" th:classappend="${active == 'messages'} ? 'is-active'" th:href="@{/messages}"
-                    th:attr="aria-current=${active == 'messages'} ? 'page'">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-chat" />
-                    </svg>Tin nhắn
-                    <span class="nav-badge" data-unread-messages th:hidden="${unreadMessages == 0}" th:text="${unreadMessages}">0</span></a>
-                <a class="nav-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}"
-                    th:attr="aria-current=${active == 'settings'} ? 'page'">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-gear" />
-                    </svg>Cài đặt</a>
                 <a class="nav-tab" th:if="${caps.contains('CREATOR')}"
                     th:classappend="${active == 'creator'} ? 'is-active'" th:href="@{/creator}">
                     <svg class="icon" aria-hidden="true">
                         <use href="#i-star" />
                     </svg>Creator</a>
-                <a class="nav-tab" th:if="${caps.contains('MANAGER')}"
-                    th:classappend="${active == 'manage'} ? 'is-active'" th:href="@{/manage}">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-shield" />
-                    </svg>Kiểm duyệt
-                    <span class="nav-badge" th:if="${pendingReports + pendingSupportTickets > 0}"
-                        th:text="${pendingReports + pendingSupportTickets}">1</span></a>
-                <a class="nav-tab" th:if="${caps.contains('ADMIN')}" th:classappend="${active == 'admin'} ? 'is-active'"
-                    th:href="@{/admin}">
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-crown" />
-                    </svg>Quản trị</a>
             </nav>
 
             <div class="app-main" id="main" tabindex="-1">

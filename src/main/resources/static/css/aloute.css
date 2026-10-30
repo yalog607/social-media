@@ -395,6 +395,30 @@ body[data-role="admin"] .logo {
 }
 .menu-al .dropdown-item:hover, .menu-al .dropdown-item:focus { background: var(--lemon); color: var(--ink); }
 
+/* Lối tắt trên topbar: Trang chủ, chuông thông báo, Tin nhắn */
+.topbar-actions { display: flex; align-items: center; gap: .5rem; }
+.topbar-icon {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; color: var(--ink); text-decoration: none;
+  background: var(--white); border: var(--line); border-radius: 50%; box-shadow: var(--sh-sm); cursor: pointer;
+  transition: transform .12s, box-shadow .12s, background .12s;
+}
+.topbar-icon svg { width: 22px; height: 22px; }
+.topbar-icon:hover { background: var(--paper-2); color: var(--ink); transform: translate(-1px, -1px); box-shadow: var(--sh); }
+.topbar-icon.is-active { background: var(--role); }
+.topbar-badge { position: absolute; top: -6px; right: -6px; margin-left: 0; min-width: 20px; height: 20px; font-size: .7rem; }
+.dropdown-menu.notif-menu { width: min(380px, calc(100vw - 2rem)); max-height: 70vh; overflow-y: auto; padding: .4rem; }
+.notif-menu .notification-row { border-radius: 10px; }
+.notif-empty { margin: 0; padding: 1rem; text-align: center; font-weight: 600; color: var(--ink-soft, var(--ink)); }
+.notif-all { display: block; margin-top: .3rem; padding: .5rem; text-align: center; font-weight: 700; color: var(--ink); border-radius: 8px; text-decoration: none; }
+.notif-all:hover { background: var(--lemon); color: var(--ink); }
+@media (max-width: 575.98px) {
+  .topbar-inner { gap: .5rem; }
+  .topbar-actions { gap: .35rem; }
+  .topbar-icon { width: 40px; height: 40px; }
+  .logo img { max-width: 110px; }
+}
+
 .app {
   max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem calc(var(--bottom-nav-space) + env(safe-area-inset-bottom));
   display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: start;

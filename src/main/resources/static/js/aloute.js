@@ -150,6 +150,32 @@
     }
   });
 
+  // Dropdown chuông thông báo: tải danh sách khi mở; bấm một thông báo chưa đọc thì đánh dấu đã đọc.
+  (function () {
+    const toggle = document.getElementById('notif-toggle');
+    const panel = document.getElementById('notif-panel');
+    if (!toggle || !panel) return;
+
+    toggle.addEventListener('show.bs.dropdown', async function () {
+      try {
+        const response = await api(toggle.dataset.url, { headers: { 'Accept': 'text/html' } });
+        if (!response.ok) throw new Error(String(response.status));
+        panel.innerHTML = await response.text();
+      } catch (e) {
+        panel.innerHTML = '<p class="notif-empty">Không tải được thông báo. Thử lại sau.</p>';
+      }
+    });
+
+    panel.addEventListener('click', function (event) {
+      const row = event.target.closest('[data-notification-id]');
+      if (!row) return;
+      api('/notifications/' + encodeURIComponent(row.dataset.notificationId) + '/mark-read', {
+        method: 'POST',
+        keepalive: true,
+      });
+    });
+  })();
+
   window.Aloute = { api: api, csrfToken: csrfToken, toast: toast };
 
   // Chỉ chuyển flash của layout, không lấy field/global form errors.
