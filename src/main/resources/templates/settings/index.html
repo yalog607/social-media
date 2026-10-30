@@ -104,10 +104,22 @@
     <section class="note note--lemon mb-4" aria-labelledby="s-creator" th:unless="${caps.contains('CREATOR')}">
         <h2 id="s-creator" class="h3 mb-2">Trở thành Creator</h2>
         <p>Mở Creator Studio để xem thống kê tương tác, hẹn giờ đăng bài và nhắn hàng loạt tới người theo dõi. Bạn có thể nâng cấp ngay, không cần chờ duyệt.</p>
-        <form th:action="@{/settings/creator}" method="post">
-            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <button type="submit" class="btn-al btn-al--role">Trở thành Creator</button>
-        </form>
+        <button type="button" class="btn-al btn-al--role" data-bs-toggle="modal" data-bs-target="#creatorConfirmModal">Trở thành Creator</button>
+        <div class="modal fade" id="creatorConfirmModal" tabindex="-1" aria-labelledby="creatorConfirmTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content note">
+                    <h2 id="creatorConfirmTitle" class="h4 mb-3">Trở thành Creator</h2>
+                    <p>Sau khi trở thành Creator, bạn không thể tự chuyển lại thành người dùng thông thường. Bạn có muốn tiếp tục?</p>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                        <form th:action="@{/settings/creator}" method="post">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <button type="submit" class="btn-al btn-al--role">Tiếp tục</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="note" aria-labelledby="s-password">
