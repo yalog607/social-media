@@ -24,13 +24,16 @@
             <td th:text="${u.since() != null} ? ${@timeAgo.format(u.since())} : '—'">—</td>
             <td>
                 <form method="post" th:action="@{/manage/users/{id}/lift(id=${u.userId()})}">
-                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <button type="submit" class="btn-al btn-al--white btn-al--sm">Gỡ khóa</button>
                 </form>
             </td>
         </tr>
         </tbody>
     </table>
+    <th:block th:replace="~{manage/pagination :: controls}"></th:block>
 </main>
 </body>
 </html>

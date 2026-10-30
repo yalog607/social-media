@@ -40,7 +40,7 @@ public class ProdSafetyCheck {
             log.warn("spring.mail.host đang là localhost: email quên mật khẩu sẽ KHÔNG gửi được. Đặt MAIL_HOST/MAIL_USER/MAIL_PASSWORD.");
         }
         if (props.firebase().webConfigured() && !props.firebase().enabled()) {
-            log.warn("Đã có FIREBASE_WEB_* nhưng thiếu FIREBASE_CREDENTIALS: nút đăng nhập Google/Facebook vẫn bị tắt.");
+            log.warn("Đã có FIREBASE_WEB_* nhưng thiếu FIREBASE_CREDENTIALS: nút đăng nhập Google vẫn bị tắt.");
         }
         if (props.storage().useCloudinary()) {
             log.info("Ảnh/video người dùng lưu trên Cloudinary (cloud: {}).", props.storage().cloudinary().cloudName());
@@ -88,7 +88,7 @@ public class ProdSafetyCheck {
         String credentials = props.firebase().credentials();
         if (credentials != null && !credentials.isBlank() && !isReadableFile(credentials)) {
             problems.add("FIREBASE_CREDENTIALS không trỏ tới file đọc được (đường dẫn phải là đường dẫn TRONG container;"
-                    + " hoặc để trống để tắt đăng nhập Google/Facebook)");
+                    + " hoặc để trống để tắt đăng nhập Google)");
         }
 
         if (props.storage().useCloudinary()

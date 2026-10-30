@@ -44,6 +44,14 @@ public class BannedHashtags {
         return jdbc.queryForList("select tag from banned_hashtags order by tag", String.class);
     }
 
+    @Transactional(readOnly = true)
+    public long count() { return jdbc.queryForObject("select count(*) from banned_hashtags", Long.class); }
+
+    @Transactional(readOnly = true)
+    public List<String> list(int size, long offset) {
+        return jdbc.queryForList("select tag from banned_hashtags order by tag limit ? offset ?", String.class, size, offset);
+    }
+
     /** @throws InvalidModerationException thẻ không hợp lệ */
     @Transactional
     public void ban(UUID managerId, String raw) {

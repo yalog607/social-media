@@ -8,7 +8,9 @@
     <th:block th:replace="~{manage/nav :: tabs('categories')}"></th:block>
 
     <form method="post" th:action="@{/manage/categories}" class="d-flex gap-2 mb-3">
-        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+        <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
         <input name="name" class="input-al" required th:maxlength="${maxName}" placeholder="Tên danh mục mới" aria-label="Tên danh mục mới">
         <button type="submit" class="btn-al btn-al--pink btn-al--sm">Thêm</button>
     </form>
@@ -20,7 +22,9 @@
         <tr th:each="c : ${categories}">
             <td>
                 <form method="post" class="d-flex gap-2" th:action="@{/manage/categories/{id}/rename(id=${c.id()})}">
-                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <input name="name" class="input-al" required th:maxlength="${maxName}" th:value="${c.name()}" th:aria-label="'Tên danh mục ' + ${c.name()}">
                     <button type="submit" class="btn-al btn-al--white btn-al--sm">Đổi tên</button>
                 </form>
@@ -28,7 +32,9 @@
             <td th:text="${c.active()} ? 'Đang dùng' : 'Đã ngưng'">Đang dùng</td>
             <td>
                 <form method="post" th:action="@{/manage/categories/{id}/active(id=${c.id()})}">
-                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <input type="hidden" name="active" th:value="${!c.active()}">
                     <button type="submit" class="btn-al btn-al--white btn-al--sm" th:text="${c.active()} ? 'Ngưng dùng' : 'Bật lại'">Ngưng dùng</button>
                 </form>
@@ -36,6 +42,7 @@
         </tr>
         </tbody>
     </table>
+    <th:block th:replace="~{manage/pagination :: controls}"></th:block>
 </main>
 </body>
 </html>

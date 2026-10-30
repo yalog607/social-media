@@ -55,13 +55,16 @@ public class SupportService {
     }
 
     @Transactional(readOnly = true)
-    public List<Ticket> open() {
-        return query("where t.status = 'OPEN' order by t.created_at, t.id limit 50");
+    public List<Ticket> open() { return open(50, 0); }
+
+    @Transactional(readOnly = true)
+    public List<Ticket> open(int size, long offset) {
+        return query("where t.status = 'OPEN' order by t.created_at, t.id limit ? offset ?", size, offset);
     }
 
     @Transactional(readOnly = true)
     public long countOpenTickets() {
-        Long count = jdbc.queryForObject("select count(*) from support_tickets where status = 'OPEN'", Long.class);
+        Long count = jdbc.queryForObject("select count(*) from support_tickets t join profiles p on p.user_id = t.user_id where t.status = 'OPEN'", Long.class);
         return count == null ? 0 : count;
     }
 

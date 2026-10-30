@@ -8,8 +8,7 @@
     <div class="comment-content">
         <div class="comment-bubble" th:classappend="${c.deleted} ? 'is-deleted' : ''">
             <div class="comment-heading"><a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${c.author.primaryRole})}"></svg>
-            <span class="comment-time" th:unless="${c.deleted}" th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span>
-            <span class="fan-badge" th:if="${c.badge != null and !c.deleted}" th:text="${c.badge.emoji()} + ' ' + ${c.badge.label()}">🥇 Fan vàng</span></div>
+            <span class="comment-time" th:unless="${c.deleted}" th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span></div>
             <div th:unless="${c.deleted or #strings.isEmpty(c.contentHtml)}" class="comment-text" th:utext="${c.contentHtml}"></div>
             <div class="comment-sticker" th:if="${!c.deleted and c.sticker != null}"><th:block th:replace="~{fragments/sticker :: art(${c.sticker}, '', ${'comment-' + c.id})}"></th:block></div>
             <a class="lightbox-trigger comment-image-link" th:if="${!c.deleted and c.imageUrl != null}" role="button" tabindex="0"

@@ -119,8 +119,8 @@
                             <div class="previews" data-previews aria-live="polite"></div>
                             <p class="field-error text-danger small fw-bold" data-composer-error role="alert" hidden></p>
 
-                            <!-- Tùy chọn mở rộng: Gắn thẻ, Danh mục, Trả phí, Hẹn giờ -->
-                            <details class="composer-more" id="composerMoreDetails" th:with="hasExtras=${composerCategoryId != null or composerUnlockPrice != null or composerScheduledAt != null or (composerTagged != null and !#lists.isEmpty(composerTagged))}"
+                            <!-- Tùy chọn mở rộng: Gắn thẻ, Danh mục, Hẹn giờ -->
+                            <details class="composer-more" id="composerMoreDetails" th:with="hasExtras=${composerCategoryId != null or composerScheduledAt != null or (composerTagged != null and !#lists.isEmpty(composerTagged))}"
                                      th:attr="open=${hasExtras} ? 'open'">
                                 <summary class="btn-al btn-al--sm btn-al--white">⚙️ Tùy chọn thêm (Gắn thẻ, Danh mục...)</summary>
                                 <div class="p-3 mt-2 note note--white" style="border: 1.5px solid var(--ink); border-radius: 8px;">
@@ -145,13 +145,6 @@
                                                 <span class="small" th:text="${f.displayName}">Bạn</span>
                                             </label>
                                         </div>
-                                    </div>
-
-                                    <!-- Creator: Bài trả phí -->
-                                    <div class="field mb-3" th:if="${caps != null and caps.contains('CREATOR')}">
-                                        <label for="composerPrice" class="form-label small fw-bold">Nội dung trả phí (Xu mở khóa)</label>
-                                        <input id="composerPrice" name="unlockPrice" type="number" class="input-al w-100" min="1" max="1000"
-                                               placeholder="Để trống nếu bài miễn phí" th:value="${composerUnlockPrice}">
                                     </div>
 
                                     <!-- Creator: Hẹn giờ đăng -->

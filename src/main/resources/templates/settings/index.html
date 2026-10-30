@@ -96,6 +96,16 @@
                 <label class="form-check-label" for="photoZoomEnabled">Cho phép người khác phóng to ảnh đại diện và ảnh bìa của bạn</label>
                 <p class="field-hint">Bạn luôn xem to được ảnh của chính mình dù tắt mục này.</p>
             </div>
+            <div class="field form-check">
+                <input class="form-check-input" type="checkbox" id="friendsListVisible" th:field="*{friendsListVisible}">
+                <label class="form-check-label" for="friendsListVisible">Cho phép người khác xem bạn bè của bạn</label>
+                <p class="field-hint">Khi tắt, người khác không thấy số lượng và danh sách bạn bè của bạn.</p>
+            </div>
+            <div class="field form-check">
+                <input class="form-check-input" type="checkbox" id="followingListVisible" th:field="*{followingListVisible}">
+                <label class="form-check-label" for="followingListVisible">Cho phép người khác xem số người bạn đang theo dõi</label>
+                <p class="field-hint">Khi tắt, người khác không thấy số lượng và danh sách người bạn đang theo dõi.</p>
+            </div>
             <button type="submit" class="btn-al btn-al--mint">Lưu quyền riêng tư</button>
         </form>
     </section>
@@ -103,16 +113,28 @@
     <!-- Mật khẩu -->
     <section class="note note--lemon mb-4" aria-labelledby="s-creator" th:unless="${caps.contains('CREATOR')}">
         <h2 id="s-creator" class="h3 mb-2">Trở thành Creator</h2>
-        <p>Mở Creator Studio để xem thống kê tương tác, hẹn giờ đăng bài và nhận donate từ người theo dõi. Bạn có thể nâng cấp ngay, không cần chờ duyệt.</p>
-        <form th:action="@{/settings/creator}" method="post">
-            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-            <button type="submit" class="btn-al btn-al--role">Trở thành Creator</button>
-        </form>
+        <p>Mở Creator Studio để xem thống kê tương tác, hẹn giờ đăng bài và nhắn hàng loạt tới người theo dõi. Bạn có thể nâng cấp ngay, không cần chờ duyệt.</p>
+        <button type="button" class="btn-al btn-al--role" data-bs-toggle="modal" data-bs-target="#creatorConfirmModal">Trở thành Creator</button>
+        <div class="modal fade" id="creatorConfirmModal" tabindex="-1" aria-labelledby="creatorConfirmTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content note">
+                    <h2 id="creatorConfirmTitle" class="h4 mb-3">Trở thành Creator</h2>
+                    <p>Sau khi trở thành Creator, bạn không thể tự chuyển lại thành người dùng thông thường. Bạn có muốn tiếp tục?</p>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                        <form th:action="@{/settings/creator}" method="post">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <button type="submit" class="btn-al btn-al--role">Tiếp tục</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="note" aria-labelledby="s-password">
         <h2 id="s-password" class="h3 mb-3" th:text="${hasPassword} ? 'Đổi mật khẩu' : 'Tạo mật khẩu'">Đổi mật khẩu</h2>
-        <p class="text-soft" th:unless="${hasPassword}">Bạn đang đăng nhập bằng Google/Facebook. Tạo mật khẩu để có thêm cách đăng nhập.</p>
+        <p class="text-soft" th:unless="${hasPassword}">Tạo mật khẩu để có thêm cách đăng nhập.</p>
         <form th:action="@{/settings/password}" th:object="${passwordForm}" method="post" novalidate>
             <div th:replace="~{fragments/ui :: globalErrors}"></div>
             <th:block th:if="${hasPassword}">

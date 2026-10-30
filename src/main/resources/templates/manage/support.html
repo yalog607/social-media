@@ -14,11 +14,14 @@
                 <span th:text="${@timeAgo.format(tk.createdAt())}">vừa xong</span></span></p>
         <p class="mb-2" style="white-space:pre-line" th:text="${tk.body()}">Nội dung</p>
         <form method="post" class="d-flex flex-wrap gap-2" th:action="@{/manage/support/{id}(id=${tk.id()})}">
+            <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
             <textarea name="reply" class="input-al" rows="2" maxlength="1000" required placeholder="Phản hồi cho người dùng" style="flex:1; min-width:220px"></textarea>
             <button type="submit" class="btn-al btn-al--pink btn-al--sm">Phản hồi &amp; đóng</button>
         </form>
     </article>
+    <th:block th:replace="~{manage/pagination :: controls}"></th:block>
 </main>
 </body>
 </html>

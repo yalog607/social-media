@@ -18,16 +18,14 @@
 
     <p class="d-flex flex-wrap gap-2 mb-3">
         <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/scheduled}">Bài đã hẹn giờ</a>
-        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/fans}">Fan hâm mộ</a>
         <a class="btn-al btn-al--sm btn-al--white" th:href="@{/creator/broadcasts}">Nhắn hàng loạt</a>
-        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/wallet}">Ví Xu</a>
     </p>
 
     <section class="stat-grid mb-4" aria-label="Tổng quan">
         <div class="note stat">
             <span class="stat-label">Người theo dõi</span>
             <strong class="stat-value" th:text="${insights.followers()}">0</strong>
-            <span class="stat-sub">+<span th:text="${insights.newFollowers()}">0</span> trong <span th:text="${insights.days()}">7</span> ngày</span>
+            <span class="stat-sub">Người theo dõi mới: <span th:text="${insights.newFollowers()}">0</span> trong <span th:text="${insights.days()}">7</span> ngày</span>
         </div>
         <div class="note stat">
             <span class="stat-label">Lượt xem</span>
@@ -73,6 +71,7 @@
 
     <section class="note mb-4" aria-labelledby="follow-title">
         <h2 id="follow-title" class="h4 mb-3">Người theo dõi mới mỗi ngày</h2>
+        <p class="text-soft small">Mỗi người chỉ tính một lần trong khoảng chọn; dữ liệu trước <span th:text="${followHistorySinceUtc}"></span> UTC có thể chưa đầy đủ. Tổng các ngày có thể lớn hơn tổng trong khoảng chọn.</p>
         <div class="bars bars--sm" role="img" th:attr="aria-label='Biểu đồ người theo dõi mới ' + ${insights.days()} + ' ngày gần nhất'">
             <div class="bar-col" th:each="d : ${insights.series()}"
                  th:title="${#temporals.format(d.date(), 'dd/MM')} + ': +' + ${d.followers()}">

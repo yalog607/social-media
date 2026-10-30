@@ -35,6 +35,10 @@ public class InsightsService {
         this.clock = clock;
     }
 
+    public String followHistorySinceUtc() {
+        return jdbc.queryForObject("select to_char(recording_since at time zone 'UTC', 'DD/MM/YYYY HH24:MI:SS') from follow_history_metadata", String.class);
+    }
+
     /** @param days số ngày gần nhất, kẹp vào khoảng 1–{@value #MAX_DAYS}; ngày hôm nay là ngày cuối */
     @Transactional(readOnly = true)
     public InsightsView insights(UUID creatorId, int days) {
@@ -62,7 +66,7 @@ public class InsightsService {
                 where p.author_id = ? and p.deleted_at is null and v.day >= ((?)::timestamptz at time zone 'UTC')::date group by d""",
                 creatorId, from);
         Map<LocalDate, Long> followers = perDay("""
-                select (f.created_at at time zone 'UTC')::date d, count(*) from follows f
+                select (f.created_at at time zone 'UTC')::date d, count(distinct f.follower_id) from follow_events f
                 where f.followee_id = ? and f.created_at >= ? group by d""", creatorId, from);
 
         List<InsightsView.DayPoint> series = new ArrayList<>(range);
@@ -85,6 +89,9 @@ public class InsightsService {
             sumViews += v;
         }
         Long totalFollowers = jdbc.queryForObject("select count(*) from follows where followee_id = ?", Long.class, creatorId);
+        Long distinctFollowers = jdbc.queryForObject("select count(distinct follower_id) from follow_events where followee_id = ? and created_at >= ? and created_at < ?", Long.class,
+                    creatorId, from, java.sql.Timestamp.from(today.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant()));
+        sumFollowers = distinctFollowers == null ? 0 : distinctFollowers;
         return new InsightsView(range, totalFollowers == null ? 0 : totalFollowers, sumFollowers,
                 sumReactions, sumComments, sumShares, sumViews, series, topPosts(creatorId, from));
     }

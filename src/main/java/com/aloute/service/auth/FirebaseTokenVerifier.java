@@ -28,20 +28,17 @@ public class FirebaseTokenVerifier implements SocialTokenVerifier {
         try {
             FirebaseToken token = firebaseAuth.verifyIdToken(idToken);
             return new SocialIdentity(token.getUid(), token.getEmail(), token.isEmailVerified(),
-                    token.getName(), token.getPicture(), providerOf(token));
+                    token.getName(), token.getPicture(), providerOf(token.getClaims()));
         } catch (FirebaseAuthException | IllegalArgumentException e) {
             throw new InvalidSocialTokenException("ID token không hợp lệ", e);
         }
     }
 
-    private static AuthProvider providerOf(FirebaseToken token) {
-        Object firebase = token.getClaims().get("firebase");
-        if (firebase instanceof Map<?, ?> claim) {
-            Object signInProvider = claim.get("sign_in_provider");
-            if ("facebook.com".equals(signInProvider)) {
-                return AuthProvider.FACEBOOK;
-            }
+    static AuthProvider providerOf(Map<String, Object> claims) {
+        Object firebase = claims.get("firebase");
+        if (firebase instanceof Map<?, ?> claim && "google.com".equals(claim.get("sign_in_provider"))) {
+            return AuthProvider.GOOGLE;
         }
-        return AuthProvider.GOOGLE;
+        throw new InvalidSocialTokenException("Unsupported sign-in provider", null);
     }
 }

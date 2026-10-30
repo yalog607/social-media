@@ -95,10 +95,6 @@ public class Post {
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous = false;
 
-    /** Giá (Xu) để mở khóa nội dung; null nghĩa là bài miễn phí. Chỉ Creator đặt được. */
-    @Column(name = "unlock_price")
-    private Integer unlockPrice;
-
     /**
      * Khác null nghĩa là bài này là một lượt CHIA SẺ của bài gốc (luôn trỏ thẳng tới bài gốc thật sự, không bao
      * giờ trỏ qua một bài chia sẻ khác — {@code PostService#share} tự rút gọn). {@code content} khi đó là lời

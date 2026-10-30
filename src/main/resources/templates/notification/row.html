@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Một dòng thông báo, dùng chung cho trang /notifications và dropdown chuông trên topbar. -->
+<a th:fragment="row(n)" class="search-user notification-row" th:classappend="${!n.read} ? 'is-unread'"
+   th:attr="data-notification-id=${n.read ? null : n.id}"
+   th:href="${n.type != null and (n.type.name() == 'SEASON_JOIN' or n.type.name() == 'SEASON_RESULT' or n.type.name() == 'SEASON_BANNED')} ? @{/seasons/{id}(id=${n.referenceId})} : (${n.stickerPackId != null} ? @{/stickers/{pack}(pack=${n.stickerPackId})} : (${n.type != null and (n.type.name() == 'SUPPORT' or n.type.name() == 'REPORT')} ? @{/notifications/{id}/read(id=${n.id},type=${n.type.name()},ref=${n.referenceId},postId=${n.postId})} : (${n.conversationId != null} ? @{/messages/{id}(id=${n.conversationId})} : (${n.postId != null} ? @{/notifications/{id}/read(id=${n.id},postId=${n.postId})} : @{/u/{u}(u=${n.actor.username})}))))">
+    <span th:replace="~{fragments/ui :: avatar(${n.actor}, '')}"></span>
+    <span class="search-user-info">
+        <span class="notification-text" th:text="${n.text}">Ai đó đã làm gì đó</span>
+        <span class="notification-body" th:if="${n.detail != null and !#strings.isEmpty(n.detail)}" th:text="${n.detail}">Nội dung</span>
+        <span class="notification-time" th:title="${@timeAgo.full(n.createdAt)}" th:text="${@timeAgo.format(n.createdAt)}">vừa xong</span>
+    </span>
+</a>
+
+</body>
+</html>

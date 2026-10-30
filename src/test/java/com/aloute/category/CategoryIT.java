@@ -46,7 +46,7 @@ class CategoryIT extends IntegrationTest {
     }
 
     private Post newPost(User author, UUID categoryId, Visibility visibility) {
-        return posts.create(author.getId(), "bài trong mục", visibility, List.of(), null, List.of(), null, null, categoryId);
+        return posts.create(author.getId(), "bài trong mục", visibility, List.of(), null, List.of(), null, categoryId);
     }
 
     @Test

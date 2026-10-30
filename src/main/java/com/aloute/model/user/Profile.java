@@ -66,6 +66,14 @@ public class Profile {
     @Column(name = "photo_zoom_enabled", nullable = false)
     private boolean photoZoomEnabled = true;
 
+    /** Cho người khác xem số lượng và danh sách bạn bè. Chủ hồ sơ luôn xem được. */
+    @Column(name = "friends_list_visible", nullable = false)
+    private boolean friendsListVisible = true;
+
+    /** Cho người khác xem số lượng và danh sách người mình đang theo dõi. Chủ hồ sơ luôn xem được. */
+    @Column(name = "following_list_visible", nullable = false)
+    private boolean followingListVisible = true;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

@@ -65,7 +65,7 @@ class MoodServiceTest {
     }
 
     @Test
-    void setMood_whenNewUser_createsNewDailyMoodWith24hExpiry() {
+    void setMood_whenNewUser_createsNewDailyMoodExpiringAtNextMidnight() {
         MoodForm form = new MoodForm("🌸", "Đang yêu đời", "pink");
         when(moods.findByUserId(userId)).thenReturn(Optional.empty());
         when(users.getReferenceById(userId)).thenReturn(user);
@@ -81,12 +81,12 @@ class MoodServiceTest {
         assertThat(result.emoji()).isEqualTo("🌸");
         assertThat(result.moodText()).isEqualTo("Đang yêu đời");
         assertThat(result.colorTheme()).isEqualTo("pink");
-        assertThat(result.expiresAt()).isEqualTo(now.plus(24, ChronoUnit.HOURS));
+        assertThat(result.expiresAt()).isEqualTo(Instant.parse("2026-10-24T00:00:00Z"));
         verify(moods).save(any(DailyMood.class));
     }
 
     @Test
-    void setMood_whenExistingUser_updatesMoodAndExtends24h() {
+    void setMood_whenExistingUser_updatesMoodAndExpiresAtNextMidnight() {
         DailyMood existing = new DailyMood();
         existing.setId(UUID.randomUUID());
         existing.setUser(user);
@@ -104,7 +104,7 @@ class MoodServiceTest {
         assertThat(result.emoji()).isEqualTo("🧋");
         assertThat(result.moodText()).isEqualTo("Cần trà sữa gấp");
         assertThat(result.colorTheme()).isEqualTo("mint");
-        assertThat(result.expiresAt()).isEqualTo(now.plus(24, ChronoUnit.HOURS));
+        assertThat(result.expiresAt()).isEqualTo(Instant.parse("2026-10-24T00:00:00Z"));
         verify(moods).save(existing);
     }
 
@@ -153,7 +153,7 @@ class MoodServiceTest {
     }
 
     @Test
-    void clearMood_setsExpiryToPast() {
+    void clearMood_deletesMood() {
         DailyMood mood = new DailyMood();
         mood.setId(UUID.randomUUID());
         mood.setUser(user);
@@ -163,8 +163,7 @@ class MoodServiceTest {
 
         moodService.clearMood(userId);
 
-        assertThat(mood.getExpiresAt()).isBefore(now);
-        verify(moods).save(mood);
+        verify(moods).delete(mood);
     }
 
     @Test

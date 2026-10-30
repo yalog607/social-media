@@ -1,9 +1,8 @@
 package com.aloute.model.creator;
 
-/** Ai nhận tin nhắn hàng loạt: mọi người theo dõi, hay chỉ những fan đã đạt huy hiệu. */
+/** Ai nhận tin nhắn hàng loạt: mọi người theo dõi. */
 public enum BroadcastAudience {
-    FOLLOWERS("Người theo dõi"),
-    FANS("Fan (đã tặng Xu)");
+    FOLLOWERS("Người theo dõi");
 
     private final String label;
 

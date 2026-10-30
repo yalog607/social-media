@@ -31,7 +31,7 @@
                      onclick="scrollToRepliedMessage(this.dataset.mid, this.dataset.snippet)"
                      title="Nhấn để xem tin nhắn gốc">
                     <div class="msg-reply-indicator">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                        <svg class="icon" width="12" height="12" aria-hidden="true"><use href="#i-reply"/></svg>
                         <span th:text="${m.sender.id.equals(me.id)} ? ('Bạn đã trả lời ' + ${m.reply.senderName}) : (${header.group} ? (${m.sender.displayName} + ' đã trả lời ' + ${m.reply.senderName}) : (${m.sender.displayName} + ' đã trả lời bạn'))">Bạn đã trả lời Tuấn</span>
                     </div>
                     <div class="msg-reply-snippet-bubble" th:text="${m.reply.snippet}">Nội dung trích dẫn</div>
@@ -89,7 +89,7 @@
                         <!-- 1. Bày tỏ cảm xúc -->
                         <div class="msg-reaction-container">
                             <button type="button" class="msg-action-btn msg-action-btn--react" title="Bày tỏ cảm xúc" aria-label="Bày tỏ cảm xúc">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                                <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-smile"/></svg>
                             </button>
                             <div class="msg-reaction-bar">
                                 <button type="button" class="msg-reaction-btn"
@@ -105,19 +105,19 @@
                         <button type="button" class="msg-action-btn msg-action-btn--reply"
                                 th:attr="onclick='startReply(\'' + ${m.id} + '\', \'' + ${#strings.escapeJavaScript(m.sender.displayName)} + '\')'"
                                 title="Trả lời" aria-label="Trả lời">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                            <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-reply"/></svg>
                         </button>
 
                         <!-- 3. Hành động khác -->
                         <th:block th:with="isSender=${m.sender.id == me.id}, canPin=${header.group and canManage}, canDelete=${isSender or (header.group and canManage)}">
                             <div class="dropdown msg-more-dropdown">
                                 <button type="button" class="msg-action-btn msg-action-btn--more" data-bs-toggle="dropdown" aria-expanded="false" title="Khác" aria-label="Khác">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+                                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-more"/></svg>
                                 </button>
                                 <ul class="dropdown-menu menu-al msg-dropdown-menu" th:classappend="${m.sender.id.equals(me.id)} ? 'dropdown-menu-end' : ''">
                                     <li th:if="${isSender and m.sticker == null and m.giphyId == null}">
                                         <button class="dropdown-item" type="button" th:attr="onclick='editMessage(\'' + ${m.id} + '\')'">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                            <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-pencil"/></svg>
                                             <span>Sửa tin nhắn</span>
                                         </button>
                                     </li>
@@ -126,21 +126,21 @@
                                             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                                             <input type="hidden" name="pin" th:value="${!m.pinned}">
                                             <button class="dropdown-item" type="submit">
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                                <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-pin"/></svg>
                                                 <span th:text="${m.pinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}">Ghim tin nhắn</span>
                                             </button>
                                         </form>
                                     </li>
                                     <li>
                                         <button class="dropdown-item" type="button" th:attr="onclick='copyMessageText(\'' + ${m.id} + '\')'">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-copy"/></svg>
                                             <span>Sao chép văn bản</span>
                                         </button>
                                     </li>
                                     <li th:if="${canDelete}"><hr class="dropdown-divider my-1"></li>
                                     <li th:if="${canDelete}">
                                         <button class="dropdown-item text-danger" type="button" th:attr="onclick='confirmDeleteMessage(\'' + ${conversation.id} + '\', \'' + ${m.id} + '\')'">
-                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-trash"/></svg>
                                             <span>Xóa tin nhắn</span>
                                         </button>
                                     </li>

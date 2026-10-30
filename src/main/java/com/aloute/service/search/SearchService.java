@@ -74,6 +74,19 @@ public class SearchService {
             return List.of();
         }
         List<UUID> ids = users.searchActiveIds(LikeEscape.escape(normalized), normalized, RESULT_LIMIT);
+        return userViews(ids);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostView.AuthorView> searchMessagePeople(String query, UUID viewerId) {
+        String normalized = TextNormalizer.forSearch(query);
+        if (!isValidQuery(normalized)) {
+            return List.of();
+        }
+        return userViews(users.searchMessagePeopleIds(LikeEscape.escape(normalized), normalized, viewerId, RESULT_LIMIT));
+    }
+
+    private List<PostView.AuthorView> userViews(List<UUID> ids) {
         if (ids.isEmpty()) {
             return List.of();
         }

@@ -154,7 +154,7 @@
       var titleText = mine
         ? ('Bạn đã trả lời ' + m.reply.senderName)
         : (m.sender.displayName + ' đã trả lời ' + (isRepliedToMe ? 'bạn' : m.reply.senderName));
-      indicator.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg><span>' + escapeText(titleText) + '</span>';
+      indicator.innerHTML = '<svg class="icon" width="12" height="12" aria-hidden="true"><use href="#i-reply"/></svg><span>' + escapeText(titleText) + '</span>';
       
       var snippetEl = document.createElement('div');
       snippetEl.className = 'msg-reply-snippet-bubble';
@@ -230,7 +230,7 @@
     reactBtn.className = 'msg-action-btn msg-action-btn--react';
     reactBtn.title = 'Bày tỏ cảm xúc';
     reactBtn.setAttribute('aria-label', 'Bày tỏ cảm xúc');
-    reactBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+    reactBtn.innerHTML = '<svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-smile"/></svg>';
 
     var reactionBar = document.createElement('div');
     reactionBar.className = 'msg-reaction-bar';
@@ -255,7 +255,7 @@
     replyBtn.className = 'msg-action-btn msg-action-btn--reply';
     replyBtn.title = 'Trả lời';
     replyBtn.setAttribute('aria-label', 'Trả lời');
-    replyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>';
+    replyBtn.innerHTML = '<svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-reply"/></svg>';
     replyBtn.addEventListener('click', function () {
       if (typeof startReply === 'function') {
         startReply(m.id, m.sender.displayName);
@@ -273,17 +273,17 @@
     moreBtn.setAttribute('aria-expanded', 'false');
     moreBtn.title = 'Khác';
     moreBtn.setAttribute('aria-label', 'Khác');
-    moreBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>';
+    moreBtn.innerHTML = '<svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-more"/></svg>';
 
     var dropdownMenu = document.createElement('ul');
     dropdownMenu.className = 'dropdown-menu menu-al msg-dropdown-menu' + (mine ? ' dropdown-menu-end' : '');
     var menuHtml = '';
     if (mine && !m.giphyId && !m.sticker) {
-      menuHtml += '<li><button class="dropdown-item" type="button" onclick="editMessage(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg><span>Sửa tin nhắn</span></button></li>';
+      menuHtml += '<li><button class="dropdown-item" type="button" onclick="editMessage(\'' + m.id + '\')"><svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-pencil"/></svg><span>Sửa tin nhắn</span></button></li>';
     }
-    menuHtml += '<li><button class="dropdown-item" type="button" onclick="copyMessageText(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Sao chép văn bản</span></button></li>';
+    menuHtml += '<li><button class="dropdown-item" type="button" onclick="copyMessageText(\'' + m.id + '\')"><svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-copy"/></svg><span>Sao chép văn bản</span></button></li>';
     if (mine) {
-      menuHtml += '<li><hr class="dropdown-divider my-1"></li><li><button class="dropdown-item text-danger" type="button" onclick="confirmDeleteMessage(\'' + conversationId + '\', \'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Xóa tin nhắn</span></button></li>';
+      menuHtml += '<li><hr class="dropdown-divider my-1"></li><li><button class="dropdown-item text-danger" type="button" onclick="confirmDeleteMessage(\'' + conversationId + '\', \'' + m.id + '\')"><svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-trash"/></svg><span>Xóa tin nhắn</span></button></li>';
     }
     dropdownMenu.innerHTML = menuHtml;
     moreDropdown.appendChild(moreBtn);

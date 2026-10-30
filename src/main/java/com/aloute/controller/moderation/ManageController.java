@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import com.aloute.dto.moderation.ManagerPage;
 
 /** Khu Kiểm duyệt của Manager. Quyền vào {@code /manage/**} đã được chặn ở SecurityConfig. */
 @Controller
@@ -42,9 +43,12 @@ public class ManageController {
     }
 
     @GetMapping("/manage")
-    public String queue(Model model) {
+    public String queue(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
-        model.addAttribute("reports", moderation.openReports());
+        var pagination = ManagerPage.of(page, size, moderation.countOpenReports());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage");
+        model.addAttribute("reports", moderation.openReports(pagination.size(), pagination.offset()));
         model.addAttribute("actions", ReportAction.values());
         return "manage/queue";
     }
@@ -81,87 +85,99 @@ public class ManageController {
     @PostMapping("/manage/reports/{id}")
     public String handle(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id,
                          @RequestParam ReportAction action, @RequestParam(required = false) String note,
-                         RedirectAttributes flash) {
+                         @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
         try {
             moderation.handle(me.id(), id, action, note);
             flash.addFlashAttribute("notice", "Đã xử lý báo cáo.");
         } catch (InvalidModerationException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage";
+        return ManagerPage.of(page, size, moderation.countOpenReports()).redirect("/manage");
     }
 
     @GetMapping("/manage/suspended")
-    public String suspended(Model model) {
+    public String suspended(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
-        model.addAttribute("users", moderation.suspended());
+        var pagination = ManagerPage.of(page, size, moderation.countSuspended());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage/suspended");
+        model.addAttribute("users", moderation.suspended(pagination.size(), pagination.offset()));
         return "manage/suspended";
     }
 
     @PostMapping("/manage/users/{id}/lift")
-    public String lift(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id, RedirectAttributes flash) {
+    public String lift(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
         try {
             moderation.lift(me.id(), id);
             flash.addFlashAttribute("notice", "Đã gỡ khóa tài khoản.");
         } catch (InvalidModerationException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage/suspended";
+        return ManagerPage.of(page, size, moderation.countSuspended()).redirect("/manage/suspended");
     }
 
     @GetMapping("/manage/support")
-    public String supportQueue(Model model) {
+    public String supportQueue(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
-        model.addAttribute("tickets", support.open());
+        var pagination = ManagerPage.of(page, size, support.countOpenTickets());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage/support");
+        model.addAttribute("tickets", support.open(pagination.size(), pagination.offset()));
         return "manage/support";
     }
 
     @PostMapping("/manage/support/{id}")
     public String reply(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id,
-                        @RequestParam String reply, RedirectAttributes flash) {
+                        @RequestParam String reply, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
         try {
             support.reply(me.id(), id, reply);
             flash.addFlashAttribute("notice", "Đã phản hồi và đóng phiếu.");
         } catch (InvalidModerationException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage/support";
+        return ManagerPage.of(page, size, support.countOpenTickets()).redirect("/manage/support");
     }
 
     @GetMapping("/manage/hashtags")
-    public String bannedHashtags(Model model) {
+    public String bannedHashtags(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
-        model.addAttribute("tags", hashtags.list());
+        var pagination = ManagerPage.of(page, size, hashtags.count());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage/hashtags");
+        model.addAttribute("tags", hashtags.list(pagination.size(), pagination.offset()));
         return "manage/hashtags";
     }
 
     @PostMapping("/manage/hashtags")
-    public String ban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, RedirectAttributes flash) {
+    public String ban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
         try {
             hashtags.ban(me.id(), tag);
             flash.addFlashAttribute("notice", "Đã cấm hashtag.");
         } catch (InvalidModerationException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage/hashtags";
+        return ManagerPage.of(page, size, hashtags.count()).redirect("/manage/hashtags");
     }
 
     @PostMapping("/manage/hashtags/remove")
-    public String unban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, RedirectAttributes flash) {
+    public String unban(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String tag, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
         try {
             hashtags.unban(me.id(), tag);
             flash.addFlashAttribute("notice", "Đã gỡ cấm hashtag.");
         } catch (InvalidModerationException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage/hashtags";
+        return ManagerPage.of(page, size, hashtags.count()).redirect("/manage/hashtags");
     }
 
     @GetMapping("/manage/stats")
-    public String stats(Model model) {
+    public String stats(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
         model.addAttribute("overview", stats.overview());
-        model.addAttribute("reasons", stats.reasons());
+        var pagination = ManagerPage.of(page, size, stats.countReasons());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage/stats");
+        model.addAttribute("reasons", stats.reasons(pagination.size(), pagination.offset()));
         return "manage/stats";
     }
 }

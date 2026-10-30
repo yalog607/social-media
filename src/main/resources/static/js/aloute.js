@@ -45,18 +45,86 @@
     return response;
   }
 
-  /** Toast nhỏ ở góc dưới. kind: ok | error | warn */
+  /** Kết quả thao tác, mới nhất trên cùng. kind: ok | success | error | warn */
   function toast(message, kind) {
     const stack = document.getElementById('toast-stack');
     if (!stack) return;
     const el = document.createElement('div');
     el.className = 'alert-al toast-al' + (kind === 'error' ? ' alert-al--error' : kind === 'warn' ? ' alert-al--warn' : ' alert-al--ok');
     el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    el.setAttribute('aria-atomic', 'true');
     const p = document.createElement('p');
     p.textContent = message;
     el.appendChild(p);
-    stack.appendChild(el);
-    setTimeout(() => el.remove(), 4500);
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'toast-close';
+    close.setAttribute('aria-label', 'Đóng thông báo');
+    close.textContent = '×';
+    el.appendChild(close);
+
+    const previousFocus = document.activeElement;
+    let remaining = 4500;
+    let timer = null;
+    let startedAt = 0;
+    let hovered = false;
+    let focused = false;
+    let dismissed = false;
+
+    function pause() {
+      if (timer === null) return;
+      clearTimeout(timer);
+      timer = null;
+      remaining = Math.max(0, remaining - (performance.now() - startedAt));
+    }
+    function resume() {
+      if (dismissed || hovered || focused || timer !== null) return;
+      startedAt = performance.now();
+      timer = setTimeout(dismiss, remaining);
+    }
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      pause();
+      function remove() {
+        if (!el.isConnected) return;
+        const restoreFocus = el.contains(document.activeElement);
+        el.remove();
+        if (restoreFocus && previousFocus && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+      }
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { remove(); return; }
+      el.classList.add('is-dismissing');
+      el.addEventListener('animationend', function (event) { if (event.target === el) remove(); });
+      setTimeout(remove, 220);
+    }
+    close.addEventListener('click', dismiss);
+    el.addEventListener('pointerenter', function (event) { if (event.pointerType !== 'touch') { hovered = true; pause(); } });
+    el.addEventListener('pointerleave', function (event) { if (event.pointerType !== 'touch') { hovered = false; resume(); } });
+    el.addEventListener('focusin', function () { focused = true; pause(); });
+    el.addEventListener('focusout', function (event) { focused = el.contains(event.relatedTarget); if (!focused) resume(); });
+
+    let gesture = null;
+    el.addEventListener('touchstart', function (event) {
+      if (event.touches.length !== 1) { gesture = null; return; }
+      // Theo dõi cả đoạn nội dung đang cuộn và nút đóng; chạm thường vẫn dùng ×.
+      gesture = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }, { passive: true });
+    el.addEventListener('touchmove', function (event) {
+      if (!gesture || event.touches.length !== 1) return;
+      const dx = event.touches[0].clientX - gesture.x;
+      const dy = event.touches[0].clientY - gesture.y;
+      if (dy < -8 && Math.abs(dy) > Math.abs(dx) * 1.25 && event.cancelable) event.preventDefault();
+    }, { passive: false });
+    el.addEventListener('touchend', function (event) {
+      if (!gesture || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - gesture.x;
+      const dy = event.changedTouches[0].clientY - gesture.y;
+      gesture = null;
+      if (dy < -40 && Math.abs(dy) > Math.abs(dx) * 1.25) dismiss();
+    });
+    el.addEventListener('touchcancel', function () { gesture = null; });
+    stack.prepend(el);
+    resume();
   }
 
   // Nút Hiện/Ẩn mật khẩu
@@ -82,5 +150,37 @@
     }
   });
 
+  // Dropdown chuông thông báo: tải danh sách khi mở; bấm một thông báo chưa đọc thì đánh dấu đã đọc.
+  (function () {
+    const toggle = document.getElementById('notif-toggle');
+    const panel = document.getElementById('notif-panel');
+    if (!toggle || !panel) return;
+
+    toggle.addEventListener('show.bs.dropdown', async function () {
+      try {
+        const response = await api(toggle.dataset.url, { headers: { 'Accept': 'text/html' } });
+        if (!response.ok) throw new Error(String(response.status));
+        panel.innerHTML = await response.text();
+      } catch (e) {
+        panel.innerHTML = '<p class="notif-empty">Không tải được thông báo. Thử lại sau.</p>';
+      }
+    });
+
+    panel.addEventListener('click', function (event) {
+      const row = event.target.closest('[data-notification-id]');
+      if (!row) return;
+      api('/notifications/' + encodeURIComponent(row.dataset.notificationId) + '/mark-read', {
+        method: 'POST',
+        keepalive: true,
+      });
+    });
+  })();
+
   window.Aloute = { api: api, csrfToken: csrfToken, toast: toast };
+
+  // Chỉ chuyển flash của layout, không lấy field/global form errors.
+  document.querySelectorAll('[data-flash-toast]').forEach(function (flash) {
+    toast(flash.textContent.trim(), flash.dataset.flashToast);
+    flash.remove();
+  });
 })();

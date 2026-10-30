@@ -141,7 +141,7 @@ class AdminServiceIT extends IntegrationTest {
 
         assertThat(admin.search(user.getUsername())).extracting(StaffMember::id).containsExactly(user.getId());
         assertThat(admin.search("không-có-ai-tên-vậy-đâu-" + UUID.randomUUID())).isEmpty();
-        assertThat(admin.overview()).containsKeys("Tổng người dùng", "Bài viết", "Xu đang lưu hành", "Mùa giải", "Bộ nhãn dán");
+        assertThat(admin.overview()).containsKeys("Tổng người dùng", "Bài viết", "Mùa giải", "Bộ nhãn dán");
     }
 
     @Test
@@ -178,7 +178,7 @@ class AdminServiceIT extends IntegrationTest {
         var today = admin.overview("TODAY", null, null);
         assertThat(today.period()).isEqualTo("TODAY");
         assertThat(today.periodStats()).containsKeys("Đăng ký mới", "Bài viết mới", "Bình luận mới", "Quyết định xử phạt");
-        assertThat(today.systemStats()).containsKeys("Tổng người dùng", "Xu đang lưu hành");
+        assertThat(today.systemStats()).containsKeys("Tổng người dùng");
 
         var custom = admin.overview("CUSTOM", java.time.LocalDate.now().minusDays(3), java.time.LocalDate.now());
         assertThat(custom.period()).isEqualTo("CUSTOM");

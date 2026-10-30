@@ -7,7 +7,6 @@ import com.aloute.model.creator.BroadcastAudience;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
-import com.aloute.model.wallet.FanBadge;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +64,7 @@ public class BroadcastService {
         UUID broadcastId = UUID.randomUUID();
         jdbc.update("insert into broadcasts (id, creator_id, audience, title, body, created_at) values (?, ?, ?, ?, ?, ?)",
                 broadcastId, creatorId, audience.name(), cleanTitle, cleanBody, now);
-        String recipients = audience == BroadcastAudience.FANS ? FANS_SQL : FOLLOWERS_SQL;
+        String recipients = FOLLOWERS_SQL;
         int count = jdbc.update("""
                 insert into notifications (id, recipient_id, actor_id, type, broadcast_id, created_at)
                 select gen_random_uuid(), r.id, ?, 'BROADCAST', ?, ?
@@ -77,8 +76,7 @@ public class BroadcastService {
                                   where (b.blocker_id = r.id and b.blocked_id = ?) or (b.blocker_id = ? and b.blocked_id = r.id))""",
                 creatorId, broadcastId, now, creatorId, creatorId, creatorId, creatorId);
         if (count == 0) {
-            throw new InvalidBroadcastException("Chưa có ai nhận tin này (chưa có "
-                    + (audience == BroadcastAudience.FANS ? "fan" : "người theo dõi") + " nào).");
+            throw new InvalidBroadcastException("Chưa có ai nhận tin này (chưa có người theo dõi nào).");
         }
         jdbc.update("update broadcasts set recipient_count = ? where id = ?", count, broadcastId);
         return count;
@@ -96,9 +94,6 @@ public class BroadcastService {
 
     // Truy vấn con chọn người nhận; tham số ? duy nhất của mỗi câu là id của Creator
     private static final String FOLLOWERS_SQL = "select f.follower_id from follows f where f.followee_id = ?";
-    private static final String FANS_SQL = "select t.counterparty_id from wallet_transactions t "
-            + "where t.user_id = ? and t.type = 'DONATE_RECEIVED' and t.counterparty_id is not null "
-            + "group by t.counterparty_id having sum(t.amount) >= " + FanBadge.BRONZE.threshold();
 
     private static String clean(String text, int max, String field) {
         String cleaned = text == null ? "" : text.replaceAll("[\\p{Cntrl}&&[^\\n\\r\\t]]", "").strip();

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="controls" class="d-flex flex-wrap gap-3 align-items-center my-3">
+    <form method="get" th:action="@{${pagePath}}" class="d-flex gap-2 align-items-center">
+        <input type="hidden" name="page" value="1">
+        <label for="manager-size">Số dòng</label>
+        <select id="manager-size" name="size" class="input-al">
+            <option th:each="s : ${ {20,50,100} }" th:value="${s}" th:text="${s}" th:selected="${s == pagination.size()}"></option>
+        </select>
+        <button type="submit" class="btn-al btn-al--white btn-al--sm">Áp dụng</button>
+    </form>
+    <nav aria-label="Phân trang" class="d-flex flex-wrap gap-2 align-items-center">
+        <a th:if="${pagination.number() > 1}" th:href="@{${pagePath}(page=1,size=${pagination.size()})}">Đầu</a>
+        <a th:if="${pagination.number() > 1}" th:href="@{${pagePath}(page=${pagination.number()-1},size=${pagination.size()})}">Trước</a>
+        <span aria-live="polite" th:text="|Trang ${pagination.number()} / ${pagination.pages()} · ${pagination.total()} dòng|"></span>
+        <a th:if="${pagination.number() < pagination.pages()}" th:href="@{${pagePath}(page=${pagination.number()+1},size=${pagination.size()})}">Sau</a>
+        <a th:if="${pagination.number() < pagination.pages()}" th:href="@{${pagePath}(page=${pagination.pages()},size=${pagination.size()})}">Cuối</a>
+    </nav>
+</div>
+</body></html>

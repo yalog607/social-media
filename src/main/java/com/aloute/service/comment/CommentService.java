@@ -24,8 +24,6 @@ import com.aloute.dto.post.PostView;
 import com.aloute.model.user.Profile;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
-import com.aloute.model.wallet.FanBadge;
-import com.aloute.service.wallet.FanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +52,6 @@ public class CommentService {
     private final RateLimiter rateLimiter;
     private final NotificationService notifications;
     private final Clock clock;
-    private final FanService fans;
     private final MentionService mentions;
     private final MediaService media;
     private final CommentReactionService commentReactions;
@@ -65,7 +62,7 @@ public class CommentService {
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
-                          FanService fans, MentionService mentions, MediaService media,
+                          MentionService mentions, MediaService media,
                           CommentReactionService commentReactions, StickerAccess stickerAccess,
                           StickerService stickerService, LocalStickerLibrary stickerLibrary, SeasonActivityRecorder seasonActivity) {
         this.seasonActivity = seasonActivity;
@@ -73,7 +70,6 @@ public class CommentService {
         this.stickerService = stickerService;
         this.stickerLibrary = stickerLibrary;
         this.media = media;
-        this.fans = fans;
         this.mentions = mentions;
         this.comments = comments;
         this.posts = posts;
@@ -164,10 +160,8 @@ public class CommentService {
     /** @throws com.aloute.exception.post.PostNotFoundException bài không tồn tại hoặc không xem được */
     @Transactional(readOnly = true)
     public List<CommentView> list(UUID postId, UUID viewerId) {
-        Post post = posts.getVisible(postId, viewerId);
+        posts.getVisible(postId, viewerId);
         List<Comment> flat = comments.findByPostId(postId);
-        Map<UUID, FanBadge> badges = fans.badgesFor(post.getAuthor().getId(),
-                flat.stream().map(c -> c.getAuthor().getId()).distinct().toList());
         List<UUID> allCommentIds = flat.stream().map(Comment::getId).toList();
         Map<UUID, ReactionSummary> reactionsByComment = commentReactions.summarizeAll(allCommentIds, viewerId);
 
@@ -189,15 +183,14 @@ public class CommentService {
             }
             List<CommentView> replyViews = replies.stream()
                     .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
-                    .map(reply -> toView(reply, viewerId, List.of(), badges, reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY)))
+                    .map(reply -> toView(reply, viewerId, List.of(), reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY)))
                     .toList();
-            views.add(toView(root, viewerId, replyViews, badges, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY)));
+            views.add(toView(root, viewerId, replyViews, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY)));
         }
         return views;
     }
 
-    private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
-                                      Map<UUID, FanBadge> badges, ReactionSummary reactions) {
+    private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies, ReactionSummary reactions) {
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
@@ -212,7 +205,6 @@ public class CommentService {
                 mine,
                 deleted,
                 replies,
-                badges.get(author.getId()),
                 reactions,
                 deleted ? null : stickerService.toStickerView(comment.getSticker()));
     }

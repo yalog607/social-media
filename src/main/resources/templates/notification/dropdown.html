@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Nội dung dropdown chuông thông báo (tải bằng fetch khi mở). Chỉ xem, không đánh dấu đã đọc. -->
+<div th:fragment="panel">
+    <th:block th:each="n : ${items}">
+        <th:block th:replace="~{notification/row :: row(${n})}"></th:block>
+    </th:block>
+    <p class="notif-empty" th:if="${#lists.isEmpty(items)}">Chưa có thông báo nào</p>
+    <a class="notif-all" th:href="@{/notifications}">Xem tất cả</a>
+</div>
+
+</body>
+</html>

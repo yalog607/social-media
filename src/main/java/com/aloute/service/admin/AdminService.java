@@ -255,7 +255,6 @@ public class AdminService {
         systemStats.put("Đang bị khóa", count("select count(*) from users where status = 'SUSPENDED'"));
         systemStats.put("Bài viết hiện có", count("select count(*) from posts where deleted_at is null and scheduled_at is null"));
         systemStats.put("Bình luận hiện có", count("select count(*) from comments where deleted_at is null"));
-        systemStats.put("Xu đang lưu hành", count("select coalesce(sum(balance), 0) from wallets"));
         systemStats.put("Mùa giải", count("select count(*) from seasons"));
         systemStats.put("Bộ nhãn dán", count("select count(*) from sticker_packs"));
 

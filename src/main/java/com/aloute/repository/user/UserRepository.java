@@ -43,4 +43,17 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             limit :limit""", nativeQuery = true)
     List<UUID> searchActiveIds(@Param("escapedQuery") String escapedQuery, @Param("rawQuery") String rawQuery,
                                @Param("limit") int limit);
+
+    /** Chat discovery filters are applied before ranking/limit; global search keeps its existing policy. */
+    @Query(value = """
+            select u.id from users u join profiles p on p.user_id = u.id
+            where u.status = 'ACTIVE' and u.id <> :viewerId
+              and p.search_name ilike '%' || :escapedQuery || '%' escape '\\'
+              and not exists (select 1 from blocks b
+                  where (b.blocker_id = :viewerId and b.blocked_id = u.id)
+                     or (b.blocked_id = :viewerId and b.blocker_id = u.id))
+            order by similarity(p.search_name, :rawQuery) desc, u.id
+            limit :limit""", nativeQuery = true)
+    List<UUID> searchMessagePeopleIds(@Param("escapedQuery") String escapedQuery, @Param("rawQuery") String rawQuery,
+                                    @Param("viewerId") UUID viewerId, @Param("limit") int limit);
 }

@@ -13,7 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import java.util.UUID;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,6 +41,23 @@ class NotificationControllerIT extends IntegrationTest {
                 .andExpect(content().string(containsString("theo dõi")));
 
         assertThat(notifications.unreadCount(me.getId())).as("mở trang thông báo tự đánh dấu đã đọc").isZero();
+    }
+
+    @Test
+    void dropdownListsNotificationsWithoutMarkingThemReadAndMarkReadClearsOne() throws Exception {
+        User me = createUser();
+        follows.follow(createUser().getId(), me.getId());
+
+        mvc.perform(get("/notifications/dropdown").with(asUser(me)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("theo dõi")))
+                .andExpect(content().string(containsString("Xem tất cả")));
+        assertThat(notifications.unreadCount(me.getId())).as("mở dropdown không đánh dấu đã đọc").isEqualTo(1);
+
+        UUID id = notificationRepository.findAll().get(0).getId();
+        mvc.perform(post("/notifications/" + id + "/mark-read").with(asUser(me)).with(csrf()))
+                .andExpect(status().isNoContent());
+        assertThat(notifications.unreadCount(me.getId())).isZero();
     }
 
     @Autowired com.aloute.service.post.PostService posts;

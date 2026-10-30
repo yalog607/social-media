@@ -7,67 +7,43 @@
     <div class="page-title chat-list-heading">
         <h1>Tin nhắn</h1>
         <div class="chat-list-actions">
-            <button type="button" class="chat-create-action" data-bs-toggle="modal" data-bs-target="#newChatModal" aria-label="Tạo trò chuyện mới" title="Tạo trò chuyện mới">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8.5 8.5 0 0 1-8.5 8.5 8.6 8.6 0 0 1-3.7-.8L4 20l.8-3.8A8.5 8.5 0 1 1 20 11.5Z"/><path d="M11.5 8v7M8 11.5h7"/></svg>
+            <button type="button" class="chat-create-action" id="focusMessagesPeople" aria-controls="messagesPeopleQuery" aria-label="Tạo trò chuyện mới" title="Tạo trò chuyện mới">
+                <svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>
             </button>
             <button type="button" class="chat-create-action" data-bs-toggle="modal" data-bs-target="#newChatGroupModal" aria-label="Tạo nhóm trò chuyện" title="Tạo nhóm trò chuyện">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a6 6 0 0 1 12 0v1M17 8v6M14 11h6"/></svg>
+                <svg class="icon" aria-hidden="true"><use href="#i-user-plus"/></svg>
             </button>
         </div>
     </div>
 
     <aside class="chat-streak-banner mb-4" aria-label="Nhắc nhở giữ chuỗi">
-        <span class="chat-streak-banner-icon" aria-hidden="true">🔥</span>
+        <span class="chat-streak-banner-icon" aria-hidden="true"><svg class="icon icon-fire" width="1em" height="1em" aria-hidden="true"><use href="#i-flame"/></svg></span>
         <div class="chat-streak-banner-copy">
             <p class="chat-streak-banner-title">Nhắn tin cùng hội bạn để giữ chuỗi <span aria-hidden="true">✦</span></p>
             <p class="chat-streak-banner-text">Cả nhóm cùng tám chuyện, giữ chuỗi mỗi ngày</p>
         </div>
     </aside>
 
-    <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content chat-create-modal">
-            <div class="modal-header"><h2 class="h4 mb-0 fw-bold" id="newChatModalLabel">💬 Trò chuyện mới</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-            <div class="modal-body">
-        <p th:if="${#lists.isEmpty(friends)}" class="text-soft">Bạn chưa có bạn bè để bắt đầu trò chuyện.</p>
-        <!-- DANH SÁCH BẠN BÈ HIỆN AVATAR ĐỂ CHỌN NHẮN TIN TRỰC TIẾP -->
-        <div class="mb-3" th:if="${!#lists.isEmpty(friends)}">
-            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                <span class="fw-bold small text-ink" style="font-family: var(--font-display);">Chọn bạn bè để bắt đầu trò chuyện:</span>
-                <!-- Huy hiệu đếm số lượng bạn bè -->
-                <span class="badge border border-dark rounded-pill px-2 py-0_5 fw-bold text-ink"
-                      style="font-size: .72rem; background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink);"
-                      th:text="'👥 ' + ${#lists.size(friends)} + ' bạn bè'">👥 1 bạn bè</span>
-            </div>
-
-            <!-- Ô tìm kiếm bạn bè nhanh khi danh sách nhiều -->
-            <div class="mb-2" th:if="${#lists.size(friends) > 4}">
-                <input type="text" id="chatFriendFilter" class="input-al w-100" placeholder="🔍 Tìm nhanh bạn bè theo tên..."
-                       style="padding: .4rem .85rem; font-size: .85rem; border-radius: var(--r-pill);" autocomplete="off">
-            </div>
-
-            <!-- Track bạn bè hiển thị Avatar nổi bật -->
-            <div class="chat-friends-track d-flex gap-2 pb-2 overflow-x-auto" id="chatFriendsList">
-                <a th:each="f : ${friends}"
-                   th:href="@{/messages/start(username=${f.username})}"
-                   th:attr="data-search=${#strings.toLowerCase(f.displayName + ' ' + f.username)}"
-                   class="chat-friend-card d-flex flex-column align-items-center p-2 text-decoration-none text-center rounded-3 border border-2 border-dark"
-                   style="width: 110px; min-width: 110px; background: var(--white); box-shadow: 2px 2px 0 var(--ink); cursor: pointer;"
-                   th:title="'Nhắn tin với ' + ${f.displayName}">
-                    <div class="position-relative mb-1">
-                        <span style="--size: 46px;" th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
-                    </div>
-                    <span class="fw-bold text-truncate w-100 text-ink" style="font-size: .84rem; line-height: 1.2;" th:text="${f.displayName}">Tên</span>
-                    <span class="text-soft text-truncate w-100 mb-1" style="font-size: .7rem;" th:text="'@' + ${f.username}">@user</span>
-                    <span class="btn-al btn-al--lemon btn-al--sm py-0 px-2 fw-bold w-100 text-center" style="font-size: .7rem; border-width: 1.5px; border-radius: var(--r-pill);">
-                        Nhắn tin
-                    </span>
-                </a>
-            </div>
-        </div>
-
-            </div>
-        </div></div>
-    </div>
+    <section class="mb-4" aria-labelledby="messagesPeopleLabel" id="messagesPeopleSearch"
+             th:attr="data-search-url=@{/api/messages/people}">
+        <label for="messagesPeopleQuery" id="messagesPeopleLabel" class="fw-bold mb-2">Tìm người trên ALOUTE</label>
+        <input type="search" id="messagesPeopleQuery" class="input-al w-100" autocomplete="off"
+               placeholder="Nhập tên hoặc username..." aria-describedby="messagesPeopleStatus" aria-controls="messagesPeopleResults">
+        <p id="messagesPeopleStatus" class="text-soft small mt-2" role="status" aria-live="polite">Nhập ít nhất 2 ký tự để tìm người.</p>
+        <div id="messagesPeopleResults" aria-busy="false"></div>
+        <template id="messagesPeopleForm">
+            <form method="post" th:action="@{/messages/start}" class="search-user d-flex gap-2 align-items-center">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="username">
+                <span class="avatar" aria-hidden="true"></span>
+                <span class="search-user-info minw-0">
+                    <span class="search-user-name d-block text-break"></span>
+                    <span class="text-soft small d-block text-break" data-username></span>
+                </span>
+                <button type="submit" class="btn-al btn-al--lemon btn-al--sm flex-shrink-0">Nhắn tin</button>
+            </form>
+        </template>
+    </section>
 
     <div class="modal fade" id="newChatGroupModal" tabindex="-1" aria-labelledby="newChatGroupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content chat-create-modal">
@@ -110,7 +86,7 @@
             <span class="search-user-info">
                 <span class="search-user-name" th:text="${c.title}">Tên</span>
                 <span class="streak" th:if="${c.streak.active()}" th:classappend="${c.streak.atRisk()} ? 'streak--risk'"
-                      th:title="${c.streak.atRisk()} ? 'Nhắn hôm nay để giữ chuỗi!' : 'Chuỗi nhắn tin hằng ngày'"><span class="icon-flame d-inline-block">🔥</span> <span th:text="${c.streak.days()}">3</span></span>
+                      th:title="${c.streak.atRisk()} ? 'Nhắn hôm nay để giữ chuỗi!' : 'Chuỗi nhắn tin hằng ngày'"><svg class="icon icon-flame" width="1.1em" height="1.1em" aria-hidden="true"><use href="#i-flame"/></svg> <span th:text="${c.streak.days()}">3</span></span>
                 <span class="chat-preview" th:text="${#strings.isEmpty(c.lastMessagePreview)} ? 'Chưa có tin nhắn nào' : ${c.lastMessagePreview}">Xem trước</span>
             </span>
             <span class="chat-row-meta">
@@ -121,26 +97,11 @@
 
         <section class="note note--sky empty" th:if="${#lists.isEmpty(conversations)}">
             <h2 class="h3">Chưa có cuộc trò chuyện nào</h2>
-            <p>Dùng nút trò chuyện mới để bắt đầu nhắn tin với bạn bè nhé.</p>
+            <p>Tìm người trên ALOUTE để bắt đầu nhắn tin nhé.</p>
         </section>
     </section>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const filterInput = document.getElementById('chatFriendFilter');
-            const track = document.getElementById('chatFriendsList');
-            if (filterInput && track) {
-                filterInput.addEventListener('input', function () {
-                    const q = filterInput.value.trim().toLowerCase();
-                    const cards = track.querySelectorAll('.chat-friend-card');
-                    cards.forEach(c => {
-                        const searchData = c.getAttribute('data-search') || '';
-                        c.classList.toggle('d-none', Boolean(q) && !searchData.includes(q));
-                    });
-                });
-            }
-        });
-    </script>
+    <script th:src="@{/js/messages-people.js}" defer></script>
 </main>
 </body>
 </html>

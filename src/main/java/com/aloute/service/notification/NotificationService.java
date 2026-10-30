@@ -84,11 +84,6 @@ public class NotificationService {
     }
 
     @Transactional
-    public void donated(UUID actorId, UUID recipientId) {
-        notify(recipientId, actorId, NotificationType.DONATION, null);
-    }
-
-    @Transactional
     public void guestbookEntryAdded(UUID actorId, UUID recipientId) {
         notify(recipientId, actorId, NotificationType.GUESTBOOK_ENTRY, null);
     }
@@ -256,7 +251,6 @@ public class NotificationService {
                     : name + " đã nhắc đến bạn trong một bình luận";
             case WARNING -> "Bạn đã nhận được cảnh báo về việc vi phạm Tiêu chuẩn cộng đồng.";
             case BROADCAST -> name + " gửi thông báo: " + (n.getBroadcastTitle() == null ? "" : n.getBroadcastTitle());
-            case DONATION -> name + " đã tặng Xu cho bạn";
             case POST_TAGGED -> name + " đã gắn thẻ bạn trong một bài viết";
             case GUESTBOOK_ENTRY -> name + " đã dán một mẩu lưu bút lên trang cá nhân của bạn";
             case SUPPORT -> "Yêu cầu hỗ trợ của bạn đã có phản hồi mới.";

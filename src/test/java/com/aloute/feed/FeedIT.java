@@ -293,7 +293,7 @@ class FeedIT extends IntegrationTest {
         assertThat(page.posts()).hasSize(10);
         assertThat(page.posts().stream().map(PostView::id)).containsAnyElementsOf(mine);
         assertThat(stats.getPrepareStatementCount())
-                .as("số câu SQL cho cả trang 10 bài (bảng tin + media + cảm xúc + bình luận + chia sẻ + gắn thẻ + mở khóa bài trả phí theo lô)")
+                .as("số câu SQL cho cả trang 10 bài (bảng tin + media + cảm xúc + bình luận + chia sẻ + gắn thẻ)")
                 .isLessThanOrEqualTo(9);
     }
 

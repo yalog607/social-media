@@ -39,6 +39,7 @@
   --font-body: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --topbar-h: 68px;
+  --bottom-nav-space: 6rem;
 }
 
 body[data-role="creator"] { --role: var(--lemon); }
@@ -258,7 +259,7 @@ textarea.input-al { min-height: 110px; resize: vertical; }
 .input-al.is-invalid { border-color: var(--danger); box-shadow: 3px 3px 0 var(--danger); background-image: none; }
 .field-error { color: var(--danger); font-weight: 600; font-size: .9rem; margin-top: .35rem; }
 select.input-al { appearance: none; padding-right: 2.4rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%2316121F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5l5.5 5.5 5.5-5.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316121F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 8.25L12 15.75L4.5 8.25'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 1rem center; }
 
 /* Bảng chọn tự vẽ (custom-select.js): thay danh sách xổ xuống mặc định của trình duyệt, vốn không thể
@@ -315,9 +316,26 @@ select.input-al { appearance: none; padding-right: 2.4rem;
 .alert-al--warn { background: var(--lemon); }
 .alert-al p { margin: 0; }
 
-/* Toast (JS) */
-.toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 2500; display: grid; gap: .6rem; }
-.toast-al { min-width: 220px; max-width: 340px; animation: pop-in .25s cubic-bezier(.3, 1.6, .5, 1) both; }
+/* Toast kết quả thao tác, không thay lỗi validation cạnh trường. */
+.toast-stack {
+  position: fixed; top: max(1rem, env(safe-area-inset-top)); left: 50vw; transform: translateX(-50%);
+  width: min(24rem, calc(100vw - 2.5rem)); max-height: calc(100dvh - 2rem); overflow-y: auto;
+  z-index: 2500; display: grid; gap: .6rem; padding: 0 .25rem .25rem; pointer-events: none;
+}
+.toast-al {
+  display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: start;
+  min-width: 0; margin-bottom: 0; padding: .55rem .75rem; pointer-events: auto;
+  animation: toast-slide-down .24s ease-out both;
+}
+.toast-al p { align-self: center; overflow-wrap: anywhere; max-height: calc(100dvh - 8rem); overflow-y: auto; }
+.toast-close {
+  width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px;
+  background: transparent; color: inherit; font: 700 1.6rem/1 var(--font-body); cursor: pointer;
+}
+.toast-close:hover { background: rgba(22, 18, 31, .08); }
+.toast-al.is-dismissing { animation: toast-slide-up .18s ease-in both; }
+@keyframes toast-slide-down { from { opacity: 0; transform: translateY(-1.5rem); } to { opacity: 1; transform: none; } }
+@keyframes toast-slide-up { to { opacity: 0; transform: translateY(-1.5rem); } }
 
 /* ---------- 6. Khung ứng dụng ---------- */
 .topbar {
@@ -377,8 +395,32 @@ body[data-role="admin"] .logo {
 }
 .menu-al .dropdown-item:hover, .menu-al .dropdown-item:focus { background: var(--lemon); color: var(--ink); }
 
+/* Lối tắt trên topbar: Trang chủ, chuông thông báo, Tin nhắn */
+.topbar-actions { display: flex; align-items: center; gap: .5rem; }
+.topbar-icon {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; color: var(--ink); text-decoration: none;
+  background: var(--white); border: var(--line); border-radius: 50%; box-shadow: var(--sh-sm); cursor: pointer;
+  transition: transform .12s, box-shadow .12s, background .12s;
+}
+.topbar-icon svg { width: 22px; height: 22px; }
+.topbar-icon:hover { background: var(--paper-2); color: var(--ink); transform: translate(-1px, -1px); box-shadow: var(--sh); }
+.topbar-icon.is-active { background: var(--role); }
+.topbar-badge { position: absolute; top: -6px; right: -6px; margin-left: 0; min-width: 20px; height: 20px; font-size: .7rem; }
+.dropdown-menu.notif-menu { width: min(380px, calc(100vw - 2rem)); max-height: 70vh; overflow-y: auto; padding: .4rem; }
+.notif-menu .notification-row { border-radius: 10px; }
+.notif-empty { margin: 0; padding: 1rem; text-align: center; font-weight: 600; color: var(--ink-soft, var(--ink)); }
+.notif-all { display: block; margin-top: .3rem; padding: .5rem; text-align: center; font-weight: 700; color: var(--ink); border-radius: 8px; text-decoration: none; }
+.notif-all:hover { background: var(--lemon); color: var(--ink); }
+@media (max-width: 575.98px) {
+  .topbar-inner { gap: .5rem; }
+  .topbar-actions { gap: .35rem; }
+  .topbar-icon { width: 40px; height: 40px; }
+  .logo img { max-width: 110px; }
+}
+
 .app {
-  max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 6rem;
+  max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem calc(var(--bottom-nav-space) + env(safe-area-inset-bottom));
   display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: start;
 }
 @media (min-width: 992px) {
@@ -417,11 +459,17 @@ body[data-role="admin"] .logo {
 @media (min-width: 992px) { .bottom-tabs { display: none; } }
 .bottom-tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: .1rem;
+  min-width: 0; min-height: 64px; overflow-wrap: anywhere; text-align: center;
   padding: .35rem .2rem; border: 2px solid transparent; border-radius: 12px;
   font-size: .72rem; font-weight: 700; color: var(--ink); text-decoration: none;
 }
 .bottom-tab svg { width: 24px; height: 24px; }
 .bottom-tab.is-active { background: var(--role); border-color: var(--ink); box-shadow: var(--sh-sm); }
+/* Giữ đủ nhãn và vùng chạm cho cả tám tab của Admin trên điện thoại. */
+@media (max-width: 575.98px) {
+  :root { --bottom-nav-space: 11rem; }
+  .bottom-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* Tiêu đề trang trong app */
 .page-title { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.4rem; }
@@ -1121,8 +1169,6 @@ body.lightbox-open { overflow: hidden; }
 .table-al th, .table-al td { padding: .5rem .6rem; border-bottom: 2px solid var(--ink); text-align: left; }
 .table-al th { font-size: .85rem; color: var(--ink-soft); }
 .table-al td:not(:first-child), .table-al th:not(:first-child) { text-align: right; white-space: nowrap; }
-.paywall { margin: .8rem 0; padding: 1rem; text-align: center; background: var(--paper-2); border: var(--line); border-radius: 12px; border-style: dashed; }
-.fan-badge { display: inline-block; margin-left: .4rem; padding: 0 .45rem; font-size: .7rem; font-weight: 800; background: var(--lemon); border: 2px solid var(--ink); border-radius: var(--r-pill); }
 .notification-body { display: block; font-size: .9rem; color: var(--ink); white-space: pre-line; }
 .bar--sky { background: var(--sky); }
 .stat-link { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
@@ -1144,6 +1190,8 @@ body.lightbox-open { overflow: hidden; }
 .chat-group-forms .chat-new-form { margin-bottom: .4rem; }
 .composer-more > summary { display: inline-block; cursor: pointer; }
 .table-al .btn-al { white-space: nowrap; }
+/* Heroicons (sprite ở fragments/icons.html): nét outline dày 2 cho khớp viền mực; kích thước do ngữ cảnh hoặc width/height quyết định. */
+.icon { stroke-width: 2; flex: none; }
 .verified-badge { width: 1.05em; height: 1.05em; margin-left: .25rem; vertical-align: -0.16em; flex: none; display: inline-block; }
 .comment-bubble .verified-badge { margin-left: .2rem; margin-bottom: .1rem; }
 .comment-bubble .comment-text { margin-top: .1rem; }
@@ -1251,6 +1299,8 @@ body.lightbox-open { overflow: hidden; }
 .icon-flame {
   animation: flame-flicker 1.2s ease-in-out infinite;
   transform-origin: bottom center;
+  color: #FF7200;
+  vertical-align: -.18em;
 }
 
 /* ---------- 17. Bảng tâm trạng hôm nay (Daily Mood Board) ---------- */
@@ -3605,3 +3655,5 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 .season-card__person a:hover { text-decoration: underline; }
 .season-card__cta { justify-content: center; position: relative; padding: .65rem 2rem; background: #ff9eb4; }
 .season-card__cta > span:last-child { position: absolute; right: .8rem; }
+/* Ngọn lửa Heroicons (bản đặc) dùng thay emoji 🔥 trang trí: màu cam, cỡ theo chữ. */
+.icon-fire { color: #FF7200; vertical-align: -.15em; }

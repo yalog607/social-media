@@ -32,9 +32,6 @@
                     </form>
 
                     <th:block th:unless="${blockedEitherWay}">
-                        <button type="button" class="btn-al btn-al--role btn-al--sm" th:if="${owner.hasRole(T(com.aloute.model.user.Role).CREATOR)}"
-                                data-bs-toggle="modal" data-bs-target="#donateModal"
-                                th:attr="data-donate-user=${owner.id}, data-donate-name=${owner.profile.displayName}">Tặng Xu</button>
                         <form method="post" th:if="${friendState.name() == 'NONE'}" th:action="@{/u/{u}/friend-request(u=${owner.username})}">
                             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                             <input type="hidden" name="next" th:value="${currentPath}">
@@ -107,13 +104,13 @@
                 </span>
             </div>
             <p class="d-flex flex-wrap gap-3 profile-stats mb-3">
-                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
+                <a th:if="${canViewFriends}" href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
                     <strong th:text="${friendCount}">0</strong> bạn bè
                 </a>
                 <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followersModal">
                     <strong th:text="${followerCount}">0</strong> người theo dõi
                 </a>
-                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
+                <a th:if="${canViewFollowing}" href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
                     <strong th:text="${followingCount}">0</strong> đang theo dõi
                 </a>
             </p>
@@ -188,7 +185,7 @@
                                                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                                                 <input type="hidden" name="next" th:value="${currentPath}">
                                                 <button type="submit" class="post-menu-btn text-danger" style="width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Bỏ ghim" aria-label="Bỏ ghim">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    <svg class="icon" style="width: 14px; height: 14px;" aria-hidden="true"><use href="#i-x"/></svg>
                                                 </button>
                                             </form>
                                         </div>
@@ -227,7 +224,7 @@
     </th:block>
 
     <!-- MODALS CHO FRIENDS / FOLLOWERS / FOLLOWING -->
-    <div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true" 
+    <div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true" th:if="${canViewFriends}"
          th:attr="data-list-url=@{/u/{u}/friends-fragment(u=${owner.username})}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -253,7 +250,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="followingModal" tabindex="-1" aria-labelledby="followingModalLabel" aria-hidden="true" 
+    <div class="modal fade" id="followingModal" tabindex="-1" aria-labelledby="followingModalLabel" aria-hidden="true" th:if="${canViewFollowing}"
          th:attr="data-list-url=@{/u/{u}/following-fragment(u=${owner.username})}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">

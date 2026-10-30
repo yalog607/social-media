@@ -53,16 +53,16 @@ mvn verify    # thêm test tích hợp (Testcontainers + PostgreSQL thật), c�
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Thông tin tài khoản Cloudinary | **Bắt buộc** khi `ALOUTE_STORAGE_TYPE=cloudinary` |
 
 
-### Bật đăng nhập Google/Facebook (Firebase Authentication)
+### Bật đăng nhập Google (Firebase Authentication)
 Firebase chỉ dùng để xác minh danh tính, miễn phí và không cần thẻ; không liên quan tới nơi lưu ảnh.
-1. Tạo project Firebase, bật **Authentication** (Google, Facebook).
+1. Tạo project Firebase, bật **Authentication** (Google).
 2. Tải file service account JSON về một thư mục **ngoài git** (ví dụ `secrets/`, đã nằm trong `.gitignore`).
 3. Đặt biến môi trường:
    - `FIREBASE_CREDENTIALS` = đường dẫn tới file service account
    - `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_AUTH_DOMAIN`, `FIREBASE_WEB_PROJECT_ID` = cấu hình web (công khai) của app
 4. Thêm domain đang chạy vào **Authorized domains** trong Firebase Authentication.
 
-Không có các biến này, ứng dụng vẫn chạy đủ chức năng: nút Google/Facebook hiển thị trạng thái tắt.
+Không có các biến này, ứng dụng vẫn chạy đủ chức năng: nút Google hiển thị trạng thái tắt.
 
 ### Lưu ảnh/video trên Cloudinary (tuỳ chọn)
 Mặc định ảnh/video lưu trên đĩa của máy chủ (`uploads/` khi dev, Docker volume khi production). Muốn chuyển sang Cloudinary:
@@ -85,7 +85,7 @@ src/main/java/com/aloute/
 src/main/resources/templates   View: Thymeleaf
 src/main/resources/{db/migration, static}
 ```
-`<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user, wallet…
+`<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user…
 
 ### Nhãn dán trong chat
 Ba bộ Mèo Mỡ, Ếch Nhỏ và Cún Bông chạy trực tiếp trong ứng dụng, không cần khóa API. Tìm kiếm theo biểu cảm; Gần đây và Yêu thích được lưu theo tài khoản.

@@ -81,6 +81,8 @@ public class ProfileController {
         model.addAttribute("moodPresets", moodService.getPresets());
         // Ảnh đại diện luôn hiện dù hồ sơ riêng tư; phóng to thì vẫn phải theo đúng ý chủ hồ sơ (trừ chính họ)
         model.addAttribute("canZoomPhotos", isOwner || (!blockedEitherWay && owner.getProfile().isPhotoZoomEnabled()));
+        model.addAttribute("canViewFriends", canViewFriends(owner, viewerId));
+        model.addAttribute("canViewFollowing", canViewFollowing(owner, viewerId));
         if (!isOwner && viewerId != null) {
             model.addAttribute("friendState", friends.stateBetween(viewerId, owner.getId()));
             model.addAttribute("isFollowing", follows.isFollowing(viewerId, owner.getId()));
@@ -99,8 +101,12 @@ public class ProfileController {
     }
 
     @GetMapping("/u/{username}/friends-fragment")
-    public String friendsFragment(@PathVariable String username, Model model) {
+    public String friendsFragment(@PathVariable String username,
+                                  @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         User owner = users.findByUsername(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!canViewFriends(owner, viewer == null ? null : viewer.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         model.addAttribute("friendsList", friends.friendsOf(owner.getId()));
         return "profile/lists :: friends";
     }
@@ -113,9 +119,29 @@ public class ProfileController {
     }
 
     @GetMapping("/u/{username}/following-fragment")
-    public String followingFragment(@PathVariable String username, Model model) {
+    public String followingFragment(@PathVariable String username,
+                                    @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         User owner = users.findByUsername(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!canViewFollowing(owner, viewer == null ? null : viewer.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         model.addAttribute("followingList", follows.following(owner.getId()));
         return "profile/lists :: following";
+    }
+
+    /** Chủ hồ sơ luôn xem được; người khác phải không bị chặn và chủ hồ sơ đang cho phép. */
+    private boolean canViewFriends(User owner, UUID viewerId) {
+        return canViewList(owner, viewerId, owner.getProfile().isFriendsListVisible());
+    }
+
+    private boolean canViewFollowing(User owner, UUID viewerId) {
+        return canViewList(owner, viewerId, owner.getProfile().isFollowingListVisible());
+    }
+
+    private boolean canViewList(User owner, UUID viewerId, boolean allowed) {
+        if (viewerId != null && viewerId.equals(owner.getId())) {
+            return true;
+        }
+        return allowed && !(viewerId != null && blocks.isBlockedEitherWay(owner.getId(), viewerId));
     }
 }

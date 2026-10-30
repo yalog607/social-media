@@ -169,7 +169,7 @@ class SeasonIT extends IntegrationTest {
         seasons.publish(id);
         var season = seasons.get(id);
         var post = posts.create(creator.getId(), "Bài hẹn #HenGio", Visibility.PUBLIC, List.of(), null,
-                List.of(), null, season.start().plusSeconds(3600));
+                List.of(), season.start().plusSeconds(3600));
         clock.advance(Duration.between(clock.instant(), season.start()).plusSeconds(7200));
         seasons.advance();
         publisher.publishDue();
