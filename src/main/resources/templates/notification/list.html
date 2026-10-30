@@ -7,7 +7,7 @@
     <div class="page-title"><h1>Thông báo</h1></div>
 
     <a class="search-user notification-row" th:each="n : ${items}" th:classappend="${!n.read} ? 'is-unread'"
-       th:href="${n.type != null and (n.type.name() == 'SUPPORT' or n.type.name() == 'REPORT')} ? @{/notifications/{id}/read(id=${n.id},type=${n.type.name()},ref=${n.referenceId},postId=${n.postId})} : (${n.conversationId != null} ? @{/messages/{id}(id=${n.conversationId})} : (${n.postId != null} ? @{/notifications/{id}/read(id=${n.id},postId=${n.postId})} : @{/u/{u}(u=${n.actor.username})}))">
+       th:href="${n.stickerPackId != null} ? @{/stickers/{pack}(pack=${n.stickerPackId})} : (${n.type != null and (n.type.name() == 'SUPPORT' or n.type.name() == 'REPORT')} ? @{/notifications/{id}/read(id=${n.id},type=${n.type.name()},ref=${n.referenceId},postId=${n.postId})} : (${n.conversationId != null} ? @{/messages/{id}(id=${n.conversationId})} : (${n.postId != null} ? @{/notifications/{id}/read(id=${n.id},postId=${n.postId})} : @{/u/{u}(u=${n.actor.username})})))">
         <span th:replace="~{fragments/ui :: avatar(${n.actor}, '')}"></span>
         <span class="search-user-info">
             <span class="notification-text" th:text="${n.text}">Ai đó đã làm gì đó</span>

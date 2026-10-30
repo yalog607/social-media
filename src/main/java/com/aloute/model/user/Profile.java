@@ -44,6 +44,9 @@ public class Profile {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "avatar_frame", length = 40)
+    private String avatarFrame;
+
     @Column(name = "cover_url")
     private String coverUrl;
 

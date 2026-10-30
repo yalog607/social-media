@@ -1,14 +1,13 @@
 package com.aloute.service.chat;
 
 import com.aloute.dto.chat.Streak;
-
 import com.aloute.model.chat.Conversation;
 import com.aloute.repository.chat.ConversationRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Date;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -21,9 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tính chuỗi nhắn tin trực tiếp từ bảng tin nhắn (không có bảng riêng nên không bao giờ lệch số liệu thật). Ngày được
- * tính theo giờ Việt Nam. Một ngày "đạt" khi trong ngày có tin của cả hai người; chuỗi là số ngày đạt liên tiếp tính
- * lùi từ hôm nay (hoặc từ hôm qua nếu hôm nay chưa đủ hai bên — chuỗi chỉ đứt khi hết ngày mà vẫn thiếu).
+ * Tính chuỗi nhắn tin trực tiếp từ bảng tin nhắn.
  */
 @Service
 public class StreakService {
@@ -44,14 +41,14 @@ public class StreakService {
     /** Chuỗi của nhiều hội thoại 1-1 cùng lúc (một truy vấn); hội thoại không có chuỗi thì không có trong kết quả. */
     @Transactional(readOnly = true)
     public Map<UUID, Streak> forConversations(Collection<UUID> directConversationIds) {
+        LocalDate today = LocalDate.ofInstant(clock.instant(), ZONE);
         Map<UUID, Streak> result = new HashMap<>();
         if (directConversationIds.isEmpty()) {
             return result;
         }
-        LocalDate today = LocalDate.ofInstant(clock.instant(), ZONE);
         String marks = String.join(",", Collections.nCopies(directConversationIds.size(), "?"));
         List<Object> args = new ArrayList<>(directConversationIds);
-        args.add(Date.valueOf(today.minusDays(LOOKBACK_DAYS)));
+        args.add(java.sql.Date.valueOf(today.minusDays(LOOKBACK_DAYS)));
         Map<UUID, List<LocalDate>> daysByConversation = new HashMap<>();
         jdbc.query("""
                 select messages.conversation_id, (messages.created_at at time zone 'Asia/Ho_Chi_Minh')::date as d
@@ -62,7 +59,7 @@ public class StreakService {
                 ) and (messages.created_at at time zone 'Asia/Ho_Chi_Minh')::date >= ?
                 group by messages.conversation_id, d
                 having count(distinct messages.sender_id) >= (select count(*) from conversation_members cm where cm.conversation_id = messages.conversation_id)
-                order by messages.conversation_id, d desc""", rs -> {
+                order by messages.conversation_id, d desc""", (RowCallbackHandler) rs -> {
             daysByConversation.computeIfAbsent(rs.getObject(1, UUID.class), k -> new ArrayList<>())
                     .add(rs.getDate(2).toLocalDate());
         }, args.toArray());

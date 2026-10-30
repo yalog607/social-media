@@ -40,7 +40,22 @@
                 <!-- Hàng hiển thị bóng chat và 3 tác nhân bên cạnh (Hình 1 & 2) -->
                 <div class="msg-row d-flex align-items-center gap-2" th:classappend="${m.sender.id.equals(me.id)} ? 'flex-row-reverse' : ''">
                     <div class="msg-bubble-wrap position-relative">
-                        <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                        <!-- Tin nhắn nhãn dán (Sticker) -->
+                        <div th:if="${m.sticker != null or m.giphyId != null}" class="msg-sticker-wrap" th:classappend="${m.sender.id.equals(me.id)} ? 'text-end' : 'text-start'">
+                            <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
+                            <span th:if="${m.giphyId != null}" class="text-soft small">Nhãn dán từ nguồn cũ không còn hiển thị.</span>
+                            <svg th:if="${m.sticker != null and m.sticker.artwork() != null}" class="sticker-art sticker-art--message"
+                                 th:attr="viewBox=${m.sticker.artwork().viewBox}" role="img" th:aria-label="${m.sticker.name}">
+                                <defs><clipPath th:id="'message-art-' + ${m.id}" clipPathUnits="userSpaceOnUse"><polygon th:attr="points=${m.sticker.artwork().clipPoints}"></polygon></clipPath></defs>
+                                <image th:href="@{/stickers/original/characters.png}" width="1024" height="1536" th:attr="clip-path='url(#message-art-' + ${m.id} + ')'"></image>
+                            </svg>
+                            <img th:if="${m.sticker != null and m.sticker.renderType == 'IMAGE'}" class="sticker-art sticker-art--message sticker-image" th:src="${m.sticker.imageUrl}" th:alt="${m.sticker.name}" loading="lazy">
+                            <span th:if="${m.sticker != null and !m.sticker.visibleArtwork()}" class="text-soft small">Nhãn dán cũ không còn hiển thị.</span>
+                            <span th:if="${!#strings.isEmpty(m.contentHtml)}" class="bubble d-block mt-1" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'" th:utext="${m.contentHtml}">Nội dung</span>
+                        </div>
+                        
+                        <!-- Tin nhắn thường (văn bản / file) -->
+                        <span th:unless="${m.sticker != null or m.giphyId != null}" class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
                             <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
                             <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
                                th:href="${m.attachment.url}" target="_blank" rel="noopener">
@@ -100,7 +115,7 @@
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
                                 </button>
                                 <ul class="dropdown-menu menu-al msg-dropdown-menu" th:classappend="${m.sender.id.equals(me.id)} ? 'dropdown-menu-end' : ''">
-                                    <li th:if="${isSender}">
+                                    <li th:if="${isSender and m.sticker == null and m.giphyId == null}">
                                         <button class="dropdown-item" type="button" th:attr="onclick='editMessage(\'' + ${m.id} + '\')'">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                                             <span>Sửa tin nhắn</span>

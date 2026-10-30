@@ -1,8 +1,8 @@
 package com.aloute.model.chat;
 
-import com.aloute.service.chat.MessageService;
-
+import com.aloute.model.sticker.Sticker;
 import com.aloute.model.user.User;
+import com.aloute.service.chat.MessageService;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +20,7 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Một tin nhắn: có chữ, có file đính kèm, hoặc cả hai (không được rỗng cả hai, xem {@link MessageService}). */
+/** Một tin nhắn: có chữ, có file đính kèm, nhãn dán, hoặc kết hợp (xem {@link MessageService}). */
 @Entity
 @Table(name = "messages")
 @Getter
@@ -53,6 +53,13 @@ public class Message {
 
     @OneToOne(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private MessageAttachment attachment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sticker_id")
+    private Sticker sticker;
+
+    @Column(name = "giphy_id", length = 64)
+    private String giphyId;
 
     /** Do {@link MessageService} gán bằng {@code clock.instant()}, cùng nguồn thời gian với {@code lastReadAt}
      * của {@link ConversationMember} — so hai giờ khác nguồn (giờ hệ thống thật vs. đồng hồ có thể chỉnh trong test)

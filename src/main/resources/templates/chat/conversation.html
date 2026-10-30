@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/base :: layout(${header.title}, ~{::main}, 'messages', ~{})}">
 <head><title>Tin nhắn</title></head>
 <body>
 <main th:attr="data-conversation-id=${conversation.id}, data-user-id=${me.id}, data-group=${header.group}, data-max-attachment-mb=${maxAttachmentMb}" id="chat-main">
     <div class="chat-header">
-        <span class="avatar">
+        <span class="avatar" th:classappend="${header.avatarFrame != null} ? 'avatar-frame--' + ${header.avatarFrame} : ''">
             <img th:if="${header.avatarUrl != null}" th:src="${header.avatarUrl}" alt="" loading="lazy">
             <th:block th:unless="${header.avatarUrl != null}"
                       th:text="${#strings.toUpperCase(#strings.substring(header.title, 0, 1))}">A</th:block>
@@ -23,7 +23,6 @@
             <button th:if="${header.group}" type="button" class="btn-al btn-al--white btn-al--sm" data-bs-toggle="offcanvas" data-bs-target="#chatSettingsOffcanvas">⚙️ Cài đặt nhóm</button>
         </div>
     </div>
-    
     <div class="mb-3 d-flex align-items-center justify-content-between p-2" style="background-color: var(--white); border: 1px solid var(--line); border-radius: 8px;" th:if="${header.group and !#lists.isEmpty(pinnedMessages)}">
         <div class="d-flex align-items-center gap-2 overflow-hidden" style="cursor: pointer;" th:attr="onclick='scrollToMessage(\'' + ${pinnedMessages[0].id} + '\')'">
             <span>📌</span>
@@ -57,14 +56,25 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
 </div>
-<form class="chat-composer" id="chat-composer">
-        <input type="file" id="chat-attach-input" hidden>
-        <button type="button" class="chat-attach-btn" id="chat-attach-btn" aria-label="Đính kèm file">
+<!-- Hộp chọn nhãn dán nổi trên composer -->
+    <section id="chat-sticker-picker" class="chat-sticker-picker local-sticker-picker d-none" aria-label="Bảng nhãn dán">
+        <div class="local-sticker-heading"><strong>NHÃN DÁN</strong><button type="button" id="sticker-close" aria-label="Đóng bảng nhãn dán">✕</button></div>
+        <div class="local-sticker-search"><label for="sticker-search" class="visually-hidden">Tìm nhãn dán</label><input id="sticker-search" type="search" maxlength="80" placeholder="Tìm nhãn dán: vui, buồn, thả tim…" autocomplete="off"></div>
+        <div class="local-sticker-body"><h2 id="sticker-section-title">Mèo Mỡ</h2><p id="sticker-status" role="status" aria-live="polite"></p><div id="sticker-grid" class="local-sticker-grid"></div><button id="sticker-retry" type="button" class="btn-al btn-al--sm" hidden>Thử lại</button></div>
+        <nav id="sticker-pack-tabs" class="local-sticker-tabs" aria-label="Các bộ nhãn dán"></nav>
+    </section>
+    <p th:unless="${canSendMessages}" class="note note--lemon small mb-2" role="status">Trưởng nhóm đã tắt quyền gửi tin nhắn của thành viên. Trưởng nhóm và quản trị viên vẫn có thể gửi.</p>
+    <form class="chat-composer" id="chat-composer">
+        <input type="file" id="chat-attach-input" th:disabled="${!canSendMessages}" hidden>
+        <button type="button" class="chat-attach-btn" id="chat-attach-btn" th:disabled="${!canSendMessages}" aria-label="Đính kèm file" title="Đính kèm file">
             <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
         </button>
-        <textarea name="content" rows="1" maxlength="2000" th:placeholder="${header.group} ? 'Nhắn gì đó... (@ nhắc tên, Ctrl+V dán ảnh)' : 'Nhắn gì đó... (Ctrl+V dán ảnh)'" placeholder="Nhắn gì đó..."
+        <button type="button" class="chat-sticker-btn" id="chat-sticker-btn" th:disabled="${!canSendMessages}" aria-expanded="false" aria-controls="chat-sticker-picker" aria-label="Nhãn dán" title="Nhãn dán">
+            <span class="chat-sticker-btn-icon">🏷️</span>
+        </button>
+        <textarea name="content" rows="1" maxlength="2000" th:disabled="${!canSendMessages}" th:placeholder="${!canSendMessages} ? 'Không thể gửi tin nhắn' : (${header.group} ? 'Nhắn gì đó... (@ nhắc tên, Ctrl+V dán ảnh)' : 'Nhắn gì đó... (Ctrl+V dán ảnh)')" placeholder="Nhắn gì đó..."
                   th:attr="data-mention-url=${header.group} ? @{/api/conversations/{id}/members(id=${conversation.id})}" aria-label="Nội dung tin nhắn"></textarea>
-        <button type="submit" class="chat-send-btn" aria-label="Gửi">
+        <button type="submit" class="chat-send-btn" th:disabled="${!canSendMessages}" aria-label="Gửi">
             <svg aria-hidden="true"><use href="#i-send"/></svg>
         </button>
     </form>
@@ -432,6 +442,11 @@
                 </h2>
                 <div id="collapseAdmin" class="accordion-collapse collapse" aria-labelledby="headingAdmin" data-bs-parent="#chatSettingsAccordion">
                     <div class="accordion-body d-flex flex-column gap-2">
+                        <form th:if="${isOwner}" method="post" th:action="@{/messages/{id}/sending-permission(id=${conversation.id})}" class="d-flex justify-content-between align-items-center gap-2 p-2 rounded" style="background-color: var(--c-surface); border: 1px solid var(--line);">
+                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                            <label for="membersCanSendMessages">Cho phép thành viên gửi tin nhắn <small class="d-block text-soft">Khi tắt, trưởng nhóm và quản trị viên vẫn có thể gửi.</small></label>
+                            <div class="form-check form-switch m-0"><input id="membersCanSendMessages" class="form-check-input" type="checkbox" role="switch" name="allow" value="true" th:checked="${conversation.membersCanSendMessages}" onchange="this.form.submit()"></div>
+                        </form>
                         <form method="post" th:action="@{/messages/{id}/approval(id=${conversation.id})}" class="d-flex justify-content-between align-items-center p-2 rounded" style="background-color: var(--c-surface); border: 1px solid var(--line);">
                             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                             <span>Bật duyệt thành viên</span>
@@ -626,7 +641,7 @@
     </script>
     <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
     <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
-    <script th:src="@{/js/chat.js}"></script>
+    <script th:src="@{/js/chat.js(v=4)}"></script>
     <script th:src="@{/js/custom-select.js}"></script>
 
     <th:block th:if="${header.group and canManage}">

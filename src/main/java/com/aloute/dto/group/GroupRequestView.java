@@ -9,6 +9,7 @@ public record GroupRequestView(
         String displayName,
         String avatarUrl,
         Instant createdAt,
-        String answer
+        String answer,
+        String avatarFrame
 ) {
 }

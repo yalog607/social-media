@@ -1,5 +1,6 @@
 package com.aloute.dto.chat;
 
 /** Tên/avatar hiển thị cho MỘT hội thoại theo góc nhìn của một người xem cụ thể. */
-public record ConversationHeader(String title, String avatarUrl, boolean group) {
+public record ConversationHeader(String title, String avatarUrl, boolean group, String avatarFrame) {
+    public ConversationHeader(String title, String avatarUrl, boolean group) { this(title, avatarUrl, group, null); }
 }
