@@ -8,6 +8,10 @@ const configEl = document.getElementById('firebase-config');
 const errorEl = document.getElementById('social-error');
 
 function showError(message) {
+  if (window.Aloute && window.Aloute.toast) {
+    window.Aloute.toast(message, 'error');
+    return;
+  }
   errorEl.textContent = message;
   errorEl.hidden = false;
 }

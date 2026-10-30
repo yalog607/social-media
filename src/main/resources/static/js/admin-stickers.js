@@ -37,10 +37,10 @@
     imageUrls.forEach(URL.revokeObjectURL); imageUrls = []; preview.replaceChildren(); error.textContent = '';
     var chosen = Array.from(files.files);
     if (chosen.length > 10 || chosen.length + Number(main.dataset.stickerCount) > 50) {
-      error.textContent = 'Tối đa 10 ảnh mỗi lần tải và 50 ảnh mỗi bộ.'; files.value = ''; return;
+      window.Aloute.toast('Tối đa 10 ảnh mỗi lần tải và 50 ảnh mỗi bộ.', 'error'); files.value = ''; return;
     }
     if (chosen.some(function (file) { return file.size > 10 * 1024 * 1024; })) {
-      error.textContent = 'Mỗi ảnh tối đa 10 MB.'; files.value = ''; return;
+      window.Aloute.toast('Mỗi ảnh tối đa 10 MB.', 'error'); files.value = ''; return;
     }
     chosen.forEach(function (file, index) {
       var card = document.createElement('div');
@@ -84,7 +84,7 @@
           var button = document.createElement('button'); button.type = 'button'; button.className = 'sticker-recipient-option';
           button.textContent = user.displayName + ' · @' + user.username;
           button.addEventListener('click', function () {
-            if (selected.size >= 100 && !selected.has(user.id)) { status.textContent = 'Mỗi lần cấp tối đa 100 người.'; return; }
+            if (selected.size >= 100 && !selected.has(user.id)) { window.Aloute.toast('Mỗi lần cấp tối đa 100 người.', 'warn'); return; }
             selected.set(user.id, user); renderSelection();
           }); results.appendChild(button);
         });
@@ -100,7 +100,7 @@
       var result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Chưa cấp được quà. Danh sách đã chọn được giữ lại.');
       window.location.assign(result.redirectUrl);
-    } catch (e) { status.textContent = e.message || 'Chưa cấp được quà. Hãy thử lại.'; submit.disabled = false; }
+    } catch (e) { status.textContent = ''; window.Aloute.toast(e.message || 'Chưa cấp được quà. Hãy thử lại.', 'error'); submit.disabled = false; }
   });
   renderSelection();
 })();
