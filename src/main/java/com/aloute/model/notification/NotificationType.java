@@ -20,5 +20,8 @@ public enum NotificationType {
     GUESTBOOK_ENTRY,
     COMMENT_REACTION,
     STREAK,
-    STICKER_REWARD
+    STICKER_REWARD,
+    SEASON_JOIN,
+    SEASON_BANNED,
+    SEASON_RESULT
 }

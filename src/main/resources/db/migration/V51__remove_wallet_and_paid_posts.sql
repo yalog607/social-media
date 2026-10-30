@@ -1,4 +1,4 @@
--- ALOUTE V46: bỏ ví Xu ảo, donate, mở khóa bài trả phí và huy hiệu fan
+-- ALOUTE V51: bỏ ví Xu ảo, donate, mở khóa bài trả phí và huy hiệu fan
 -- Chuyển mọi bài trả phí hiện có thành miễn phí; xóa toàn bộ dữ liệu ví và lịch sử giao dịch (owner đã chốt).
 
 -- 1) Xóa thông báo DONATION trước khi siết lại CHECK constraint
@@ -8,7 +8,7 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS chk_notifications_type;
 ALTER TABLE notifications ADD CONSTRAINT chk_notifications_type CHECK (type IN
     ('FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'NEW_FOLLOWER', 'POST_REACTION', 'POST_COMMENT', 'COMMENT_REPLY',
      'POST_SHARED', 'POST_TAGGED', 'BROADCAST', 'WARNING', 'MENTION', 'SUPPORT', 'REPORT',
-     'GUESTBOOK_ENTRY', 'COMMENT_REACTION', 'STREAK', 'STICKER_REWARD'));
+     'GUESTBOOK_ENTRY', 'COMMENT_REACTION', 'STREAK', 'STICKER_REWARD', 'SEASON_JOIN', 'SEASON_RESULT', 'SEASON_BANNED'));
 
 -- 2) Broadcast audience FANS không còn tồn tại; quy đổi lịch sử về FOLLOWERS để giữ bản ghi hợp lệ
 UPDATE broadcasts SET audience = 'FOLLOWERS' WHERE audience = 'FANS';

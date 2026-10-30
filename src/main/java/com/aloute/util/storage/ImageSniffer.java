@@ -41,11 +41,15 @@ public final class ImageSniffer {
 
     /** @return kiểu ảnh nếu nhận ra, ngược lại ném {@link StorageService.InvalidUploadException} */
     public static Detected sniff(byte[] data) {
+        return sniff(data, MAX_BYTES);
+    }
+
+    public static Detected sniff(byte[] data, long maxBytes) {
         if (data.length == 0) {
             throw new StorageService.InvalidUploadException("File trống");
         }
-        if (data.length > MAX_BYTES) {
-            throw new StorageService.InvalidUploadException("Ảnh quá lớn, tối đa 5 MB");
+        if (data.length > maxBytes) {
+            throw new StorageService.InvalidUploadException("Ảnh quá lớn, tối đa " + (maxBytes / (1024 * 1024)) + " MB");
         }
         return detect(data).orElseThrow(
                 () -> new StorageService.InvalidUploadException("Chỉ nhận ảnh JPG, PNG, GIF hoặc WEBP"));

@@ -141,7 +141,7 @@ class AdminServiceIT extends IntegrationTest {
 
         assertThat(admin.search(user.getUsername())).extracting(StaffMember::id).containsExactly(user.getId());
         assertThat(admin.search("không-có-ai-tên-vậy-đâu-" + UUID.randomUUID())).isEmpty();
-        assertThat(admin.overview()).containsKeys("Tổng người dùng", "Bài viết", "Bình luận");
+        assertThat(admin.overview()).containsKeys("Tổng người dùng", "Bài viết", "Mùa giải", "Bộ nhãn dán");
     }
 
     @Test

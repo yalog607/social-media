@@ -200,8 +200,7 @@ public class MessageService {
         return usernameToNickname;
     }
 
-    private static final java.util.regex.Pattern REPLY_PATTERN =
-            java.util.regex.Pattern.compile("^\\[(?:reply:|reply\\s*@|Trả lời\\s*@|[^:\\]]+@)(?:([0-9a-fA-F-]{36}):)?(?:@)?([^:\\]]+):\\s*(?:&quot;|\"|\\u201c)(.*?)(?:&quot;|\"|\\u201d)\\]\\r?\\n?");
+
 
     /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
     private MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname, ReactionSummary reactions) {
@@ -218,7 +217,7 @@ public class MessageService {
         String rawContent = m.getContent();
         String contentToRender = rawContent;
         if (rawContent != null && !rawContent.isEmpty()) {
-            java.util.regex.Matcher rm = REPLY_PATTERN.matcher(rawContent);
+            java.util.regex.Matcher rm = ChatMessagePreview.REPLY_PATTERN.matcher(rawContent);
             if (rm.find()) {
                 String midStr = rm.group(1);
                 UUID repliedMid = null;

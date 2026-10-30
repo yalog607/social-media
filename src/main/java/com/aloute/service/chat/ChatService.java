@@ -540,7 +540,7 @@ public class ChatService {
                     conversation.getType(),
                     displayTitle(conversation, userId),
                     displayAvatar(conversation, userId),
-                    preview(latest),
+                    ChatMessagePreview.of(latest),
                     latest != null ? latest.getCreatedAt() : conversation.getCreatedAt(),
                     unreadByConversation.getOrDefault(conversation.getId(), 0L),
                     streakById.getOrDefault(conversation.getId(), Streak.NONE), displayAvatarFrame(conversation, userId)));
@@ -579,17 +579,6 @@ public class ChatService {
         return members.findMembers(conversation.getId()).stream()
                 .filter(m -> !m.getUser().getId().equals(viewerId))
                 .findFirst();
-    }
-
-    private static String preview(Message latest) {
-        if (latest == null) {
-            return "";
-        }
-        if (latest.getGiphyId() != null || latest.getSticker() != null) return "Đã gửi một nhãn dán";
-        if (latest.getContent() != null && !latest.getContent().isBlank()) {
-            return latest.getContent();
-        }
-        return latest.getAttachment() != null ? "Đã gửi một tệp đính kèm" : "";
     }
 
     private void addMemberRow(Conversation conversation, UUID userId, GroupRole role) {
