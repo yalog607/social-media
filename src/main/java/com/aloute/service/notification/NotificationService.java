@@ -263,6 +263,9 @@ public class NotificationService {
             case REPORT -> "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.";
             case STREAK -> "Nhắn tin hôm nay để giữ chuỗi cùng " + name + " nhé!";
             case STICKER_REWARD -> "Bạn đã nhận một bộ nhãn dán phần thưởng.";
+            case SEASON_JOIN -> "Bài viết của bạn đã tham gia mùa giải.";
+            case SEASON_BANNED -> "Bạn đã bị loại khỏi mùa giải.";
+            case SEASON_RESULT -> "Kết quả mùa giải đã được công bố.";
         };
     }
 }

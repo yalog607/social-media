@@ -48,3 +48,11 @@ De_Xuat*
 
 extracted_*.txt
 docx_extracted_text.txt
+
+# Tai lieu bao cao va script sinh tai lieu: KHONG commit
+*.docx
+docs_internal/
+doc_assets/
+*.py
+pom-sticker-admin-check.xml
+PULL_REQUEST.md
