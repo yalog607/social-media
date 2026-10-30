@@ -14,8 +14,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.aloute.dto.common.PageResult;
+
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +35,16 @@ import java.util.UUID;
  */
 @Service
 public class AdminService {
+
+    public record OverviewData(
+            String period,
+            String periodLabel,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Map<String, Long> periodStats,
+            Map<String, Long> systemStats
+    ) {
+    }
 
     private static final int MAX_RESULTS = 50;
 
@@ -48,21 +65,56 @@ public class AdminService {
         this.clock = clock;
     }
 
-    /** Tìm theo username/email/tên hiển thị (rỗng thì trả những tài khoản mới nhất). */
+    /** Tìm theo username/email/tên hiển thị có phân trang (rỗng thì trả những tài khoản mới nhất). */
     @Transactional(readOnly = true)
-    public List<StaffMember> search(String query) {
+    public PageResult<StaffMember> search(String query, int page, int size) {
+        int safeSize = size <= 0 ? 20 : size;
+        int safePage = Math.max(0, page);
         String like = "%" + (query == null ? "" : query.strip().toLowerCase().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")) + "%";
-        return jdbc.query(BASE + """
+
+        String countSql = """
+                select count(*) from users u join profiles p on p.user_id = u.id
                 where lower(u.username) like ? escape '\\' or lower(u.email) like ? escape '\\'
                    or lower(p.display_name) like ? escape '\\'
-                order by u.created_at desc limit ?""", MAP, like, like, like, MAX_RESULTS);
+                """;
+        Long total = jdbc.queryForObject(countSql, Long.class, like, like, like);
+        long count = total == null ? 0 : total;
+
+        String dataSql = BASE + """
+                where lower(u.username) like ? escape '\\' or lower(u.email) like ? escape '\\'
+                   or lower(p.display_name) like ? escape '\\'
+                order by u.created_at desc limit ? offset ?""";
+        List<StaffMember> items = jdbc.query(dataSql, MAP, like, like, like, safeSize, safePage * safeSize);
+        return PageResult.of(items, safePage, safeSize, count);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StaffMember> search(String query) {
+        return search(query, 0, MAX_RESULTS).items();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<StaffMember> managers(int page, int size) {
+        int safeSize = size <= 0 ? 20 : size;
+        int safePage = Math.max(0, page);
+
+        String countSql = """
+                select count(*) from users u
+                where exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'MANAGER')
+                """;
+        Long total = jdbc.queryForObject(countSql, Long.class);
+        long count = total == null ? 0 : total;
+
+        String dataSql = BASE + """
+                where exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'MANAGER')
+                order by p.display_name limit ? offset ?""";
+        List<StaffMember> items = jdbc.query(dataSql, MAP, safeSize, safePage * safeSize);
+        return PageResult.of(items, safePage, safeSize, count);
     }
 
     @Transactional(readOnly = true)
     public List<StaffMember> managers() {
-        return jdbc.query(BASE + """
-                where exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'MANAGER')
-                order by p.display_name""", MAP);
+        return managers(0, 1000).items();
     }
 
     /** @throws InvalidAdminActionException không tìm thấy, đã là Manager, hoặc tài khoản không hoạt động */
@@ -145,23 +197,100 @@ public class AdminService {
         audit.log(adminId, "USER_DELETED", "USER", userId, reason);
     }
 
-    /** Số liệu tổng thể của hệ thống. */
+    /** Số liệu tổng thể của hệ thống theo khoảng thời gian (phát sinh trong kỳ và tích lũy). */
+    @Transactional(readOnly = true)
+    public OverviewData overview(String period, LocalDate customFrom, LocalDate customTo) {
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDate today = LocalDate.now(clock.withZone(zone));
+        String selectedPeriod = (period == null || period.isBlank()) ? "7_DAYS" : period.toUpperCase();
+        LocalDate from;
+        LocalDate to = today;
+        String label;
+
+        switch (selectedPeriod) {
+            case "TODAY" -> {
+                from = today;
+                label = "Hôm nay (" + today + ")";
+            }
+            case "30_DAYS" -> {
+                from = today.minusDays(29);
+                label = "30 ngày qua (" + from + " đến " + to + ")";
+            }
+            case "THIS_MONTH" -> {
+                from = today.withDayOfMonth(1);
+                label = "Tháng này (" + from + " đến " + to + ")";
+            }
+            case "CUSTOM" -> {
+                from = customFrom != null ? customFrom : today.minusDays(6);
+                to = customTo != null ? customTo : today;
+                label = "Tùy chọn (" + from + " đến " + to + ")";
+            }
+            case "ALL" -> {
+                from = null;
+                to = null;
+                label = "Toàn thời gian";
+            }
+            default -> { // 7_DAYS
+                selectedPeriod = "7_DAYS";
+                from = today.minusDays(6);
+                label = "7 ngày qua (" + from + " đến " + to + ")";
+            }
+        }
+
+        Instant startInstant = from != null ? from.atStartOfDay(zone).toInstant() : null;
+        Instant endInstant = to != null ? to.atTime(LocalTime.MAX).atZone(zone).toInstant() : null;
+
+        Map<String, Long> periodStats = new LinkedHashMap<>();
+        periodStats.put("Đăng ký mới", countRange("users", "created_at", startInstant, endInstant, "status <> 'DELETED'"));
+        periodStats.put("Bài viết mới", countRange("posts", "created_at", startInstant, endInstant, "deleted_at is null and scheduled_at is null"));
+        periodStats.put("Bình luận mới", countRange("comments", "created_at", startInstant, endInstant, "deleted_at is null"));
+        periodStats.put("Tin nhắn đã gửi", countRange("messages", "created_at", startInstant, endInstant, null));
+        periodStats.put("Báo cáo phát sinh", countRange("reports", "created_at", startInstant, endInstant, null));
+        periodStats.put("Quyết định xử phạt", countRange("sanctions", "created_at", startInstant, endInstant, null));
+
+        Map<String, Long> systemStats = new LinkedHashMap<>();
+        systemStats.put("Tổng người dùng", count("select count(*) from users where status <> 'DELETED'"));
+        systemStats.put("Creator", count("select count(*) from user_roles where role = 'CREATOR'"));
+        systemStats.put("Manager", count("select count(*) from user_roles where role = 'MANAGER'"));
+        systemStats.put("Đang bị khóa", count("select count(*) from users where status = 'SUSPENDED'"));
+        systemStats.put("Bài viết hiện có", count("select count(*) from posts where deleted_at is null and scheduled_at is null"));
+        systemStats.put("Bình luận hiện có", count("select count(*) from comments where deleted_at is null"));
+        systemStats.put("Xu đang lưu hành", count("select coalesce(sum(balance), 0) from wallets"));
+        systemStats.put("Mùa giải", count("select count(*) from seasons"));
+        systemStats.put("Bộ nhãn dán", count("select count(*) from sticker_packs"));
+
+        return new OverviewData(selectedPeriod, label, from, to, periodStats, systemStats);
+    }
+
+    /** Tương thích ngược với các kiểm thử hiện tại. */
     @Transactional(readOnly = true)
     public Map<String, Long> overview() {
-        Map<String, Long> stats = new LinkedHashMap<>();
-        stats.put("Tổng người dùng", count("select count(*) from users where status <> 'DELETED'"));
-        stats.put("Đăng ký 7 ngày qua", count("select count(*) from users where created_at > now() - interval '7 days'"));
-        stats.put("Creator", count("select count(*) from user_roles where role = 'CREATOR'"));
-        stats.put("Manager", count("select count(*) from user_roles where role = 'MANAGER'"));
-        stats.put("Đang bị khóa", count("select count(*) from users where status = 'SUSPENDED'"));
-        stats.put("Bài viết", count("select count(*) from posts where deleted_at is null and scheduled_at is null"));
-        stats.put("Bài mới 7 ngày qua", count("select count(*) from posts where deleted_at is null and scheduled_at is null and created_at > now() - interval '7 days'"));
-        stats.put("Bình luận", count("select count(*) from comments where deleted_at is null"));
-        stats.put("Tin nhắn", count("select count(*) from messages"));
-        stats.put("Xu đang lưu hành", count("select coalesce(sum(balance), 0) from wallets"));
-        stats.put("Mùa giải", count("select count(*) from seasons"));
-        stats.put("Bộ nhãn dán", count("select count(*) from sticker_packs"));
-        return stats;
+        var data = overview("7_DAYS", null, null);
+        Map<String, Long> legacy = new LinkedHashMap<>(data.systemStats());
+        legacy.put("Đăng ký 7 ngày qua", data.periodStats().get("Đăng ký mới"));
+        legacy.put("Bài viết", data.systemStats().get("Bài viết hiện có"));
+        legacy.put("Bài mới 7 ngày qua", data.periodStats().get("Bài viết mới"));
+        legacy.put("Bình luận", data.systemStats().get("Bình luận hiện có"));
+        legacy.put("Tin nhắn", data.periodStats().get("Tin nhắn đã gửi"));
+        return legacy;
+    }
+
+    private long countRange(String table, String timeCol, Instant start, Instant end, String extraCondition) {
+        StringBuilder sql = new StringBuilder("select count(*) from ").append(table).append(" where 1=1 ");
+        List<Object> args = new ArrayList<>();
+        if (extraCondition != null && !extraCondition.isBlank()) {
+            sql.append("and ").append(extraCondition).append(" ");
+        }
+        if (start != null) {
+            sql.append("and ").append(timeCol).append(" >= ? ");
+            args.add(Timestamp.from(start));
+        }
+        if (end != null) {
+            sql.append("and ").append(timeCol).append(" <= ? ");
+            args.add(Timestamp.from(end));
+        }
+        Long n = jdbc.queryForObject(sql.toString(), Long.class, args.toArray());
+        return n == null ? 0 : n;
     }
 
     // ---------- Nội bộ ----------

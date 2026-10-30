@@ -15,7 +15,7 @@
         
         <!-- Tin nhắn bình thường -->
         <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'" th:attr="data-id=${m.id}">
-            <a th:href="@{/{user}(user=${m.sender.username})}">
+            <a th:href="@{/u/{username}(username=${m.sender.username})}">
                 <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
             </a>
             <div class="msg-body">

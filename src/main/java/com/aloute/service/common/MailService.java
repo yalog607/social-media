@@ -41,6 +41,50 @@ public class MailService {
         send(to, "Đặt lại mật khẩu ALOUTE", html);
     }
 
+    /**
+     * Gửi email thông báo chế tài xử phạt (cảnh cáo, khóa tài khoản, gỡ nội dung).
+     * Lỗi gửi chỉ được ghi log để không làm hỏng giao dịch xử lý báo cáo.
+     */
+    public void sendSanctionNotification(String to, String displayName, String actionName, String targetType,
+                                         String preview, String reason) {
+        String name = HtmlUtils.htmlEscape(displayName);
+        String actionLabel = switch (actionName) {
+            case "WARN" -> "Cảnh cáo vi phạm Tiêu chuẩn cộng đồng";
+            case "SUSPEND" -> "Khóa tài khoản tạm thời";
+            case "REMOVE_CONTENT" -> "Gỡ bỏ nội dung vi phạm";
+            default -> "Xử lý vi phạm";
+        };
+        String targetLabel = switch (targetType) {
+            case "POST" -> "bài viết";
+            case "COMMENT" -> "bình luận";
+            case "USER" -> "tài khoản";
+            default -> "nội dung";
+        };
+        String reasonHtml = (reason != null && !reason.isBlank())
+                ? "<p><strong>Lý do từ đội ngũ kiểm duyệt:</strong> " + HtmlUtils.htmlEscape(reason) + "</p>"
+                : "";
+        String previewHtml = (preview != null && !preview.isBlank())
+                ? "<blockquote style=\"margin:12px 0;padding:10px 14px;background:#F9F9F9;border-left:4px solid #D9383A;color:#333;font-style:italic;\">"
+                  + HtmlUtils.htmlEscape(preview) + "</blockquote>"
+                : "";
+        String html = """
+                <div style="font-family:Arial,sans-serif;max-width:540px;margin:auto;padding:16px;border:1px solid #E5E7EB;border-radius:12px;">
+                  <h2 style="color:#D9383A;margin-top:0;">Thông báo xử lý vi phạm ALOUTE</h2>
+                  <p>Xin chào <strong>%s</strong>,</p>
+                  <p>Chúng tôi gửi thông báo này để thông tin rằng %s của bạn đã bị áp dụng biện pháp xử lý: <strong>%s</strong>.</p>
+                  %s
+                  %s
+                  <p style="color:#555;font-size:14px;margin-top:20px;">
+                    Nếu bạn cho rằng đây là sự nhầm lẫn, bạn có thể tạo phiếu yêu cầu hỗ trợ và khiếu nại tại mục <strong>Hỗ trợ</strong> trên hệ thống ALOUTE.
+                  </p>
+                  <p style="color:#888;font-size:12px;border-top:1px solid #E5E7EB;padding-top:10px;margin-bottom:0;">
+                    Email này được gửi tự động từ hệ thống Kiểm duyệt ALOUTE.
+                  </p>
+                </div>
+                """.formatted(name, targetLabel, actionLabel, previewHtml, reasonHtml);
+        send(to, "[ALOUTE] Thông báo về việc " + actionLabel.toLowerCase(), html);
+    }
+
     private void send(String to, String subject, String html) {
         try {
             MimeMessage message = sender.createMimeMessage();

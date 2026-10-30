@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Fragment phân trang thống nhất cho các trang bảng của Admin/Manager.
+  Tham số:
+    - pageResult: đối tượng com.aloute.dto.common.PageResult<?>
+    - baseUrl: đường dẫn cơ sở của trang (ví dụ '/admin/users')
+-->
+<div th:fragment="pager(pageResult, baseUrl)" th:if="${pageResult != null and pageResult.totalItems() > 0}"
+     class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-3 border-top"
+     style="border-color: var(--line) !important;">
+    
+    <div class="d-flex align-items-center gap-2">
+        <span class="small text-soft">
+            Tổng cộng: <strong th:text="${pageResult.totalItems()}">0</strong> dòng
+        </span>
+        <form method="get" th:action="${baseUrl}" class="d-inline-flex align-items-center gap-1 ms-2">
+            <input type="hidden" name="q" th:if="${q != null}" th:value="${q}">
+            <input type="hidden" name="action" th:if="${action != null}" th:value="${action}">
+            <input type="hidden" name="actor" th:if="${actor != null}" th:value="${actor}">
+            <input type="hidden" name="targetType" th:if="${targetType != null}" th:value="${targetType}">
+            <input type="hidden" name="from" th:if="${from != null}" th:value="${from}">
+            <input type="hidden" name="to" th:if="${to != null}" th:value="${to}">
+            <input type="hidden" name="page" value="0">
+            <label class="small text-soft me-1" for="pageSizeSelect">Hiện:</label>
+            <select id="pageSizeSelect" name="size" class="input-al input-al--sm" style="padding: 2px 8px; width: auto;" onchange="this.form.submit()">
+                <option value="10" th:selected="${pageResult.size() == 10}">10 dòng</option>
+                <option value="20" th:selected="${pageResult.size() == 20}">20 dòng (chuẩn)</option>
+                <option value="50" th:selected="${pageResult.size() == 50}">50 dòng</option>
+                <option value="100" th:selected="${pageResult.size() == 100}">100 dòng</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="d-flex align-items-center gap-1">
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${pageResult.page() > 0}"
+           th:href="@{${baseUrl}(page=0, size=${pageResult.size()}, q=${q}, action=${action}, actor=${actor}, targetType=${targetType}, from=${from}, to=${to})}"
+           title="Trang đầu">«</a>
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${pageResult.hasPrevious()}"
+           th:href="@{${baseUrl}(page=${pageResult.page() - 1}, size=${pageResult.size()}, q=${q}, action=${action}, actor=${actor}, targetType=${targetType}, from=${from}, to=${to})}">‹ Trước</a>
+        <span class="btn-al btn-al--white btn-al--sm text-soft" th:unless="${pageResult.hasPrevious()}" style="opacity: 0.45; cursor: not-allowed;">‹ Trước</span>
+
+        <span class="small mx-2 text-soft">
+            Trang <strong th:text="${pageResult.page() + 1}">1</strong> / <span th:text="${pageResult.totalPages() == 0 ? 1 : pageResult.totalPages()}">1</span>
+        </span>
+
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${pageResult.hasNext()}"
+           th:href="@{${baseUrl}(page=${pageResult.page() + 1}, size=${pageResult.size()}, q=${q}, action=${action}, actor=${actor}, targetType=${targetType}, from=${from}, to=${to})}">Sau ›</a>
+        <span class="btn-al btn-al--white btn-al--sm text-soft" th:unless="${pageResult.hasNext()}" style="opacity: 0.45; cursor: not-allowed;">Sau ›</span>
+        <a class="btn-al btn-al--white btn-al--sm" th:if="${pageResult.page() + 1 < pageResult.totalPages()}"
+           th:href="@{${baseUrl}(page=${pageResult.totalPages() - 1}, size=${pageResult.size()}, q=${q}, action=${action}, actor=${actor}, targetType=${targetType}, from=${from}, to=${to})}"
+           title="Trang cuối">»</a>
+    </div>
+</div>
+
+</body>
+</html>

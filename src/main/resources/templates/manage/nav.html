@@ -6,6 +6,9 @@
     <a class="btn-al btn-al--sm" th:classappend="${current == 'queue'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage}">
         Báo cáo<span class="nav-badge" style="margin-left: 6px;" th:if="${pendingReports > 0}" th:text="${pendingReports}">1</span>
     </a>
+    <a class="btn-al btn-al--sm" th:classappend="${current == 'reports_history'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/reports/history}">
+        Đã xử lý
+    </a>
     <a class="btn-al btn-al--sm" th:classappend="${current == 'support'} ? 'btn-al--role' : 'btn-al--white'" th:href="@{/manage/support}">
         Hỗ trợ<span class="nav-badge" style="margin-left: 6px;" th:if="${pendingSupportTickets > 0}" th:text="${pendingSupportTickets}">1</span>
     </a>

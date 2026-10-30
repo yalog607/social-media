@@ -10,26 +10,57 @@
     </div>
     <th:block th:replace="~{admin/nav :: tabs('logs')}"></th:block>
 
-    <form method="get" th:action="@{/admin/logs}" class="d-flex gap-2 mb-3">
-        <input name="action" class="input-al" th:value="${action}" placeholder="Lọc theo hành động, ví dụ USER_DELETED" aria-label="Lọc theo hành động">
-        <button type="submit" class="btn-al btn-al--sm">Lọc</button>
+    <!-- Form bộ lọc kết hợp: Hành động, Người thực hiện, Khoảng ngày -->
+    <form method="get" th:action="@{/admin/logs}" class="note mb-3 p-3">
+        <input type="hidden" name="size" th:value="${logsPage.size()}">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="small text-soft mb-1" for="actionInput">Hành động:</label>
+                <input id="actionInput" name="action" class="input-al w-100" th:value="${action}"
+                       placeholder="Ví dụ: USER_DELETED, REPORT_WARN">
+            </div>
+            <div class="col-md-3">
+                <label class="small text-soft mb-1" for="actorInput">Người thực hiện:</label>
+                <input id="actorInput" name="actor" class="input-al w-100" th:value="${actor}"
+                       placeholder="Username hoặc tên hiển thị">
+            </div>
+            <div class="col-md-2">
+                <label class="small text-soft mb-1" for="fromInput">Từ ngày:</label>
+                <input id="fromInput" type="date" name="from" class="input-al w-100" th:value="${from}">
+            </div>
+            <div class="col-md-2">
+                <label class="small text-soft mb-1" for="toInput">Đến ngày:</label>
+                <input id="toInput" type="date" name="to" class="input-al w-100" th:value="${to}">
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn-al btn-al--sm flex-grow-1">Lọc</button>
+                <a th:if="${action != null or actor != null or from != null or to != null}"
+                   th:href="@{/admin/logs}" class="btn-al btn-al--white btn-al--sm" title="Xóa bộ lọc">✕</a>
+            </div>
+        </div>
     </form>
-    <p class="note note--sky empty" th:if="${#lists.isEmpty(entries)}">Chưa có dòng nhật ký nào.</p>
-    <table class="table-al" th:unless="${#lists.isEmpty(entries)}">
-        <thead><tr><th>Lúc</th><th>Ai</th><th>Hành động</th><th>Chi tiết</th></tr></thead>
+
+    <p class="note note--sky empty" th:if="${logsPage.totalItems() == 0}">Không tìm thấy dòng nhật ký nào phù hợp.</p>
+    <table class="table-al" th:unless="${logsPage.totalItems() == 0}">
+        <thead><tr><th>Lúc</th><th>Ai</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
         <tbody>
-        <tr th:each="e : ${entries}">
+        <tr th:each="e : ${logsPage.items()}">
             <td th:title="${@timeAgo.full(e.createdAt())}" th:text="${@timeAgo.format(e.createdAt())}">vừa xong</td>
-            <td th:text="${e.actorName() != null} ? ${e.actorName()} : '—'">Tên</td>
-            <td th:text="${e.action()}">ACTION</td>
+            <td>
+                <span th:text="${e.actorName() != null} ? ${e.actorName()} : '—'">Tên</span>
+                <span class="text-soft small" th:if="${e.actorUsername() != null}" th:text="'(@' + ${e.actorUsername()} + ')'"></span>
+            </td>
+            <td><code class="small fw-bold" th:text="${e.action()}">ACTION</code></td>
+            <td>
+                <span class="role-chip small" style="font-size: 0.75rem;" th:if="${e.targetType() != null}" th:text="${e.targetType()}">TYPE</span>
+                <span class="text-soft small" th:unless="${e.targetType() != null}">—</span>
+            </td>
             <td th:text="${e.detail() != null} ? ${e.detail()} : ''">Chi tiết</td>
         </tr>
         </tbody>
     </table>
-    <div class="d-flex gap-2 mt-3">
-        <a class="btn-al btn-al--white btn-al--sm" th:if="${page > 0}" th:href="@{/admin/logs(page=${page - 1}, action=${action})}">← Mới hơn</a>
-        <a class="btn-al btn-al--white btn-al--sm" th:if="${hasMore}" th:href="@{/admin/logs(page=${page + 1}, action=${action})}">Cũ hơn →</a>
-    </div>
+
+    <div th:replace="~{fragments/pagination :: pager(${logsPage}, '/admin/logs')}"></div>
 </main>
 </body>
 </html>
