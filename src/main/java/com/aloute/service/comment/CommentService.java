@@ -163,11 +163,7 @@ public class CommentService {
     public List<CommentView> list(UUID postId, UUID viewerId) {
         posts.getVisible(postId, viewerId);
         List<Comment> flat = comments.findByPostId(postId);
-<<<<<<< Updated upstream
-=======
-        Map<UUID, FanBadge> badges = fans.badgesFor(post.getAuthor().getId(),
-                flat.stream().map(c -> c.getAuthor().getId()).distinct().toList());
->>>>>>> Stashed changes
+
         Map<String, String> displayNames = new java.util.HashMap<>();
         Map<String, java.util.Set<String>> legacyNames = new java.util.HashMap<>();
         for (Comment item : flat) {
@@ -198,27 +194,16 @@ public class CommentService {
             }
             List<CommentView> replyViews = replies.stream()
                     .filter(reply -> !reply.isDeleted()) // trả lời là lá: xóa thì biến mất hẳn, không cần chỗ trống
-<<<<<<< Updated upstream
                     .map(reply -> toView(reply, viewerId, List.of(), reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY), displayNames, legacyNames))
                     .toList();
             views.add(toView(root, viewerId, replyViews, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY), displayNames, legacyNames));
-=======
-                    .map(reply -> toView(reply, viewerId, List.of(), badges, reactionsByComment.getOrDefault(reply.getId(), ReactionSummary.EMPTY), displayNames, legacyNames))
-                    .toList();
-            views.add(toView(root, viewerId, replyViews, badges, reactionsByComment.getOrDefault(root.getId(), ReactionSummary.EMPTY), displayNames, legacyNames));
->>>>>>> Stashed changes
         }
         return views;
     }
 
     private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
-<<<<<<< Updated upstream
                                ReactionSummary reactions, Map<String, String> displayNames,
                                Map<String, java.util.Set<String>> legacyNames) {
-=======
-                                      Map<UUID, FanBadge> badges, ReactionSummary reactions, Map<String, String> displayNames,
-                                      Map<String, java.util.Set<String>> legacyNames) {
->>>>>>> Stashed changes
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
