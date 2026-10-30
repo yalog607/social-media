@@ -80,9 +80,9 @@
                 <svg aria-hidden="true"><use href="#i-crown"/></svg>Quản trị</a>
         </nav>
 
-        <div class="app-main" id="main">
-            <div class="alert-al alert-al--ok" role="status" th:if="${notice != null}"><p th:text="${notice}"></p></div>
-            <div class="alert-al alert-al--error" role="alert" th:if="${error != null and status == null}"><p th:text="${error}"></p></div>
+        <div class="app-main" id="main" tabindex="-1">
+            <div class="alert-al alert-al--ok" data-flash-toast="ok" role="status" th:if="${notice != null}"><p th:text="${notice}"></p></div>
+            <div class="alert-al alert-al--error" data-flash-toast="error" role="alert" th:if="${error != null and status == null}"><p th:text="${error}"></p></div>
             <th:block th:replace="${content}"></th:block>
         </div>
 
@@ -125,8 +125,8 @@
             <a class="btn-al btn-al--pink btn-al--sm" th:href="@{/register}">Tạo tài khoản</a>
         </div>
     </header>
-    <div id="main">
-        <div class="container" style="max-width:720px" th:if="${notice != null}">
+    <div id="main" tabindex="-1">
+        <div class="container" data-flash-toast="ok" style="max-width:720px" th:if="${notice != null}">
             <div class="alert-al alert-al--ok mt-4" role="status"><p th:text="${notice}"></p></div>
         </div>
         <th:block th:replace="${content}"></th:block>

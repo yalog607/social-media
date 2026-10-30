@@ -39,6 +39,7 @@
   --font-body: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --topbar-h: 68px;
+  --bottom-nav-space: 6rem;
 }
 
 body[data-role="creator"] { --role: var(--lemon); }
@@ -267,9 +268,26 @@ select.input-al { appearance: none; padding-right: 2.4rem;
 .alert-al--warn { background: var(--lemon); }
 .alert-al p { margin: 0; }
 
-/* Toast (JS) */
-.toast-stack { position: fixed; right: 16px; bottom: 16px; z-index: 2500; display: grid; gap: .6rem; }
-.toast-al { min-width: 220px; max-width: 340px; animation: pop-in .25s cubic-bezier(.3, 1.6, .5, 1) both; }
+/* Toast kết quả thao tác, không thay lỗi validation cạnh trường. */
+.toast-stack {
+  position: fixed; top: max(1rem, env(safe-area-inset-top)); left: 50vw; transform: translateX(-50%);
+  width: min(24rem, calc(100vw - 2.5rem)); max-height: calc(100dvh - 2rem); overflow-y: auto;
+  z-index: 2500; display: grid; gap: .6rem; padding: 0 .25rem .25rem; pointer-events: none;
+}
+.toast-al {
+  display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: start;
+  min-width: 0; margin-bottom: 0; padding: .55rem .75rem; pointer-events: auto;
+  animation: toast-slide-down .24s ease-out both;
+}
+.toast-al p { align-self: center; overflow-wrap: anywhere; max-height: calc(100dvh - 8rem); overflow-y: auto; }
+.toast-close {
+  width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px;
+  background: transparent; color: inherit; font: 700 1.6rem/1 var(--font-body); cursor: pointer;
+}
+.toast-close:hover { background: rgba(22, 18, 31, .08); }
+.toast-al.is-dismissing { animation: toast-slide-up .18s ease-in both; }
+@keyframes toast-slide-down { from { opacity: 0; transform: translateY(-1.5rem); } to { opacity: 1; transform: none; } }
+@keyframes toast-slide-up { to { opacity: 0; transform: translateY(-1.5rem); } }
 
 /* ---------- 6. Khung ứng dụng ---------- */
 .topbar {
@@ -315,7 +333,7 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 .menu-al .dropdown-item:hover, .menu-al .dropdown-item:focus { background: var(--lemon); color: var(--ink); }
 
 .app {
-  max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem 6rem;
+  max-width: 1240px; margin: 0 auto; padding: 1.5rem 1rem calc(var(--bottom-nav-space) + env(safe-area-inset-bottom));
   display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: start;
 }
 @media (min-width: 992px) {
@@ -354,11 +372,17 @@ body[data-role="admin"] .logo { background: var(--lavender); }
 @media (min-width: 992px) { .bottom-tabs { display: none; } }
 .bottom-tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: .1rem;
+  min-width: 0; min-height: 64px; overflow-wrap: anywhere; text-align: center;
   padding: .35rem .2rem; border: 2px solid transparent; border-radius: 12px;
   font-size: .72rem; font-weight: 700; color: var(--ink); text-decoration: none;
 }
 .bottom-tab svg { width: 24px; height: 24px; }
 .bottom-tab.is-active { background: var(--role); border-color: var(--ink); box-shadow: var(--sh-sm); }
+/* Giữ đủ nhãn và vùng chạm cho cả tám tab của Admin trên điện thoại. */
+@media (max-width: 575.98px) {
+  :root { --bottom-nav-space: 11rem; }
+  .bottom-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* Tiêu đề trang trong app */
 .page-title { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.4rem; }
