@@ -30,8 +30,8 @@ import java.util.UUID;
 
 /**
  * Quản trị nhân sự và tài khoản. Admin không thể thao tác lên Admin khác hay chính mình (tránh tự khóa/hạ quyền
- * làm hệ thống mất người quản trị). Quyền nằm trong JWT nên thay đổi vai trò/khóa có hiệu lực đầy đủ khi token
- * truy cập hiện tại hết hạn (tối đa 15 phút); các phiên làm mới đều bị thu hồi ngay.
+ * làm hệ thống mất người quản trị). Vai trò được {@link com.aloute.security.JwtAuthFilter} tra lại từ DB mỗi
+ * request nên cấp/thu hồi quyền Manager có hiệu lực ngay, không cần thu hồi phiên hay đăng nhập lại.
  */
 @Service
 public class AdminService {
@@ -130,8 +130,7 @@ public class AdminService {
         }
         user.getRoles().add(Role.MANAGER);
         users.save(user);
-        // Phiên cũ mang quyền cũ: buộc đăng nhập lại để quyền mới được cấp trong token
-        refreshTokens.revokeAll(user.getId());
+        // Vai trò được JwtAuthFilter tra tươi từ DB mỗi request nên quyền mới có hiệu lực ngay, không cần thu hồi phiên.
         audit.log(adminId, "MANAGER_GRANTED", "USER", user.getId(), user.getUsername());
     }
 
@@ -144,7 +143,7 @@ public class AdminService {
         }
         user.getRoles().remove(Role.MANAGER);
         users.save(user);
-        refreshTokens.revokeAll(user.getId());
+        // Vai trò được JwtAuthFilter tra tươi từ DB mỗi request: quyền mất hiệu lực ngay, không cần thu hồi phiên.
         audit.log(adminId, "MANAGER_REVOKED", "USER", user.getId(), user.getUsername());
     }
 

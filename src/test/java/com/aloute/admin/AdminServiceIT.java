@@ -51,7 +51,7 @@ class AdminServiceIT extends IntegrationTest {
     }
 
     @Test
-    void grantAndRevokeManagerChangeRolesRevokeSessionsAndAreLogged() {
+    void grantAndRevokeManagerChangeRolesKeepSessionAliveAndAreLogged() {
         User adminUser = createUser(Role.ADMIN);
         User user = createUser();
         String refresh = refreshTokens.issue(user, "test");
@@ -59,14 +59,20 @@ class AdminServiceIT extends IntegrationTest {
         admin.grantManager(adminUser.getId(), user.getUsername());
 
         assertThat(users.findById(user.getId()).orElseThrow().hasRole(Role.MANAGER)).isTrue();
-        assertThat(refreshTokens.rotate(refresh, "test")).as("phiên cũ bị thu hồi để nhận quyền mới").isEmpty();
+        var afterGrant = refreshTokens.rotate(refresh, "test");
+        assertThat(afterGrant).as("giữ phiên: cấp quyền không buộc đăng nhập lại").isPresent();
+        assertThat(afterGrant.get().user().hasRole(Role.MANAGER)).isTrue();
         assertThat(admin.managers()).extracting(StaffMember::id).contains(user.getId());
         assertThatThrownBy(() -> admin.grantManager(adminUser.getId(), user.getUsername()))
                 .isInstanceOf(InvalidAdminActionException.class);
 
+        String refreshAfterGrant = afterGrant.get().newRawToken();
         admin.revokeManager(adminUser.getId(), user.getId());
 
         assertThat(users.findById(user.getId()).orElseThrow().hasRole(Role.MANAGER)).isFalse();
+        var afterRevoke = refreshTokens.rotate(refreshAfterGrant, "test");
+        assertThat(afterRevoke).as("giữ phiên: thu hồi quyền không buộc đăng nhập lại").isPresent();
+        assertThat(afterRevoke.get().user().hasRole(Role.MANAGER)).isFalse();
         assertThat(audit.page(0, "MANAGER_GRANTED")).anyMatch(e -> user.getUsername().equals(e.detail()));
         assertThat(audit.page(0, "MANAGER_REVOKED")).anyMatch(e -> user.getUsername().equals(e.detail()));
     }

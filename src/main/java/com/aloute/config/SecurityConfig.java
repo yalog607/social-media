@@ -1,5 +1,6 @@
 package com.aloute.config;
 
+import com.aloute.repository.user.UserRepository;
 import com.aloute.security.AlouteAccessDeniedHandler;
 import com.aloute.security.AuthEntryPoint;
 import com.aloute.security.CookieService;
@@ -59,6 +60,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, CookieService cookies,
+                                    UserRepository users,
                                     @Value("${aloute.seo.crawler-preview:true}") boolean crawlerPreview)
             throws Exception {
         // Handler thường (không XOR): JS đọc giá trị thô của cookie XSRF-TOKEN rồi gửi lại qua header X-XSRF-TOKEN.
@@ -98,7 +100,7 @@ public class SecurityConfig {
                         .requestMatchers("/creator/**").hasRole("CREATOR")
                         .anyRequest().authenticated();
                 })
-                .addFilterBefore(new JwtAuthFilter(jwtService, cookies), BasicAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthFilter(jwtService, cookies, users), BasicAuthenticationFilter.class)
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
         return http.build();
     }
