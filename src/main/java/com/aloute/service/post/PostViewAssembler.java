@@ -7,6 +7,7 @@ import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.chat.Conversation;
 import com.aloute.model.chat.ConversationMember;
 import com.aloute.model.chat.GroupRole;
+import com.aloute.model.creator.BadgeTier;
 import com.aloute.model.post.Post;
 import com.aloute.model.post.PostKind;
 import com.aloute.model.post.PostMedia;
@@ -20,6 +21,7 @@ import com.aloute.repository.comment.CommentRepository;
 import com.aloute.repository.post.PostMediaRepository;
 import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.post.PostTagRepository;
+import com.aloute.repository.social.FollowRepository;
 import com.aloute.service.category.CategoryService;
 import com.aloute.service.creator.PollService;
 import com.aloute.service.creator.SeriesService;
@@ -28,6 +30,8 @@ import com.aloute.util.post.PostTextRenderer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -56,13 +60,15 @@ public class PostViewAssembler {
     private final ConversationMemberRepository memberRepository;
     private final PollService polls;
     private final SeriesService seriesService;
+    private final FollowRepository followRepository;
+    private final Clock clock;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
                              ReactionService reactions, CommentRepository commentRepository,
                              PostTagRepository tagRepository,
                              CategoryService categories, ConversationRepository conversationRepository,
                              ConversationMemberRepository memberRepository, PollService polls,
-                             SeriesService seriesService) {
+                             SeriesService seriesService, FollowRepository followRepository, Clock clock) {
         this.polls = polls;
         this.seriesService = seriesService;
         this.categories = categories;
@@ -73,6 +79,8 @@ public class PostViewAssembler {
         this.tagRepository = tagRepository;
         this.conversationRepository = conversationRepository;
         this.memberRepository = memberRepository;
+        this.followRepository = followRepository;
+        this.clock = clock;
     }
 
     /** @param viewerId người xem, null nếu là khách (để đánh dấu bài "của tôi") */
@@ -114,6 +122,8 @@ public class PostViewAssembler {
         Map<UUID, String> seriesTitles = seriesService.titlesFor(
                 allPosts.stream().map(Post::getSeriesId).filter(java.util.Objects::nonNull).distinct().toList());
 
+        Map<UUID, BadgeTier> badgeByAuthor = loadBadges(allPosts);
+
         // Nạp thông tin nhóm và vai trò thành viên cho các bài viết thuộc nhóm
         Set<UUID> groupIds = allPosts.stream().map(Post::getGroupId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
         Map<UUID, Conversation> conversationById = new HashMap<>();
@@ -137,7 +147,7 @@ public class PostViewAssembler {
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
             baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost,
-                    taggedByPost, categoryById, conversationById, memberRolesByGroup, pollByPost, seriesTitles, null));
+                    taggedByPost, categoryById, conversationById, memberRolesByGroup, pollByPost, seriesTitles, badgeByAuthor, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -199,6 +209,26 @@ public class PostViewAssembler {
         return counts;
     }
 
+    /** Tích theo follower cho các tác giả của {@code posts}, theo LÔ (một truy vấn group by). */
+    private Map<UUID, BadgeTier> loadBadges(Collection<Post> posts) {
+        Map<UUID, BadgeTier> result = new HashMap<>();
+        Set<UUID> authorIds = posts.stream().map(p -> p.getAuthor().getId()).collect(Collectors.toSet());
+        if (authorIds.isEmpty()) {
+            return result;
+        }
+        Map<UUID, Long> followerCounts = new HashMap<>();
+        for (FollowRepository.FollowerCount row : followRepository.countByFolloweeIds(authorIds)) {
+            followerCounts.put(row.getUserId(), row.getTotal());
+        }
+        LocalDate today = LocalDate.now(clock);
+        for (Post post : posts) {
+            User author = post.getAuthor();
+            long followerCount = followerCounts.getOrDefault(author.getId(), 0L);
+            result.put(author.getId(), BadgeTier.of(followerCount, author.getProfile().getBirthDate(), today, author.primaryRole()));
+        }
+        return result;
+    }
+
     private static PostView toView(Post post, UUID viewerId, Map<UUID, List<PostView.MediaView>> mediaByPost,
                                    Map<UUID, ReactionSummary> reactionsByPost, Map<UUID, Long> commentCountByPost,
                                    Map<UUID, Long> shareCountByPost,
@@ -207,6 +237,7 @@ public class PostViewAssembler {
                                    Map<UUID, Conversation> conversationById,
                                    Map<UUID, Map<UUID, GroupRole>> memberRolesByGroup,
                                    Map<UUID, PollView> pollByPost, Map<UUID, String> seriesTitles,
+                                   Map<UUID, BadgeTier> badgeByAuthor,
                                    PostView sharedPost) {
         User author = post.getAuthor();
         Profile profile = author.getProfile();
@@ -222,7 +253,8 @@ public class PostViewAssembler {
             }
         } else {
             authorView = new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
-                    profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame());
+                    profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame(),
+                    badgeByAuthor.getOrDefault(author.getId(), BadgeTier.NONE));
         }
 
         PostView.GroupInfo groupInfo = null;

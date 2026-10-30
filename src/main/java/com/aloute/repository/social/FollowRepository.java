@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,6 +21,16 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
     long countByFollowerId(UUID followerId);
 
     long countByFolloweeId(UUID followeeId);
+
+    /** Số follower của nhiều tác giả cùng lúc (một truy vấn), để tính tích theo lô không N+1. */
+    @Query("select f.followee.id as userId, count(f) as total from Follow f where f.followee.id in :ids group by f.followee.id")
+    List<FollowerCount> countByFolloweeIds(@Param("ids") Collection<UUID> ids);
+
+    interface FollowerCount {
+        UUID getUserId();
+
+        long getTotal();
+    }
 
     @Query("select f from Follow f join fetch f.followee u join fetch u.profile where f.follower.id = :userId order by f.createdAt desc")
     List<Follow> findFollowing(@Param("userId") UUID userId);

@@ -1,6 +1,7 @@
 package com.aloute.dto.post;
 
 import com.aloute.dto.category.CategoryView;
+import com.aloute.model.creator.BadgeTier;
 import com.aloute.model.chat.GroupRole;
 import com.aloute.model.media.MediaKind;
 import com.aloute.model.post.PostKind;
@@ -61,9 +62,14 @@ public record PostView(
     public record SeriesInfo(UUID id, String title) {
     }
 
-    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {
+    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole,
+                             String avatarFrame, BadgeTier badge) {
         public AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
-            this(id, username, displayName, avatarUrl, primaryRole, null);
+            this(id, username, displayName, avatarUrl, primaryRole, null, BadgeTier.NONE);
+        }
+
+        public AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {
+            this(id, username, displayName, avatarUrl, primaryRole, avatarFrame, BadgeTier.NONE);
         }
     }
 

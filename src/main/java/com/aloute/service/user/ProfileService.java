@@ -42,17 +42,18 @@ public class ProfileService {
     }
 
     /**
-     * Cập nhật tên hiển thị, giới thiệu và (tuỳ chọn) ảnh đại diện/ảnh bìa.
+     * Cập nhật tên hiển thị, giới thiệu, ngày sinh và (tuỳ chọn) ảnh đại diện/ảnh bìa.
      *
      * @throws StorageService.InvalidUploadException ảnh không hợp lệ
      */
     @Transactional
-    public User updateProfile(UUID userId, String displayName, String bio,
+    public User updateProfile(UUID userId, String displayName, String bio, java.time.LocalDate birthDate,
                               MultipartFile avatar, MultipartFile cover) {
         User user = users.findById(userId).orElseThrow();
         Profile profile = user.getProfile();
         profile.setDisplayName(displayName.trim());
         profile.setBio(bio == null || bio.isBlank() ? null : bio.trim());
+        profile.setBirthDate(birthDate);
         if (avatar != null && !avatar.isEmpty()) {
             profile.setAvatarUrl(storage.storeImage(avatar, "avatars", userId));
         }

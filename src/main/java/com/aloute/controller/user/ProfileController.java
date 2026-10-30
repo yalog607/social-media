@@ -1,6 +1,7 @@
 package com.aloute.controller.user;
 
 import com.aloute.guestbook.GuestbookService;
+import com.aloute.model.creator.BadgeTier;
 import com.aloute.model.user.Role;
 import com.aloute.service.seo.OgMetaFactory;
 import com.aloute.model.user.User;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -52,12 +55,13 @@ public class ProfileController {
     private final PollService polls;
     private final QuestionService questions;
     private final PostViewAssembler assembler;
+    private final Clock clock;
 
     public ProfileController(UserRepository users, FeedService feed, ProfileVisibilityRules visibility,
                              FriendService friends, FollowService follows, BlockService blocks,
                              GuestbookService guestbook, com.aloute.service.mood.MoodService moodService,
                              OgMetaFactory og, TopicService topics, SeriesService series, PollService polls,
-                             QuestionService questions, PostViewAssembler assembler) {
+                             QuestionService questions, PostViewAssembler assembler, Clock clock) {
         this.og = og;
         this.users = users;
         this.feed = feed;
@@ -72,6 +76,7 @@ public class ProfileController {
         this.polls = polls;
         this.questions = questions;
         this.assembler = assembler;
+        this.clock = clock;
     }
 
     @GetMapping("/me")
@@ -98,8 +103,11 @@ public class ProfileController {
         model.addAttribute("canView", canView);
         model.addAttribute("joined", JOINED.format(owner.getCreatedAt()));
         model.addAttribute("friendCount", friends.friendCount(owner.getId()));
-        model.addAttribute("followerCount", follows.followerCount(owner.getId()));
+        long ownerFollowerCount = follows.followerCount(owner.getId());
+        model.addAttribute("followerCount", ownerFollowerCount);
         model.addAttribute("followingCount", follows.followingCount(owner.getId()));
+        model.addAttribute("ownerBadge", BadgeTier.of(ownerFollowerCount, owner.getProfile().getBirthDate(),
+                LocalDate.now(clock), owner.primaryRole()));
         model.addAttribute("blockedEitherWay", blockedEitherWay);
         model.addAttribute("ownerMood", moodService.getUserMood(owner.getId()).orElse(null));
         model.addAttribute("moodPresets", moodService.getPresets());

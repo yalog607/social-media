@@ -18,6 +18,7 @@ import lombok.Setter;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -73,6 +74,10 @@ public class Profile {
     /** Cho người khác xem số lượng và danh sách người mình đang theo dõi. Chủ hồ sơ luôn xem được. */
     @Column(name = "following_list_visible", nullable = false)
     private boolean followingListVisible = true;
+
+    /** Dùng để tính tuổi cho tích theo follower (chỉ Creator đủ 18 tuổi); không bắt buộc nhập. */
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)

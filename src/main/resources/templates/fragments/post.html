@@ -50,8 +50,7 @@
                     <!-- Người đăng công khai danh tính -->
                     <th:block th:unless="${post.isAnonymous}">
                         <a th:href="@{/u/{u}(u=${post.author.username})}" class="text-ink fw-semibold text-decoration-none" th:text="${post.author.displayName}">Tên tác giả</a>
-                        <svg th:replace="~{fragments/ui :: verified(${post.author.primaryRole})}"></svg>
-                        <!-- Huy hiệu Chức vụ / Vai trò trong nhóm -->
+                        <svg th:replace="~{fragments/ui :: badge(${post.author.badge})}"></svg>
                         <span th:if="${post.group.authorRole != null}" class="badge px-1.5 py-0"
                               th:classappend="${post.group.authorRole.name() == 'OWNER'} ? 'bg-warning text-dark' : (${post.group.authorRole.name() == 'ADMIN'} ? 'bg-primary text-white' : (${post.group.authorRole.name() == 'MODERATOR'} ? 'bg-info text-dark' : 'bg-light text-dark'))"
                               style="font-size: 0.7rem; border: 1px solid var(--ink); border-radius: 4px; font-weight: 700; line-height: 1.3;"
@@ -99,7 +98,7 @@
                     <div class="post-name-row">
                         <a class="post-name" th:href="@{/u/{u}(u=${post.author.username})}" th:text="${post.author.displayName}">Tên hiển thị</a>
                         <span th:if="${post.isAnonymous}" class="badge bg-dark text-white rounded-pill ms-1 px-2 py-0" style="font-size:0.75rem;">🎭 Ẩn danh</span>
-                        <svg th:unless="${post.isAnonymous}" th:replace="~{fragments/ui :: verified(${post.author.primaryRole})}"></svg>
+                        <svg th:unless="${post.isAnonymous}" th:replace="~{fragments/ui :: badge(${post.author.badge})}"></svg>
                         <th:block th:if="${!post.isAnonymous and post.author.primaryRole != null and post.author.primaryRole.name() != 'USER'}">
                             <span th:replace="~{fragments/ui :: roleChip(${post.author.primaryRole})}"></span>
                         </th:block>

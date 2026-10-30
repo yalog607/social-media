@@ -64,6 +64,13 @@
                           th:classappend="${#fields.hasErrors('bio')} ? 'is-invalid'"></textarea>
                 <p class="field-error" th:if="${#fields.hasErrors('bio')}" th:errors="*{bio}"></p>
             </div>
+            <div class="field">
+                <label for="birthDate">Ngày sinh</label>
+                <input class="input-al" type="date" id="birthDate" th:field="*{birthDate}"
+                       th:classappend="${#fields.hasErrors('birthDate')} ? 'is-invalid'">
+                <p class="field-hint">Dùng để tính tích Creator theo số follower (chỉ hiện khi đủ 18 tuổi); không bắt buộc.</p>
+                <p class="field-error" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></p>
+            </div>
             <button type="submit" class="btn-al btn-al--pink">Lưu hồ sơ</button>
         </form>
     </section>

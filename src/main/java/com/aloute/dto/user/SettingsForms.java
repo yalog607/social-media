@@ -5,10 +5,14 @@ import com.aloute.model.user.Visibility;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 
 /** Các form của trang Cài đặt. */
 public final class SettingsForms {
@@ -25,6 +29,10 @@ public final class SettingsForms {
 
         @Size(max = 300, message = "Giới thiệu tối đa 300 ký tự")
         private String bio;
+
+        @PastOrPresent(message = "Ngày sinh không được ở tương lai")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        private LocalDate birthDate;
 
         private MultipartFile avatar;
         private MultipartFile cover;
