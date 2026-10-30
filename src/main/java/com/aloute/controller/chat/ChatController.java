@@ -7,6 +7,7 @@ import com.aloute.model.chat.GroupRole;
 import com.aloute.service.chat.ChatService;
 import com.aloute.service.chat.MessageService;
 import com.aloute.service.chat.StreakService;
+import com.aloute.service.search.SearchService;
 import com.aloute.util.chat.ChatLimits;
 
 import com.aloute.util.common.SafeRedirect;
@@ -15,7 +16,6 @@ import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.service.social.FriendService;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -42,9 +42,11 @@ public class ChatController {
     private final FriendService friends;
     private final UserRepository users;
     private final StreakService streaks;
+    private final SearchService peopleSearch;
 
     public ChatController(ChatService chats, MessageService messagesService, FriendService friends, UserRepository users,
-                          StreakService streaks) {
+                          StreakService streaks, SearchService peopleSearch) {
+        this.peopleSearch = peopleSearch;
         this.streaks = streaks;
         this.chats = chats;
         this.messagesService = messagesService;
@@ -103,6 +105,13 @@ public class ChatController {
         return "chat/conversation";
     }
 
+    @GetMapping("/api/messages/people")
+    @ResponseBody
+    public List<PostView.AuthorView> people(@AuthenticationPrincipal AlouteUserPrincipal me,
+                                           @RequestParam(defaultValue = "") String q) {
+        return peopleSearch.searchMessagePeople(q, me.id());
+    }
+
     /** Mảnh HTML các tin cũ hơn con trỏ {@code before}, để chat.js chèn lên đầu khung chat khi cuộn lên. */
     @GetMapping("/api/conversations/{id}/messages")
     public String older(@PathVariable UUID id, @RequestParam(required = false) String before,
@@ -136,8 +145,11 @@ public class ChatController {
     @RequestMapping(value = "/messages/start", method = {RequestMethod.GET, RequestMethod.POST})
     public String start(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String username,
                         RedirectAttributes flash) {
-        User target = users.findByUsername(username).filter(User::isActive)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        User target = users.findByUsername(username).filter(User::isActive).orElse(null);
+        if (target == null) {
+            flash.addFlashAttribute("error", "Người này không còn hoạt động hoặc không còn tồn tại. Hãy tìm người khác nhé.");
+            return "redirect:/messages";
+        }
         try {
             Conversation conversation = chats.startDirect(me.id(), target.getId());
             return "redirect:/messages/" + conversation.getId();
