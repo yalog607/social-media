@@ -108,7 +108,10 @@
     } else {
       avatar.textContent = (m.sender.displayName || '?').charAt(0).toUpperCase();
     }
-    msg.appendChild(avatar);
+    var avatarLink = document.createElement('a');
+    avatarLink.href = '/u/' + encodeURIComponent(m.sender.username);
+    avatarLink.appendChild(avatar);
+    msg.appendChild(avatarLink);
 
     var body = document.createElement('div');
     body.className = 'msg-body';
