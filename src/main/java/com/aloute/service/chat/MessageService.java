@@ -4,24 +4,27 @@ import com.aloute.dto.chat.AttachmentView;
 import com.aloute.dto.chat.MemberView;
 import com.aloute.dto.chat.MessagePage;
 import com.aloute.dto.chat.MessageView;
+import com.aloute.dto.feed.Cursor;
+import com.aloute.dto.post.PostView;
+import com.aloute.dto.reaction.ReactionSummary;
+import com.aloute.dto.sticker.StickerView;
 import com.aloute.exception.chat.ChatActionException;
 import com.aloute.exception.chat.ConversationNotFoundException;
 import com.aloute.model.chat.Conversation;
 import com.aloute.model.chat.GroupRole;
 import com.aloute.model.chat.Message;
 import com.aloute.model.chat.MessageAttachment;
-import com.aloute.repository.chat.MessageRepository;
-
-import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.common.RateAction;
-import com.aloute.service.mention.MentionService;
-import com.aloute.dto.feed.Cursor;
-import com.aloute.service.common.RateLimiter;
-import com.aloute.util.post.PostTextRenderer;
-import com.aloute.dto.post.PostView;
 import com.aloute.model.user.Profile;
 import com.aloute.model.user.User;
+import com.aloute.repository.chat.MessageRepository;
 import com.aloute.repository.user.UserRepository;
+import com.aloute.service.common.RateLimiter;
+import com.aloute.service.mention.MentionService;
+import com.aloute.service.sticker.StickerService;
+import com.aloute.service.sticker.LocalStickerLibrary;
+import com.aloute.service.sticker.StickerAccess;
+import com.aloute.util.post.PostTextRenderer;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,10 +51,16 @@ public class MessageService {
     private final Clock clock;
     private final MentionService mentions;
     private final MessageReactionService messageReactions;
+    private final StickerService stickerService;
+    private final LocalStickerLibrary stickerLibrary;
+    private final StickerAccess stickerAccess;
 
     public MessageService(MessageRepository messages, UserRepository users, ChatService chats,
                           ChatAttachmentService attachments, RateLimiter rateLimiter, Clock clock,
-                          MentionService mentions, MessageReactionService messageReactions) {
+                          MentionService mentions, MessageReactionService messageReactions,
+                          StickerService stickerService, LocalStickerLibrary stickerLibrary, StickerAccess stickerAccess) {
+        this.stickerAccess = stickerAccess;
+        this.stickerLibrary = stickerLibrary;
         this.mentions = mentions;
         this.messages = messages;
         this.users = users;
@@ -60,6 +69,7 @@ public class MessageService {
         this.rateLimiter = rateLimiter;
         this.clock = clock;
         this.messageReactions = messageReactions;
+        this.stickerService = stickerService;
     }
 
     /**
@@ -70,6 +80,7 @@ public class MessageService {
     public MessageView send(UUID senderId, UUID conversationId, String content, MultipartFile attachment) {
         rateLimiter.check(RateAction.CHAT_MESSAGE, senderId);
         Conversation conversation = chats.requireMembership(senderId, conversationId);
+        requireSendPermission(senderId, conversation);
         String text = clean(content);
 
         if (conversation.isGroup() && !text.isEmpty()) {
@@ -109,6 +120,37 @@ public class MessageService {
         return toView(saved, chats.nicknames(conversationId), usernameToNickname, ReactionSummary.EMPTY);
     }
 
+    /** Gửi tin nhắn nhãn dán (sticker). */
+    @Transactional
+    public MessageView sendSticker(UUID senderId, UUID conversationId, String stickerId, String replyHeader) {
+        rateLimiter.check(RateAction.CHAT_MESSAGE, senderId);
+        Conversation conversation = chats.requireMembership(senderId, conversationId);
+        requireSendPermission(senderId, conversation);
+        var sticker = stickerAccess.requireUsable(senderId, stickerId);
+        if (replyHeader != null && replyHeader.length() > Message.MAX_CONTENT_LENGTH) {
+            throw new ChatActionException("Nội dung trả lời quá dài.");
+        }
+
+        Message message = new Message();
+        message.setConversation(conversation);
+        message.setSender(users.getReferenceById(senderId));
+        message.setSticker(sticker);
+        message.setContent(replyHeader != null && !replyHeader.isBlank() ? replyHeader.trim() : null);
+        message.setCreatedAt(clock.instant());
+
+        Message saved = messages.save(message);
+        stickerLibrary.recordUse(senderId, stickerId);
+        Map<String, String> usernameToNickname = getUsernameToNicknameMap(conversationId);
+        return toView(saved, chats.nicknames(conversationId), usernameToNickname, ReactionSummary.EMPTY);
+    }
+
+    private void requireSendPermission(UUID senderId, Conversation conversation) {
+        if (conversation.isGroup() && !conversation.isMembersCanSendMessages()
+                && !chats.roleOf(senderId, conversation.getId()).canManage()) {
+            throw new ChatActionException("Trưởng nhóm đã tắt quyền gửi tin nhắn của thành viên.");
+        }
+    }
+
     /**
      * Gửi tin nhắn hệ thống (isSystem = true).
      */
@@ -125,17 +167,14 @@ public class MessageService {
     }
 
     /**
-     * Một trang tin nhắn theo thứ tự thời gian: trang mới nhất khi {@code cursor} rỗng, ngược lại là trang cũ hơn con trỏ.
-     * Con trỏ hỏng coi như trang mới nhất.
-     *
-     * @throws ConversationNotFoundException {@code viewerId} không phải thành viên hội thoại
+     * Tải danh sách tin nhắn cũ hơn con trỏ {@code before} (nếu null: lấy tin nhắn mới nhất).
+     * Luôn trả về danh sách theo thứ tự thời gian tăng dần (cũ nhất -> mới nhất).
      */
     @Transactional(readOnly = true)
-    public MessagePage history(UUID viewerId, UUID conversationId, String cursor) {
+    public MessagePage history(UUID viewerId, UUID conversationId, String before) {
         chats.requireMembership(viewerId, conversationId);
-        Cursor from = Cursor.decode(cursor).orElse(Cursor.START);
-        List<Message> rows = new ArrayList<>(messages.findOlder(conversationId, from.createdAt(), from.id(),
-                PageRequest.of(0, PAGE_SIZE + 1)));
+        Cursor cursor = Cursor.decode(before).orElse(Cursor.START);
+        List<Message> rows = new ArrayList<>(messages.findOlder(conversationId, cursor.createdAt(), cursor.id(), PageRequest.of(0, PAGE_SIZE + 1)));
         boolean hasMore = rows.size() > PAGE_SIZE;
         if (hasMore) {
             rows.remove(rows.size() - 1);
@@ -161,17 +200,19 @@ public class MessageService {
         return usernameToNickname;
     }
 
-    /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
     private static final java.util.regex.Pattern REPLY_PATTERN =
             java.util.regex.Pattern.compile("^\\[(?:reply:|reply\\s*@|Trả lời\\s*@|[^:\\]]+@)(?:([0-9a-fA-F-]{36}):)?(?:@)?([^:\\]]+):\\s*(?:&quot;|\"|\\u201c)(.*?)(?:&quot;|\"|\\u201d)\\]\\r?\\n?");
 
     /** {@code nicknames}: biệt danh trong hội thoại theo id người gửi; có thì dùng thay cho tên thật. */
-    private static MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname, ReactionSummary reactions) {
+    private MessageView toView(Message m, Map<UUID, String> nicknames, java.util.Map<String, String> usernameToNickname, ReactionSummary reactions) {
         User sender = m.getSender();
         Profile profile = sender.getProfile();
         AttachmentView attachmentView = m.getAttachment() == null ? null : new AttachmentView(
                 m.getAttachment().getKind(), m.getAttachment().getUrl(),
                 m.getAttachment().getContentType(), m.getAttachment().getOriginalName());
+
+        StickerView stickerView = m.getSticker() == null ? null : (m.getSticker().getRenderType() != com.aloute.model.sticker.Sticker.RenderType.LEGACY
+                ? stickerService.toStickerView(m.getSticker()) : new StickerView(null, null, null, null, null));
 
         MessageView.ReplyView reply = null;
         String rawContent = m.getContent();
@@ -200,14 +241,16 @@ public class MessageService {
                 m.getConversation().getId(),
                 new PostView.AuthorView(sender.getId(), sender.getUsername(),
                         nicknames.getOrDefault(sender.getId(), profile.getDisplayName()),
-                        profile.getAvatarUrl(), sender.primaryRole()),
+                        profile.getAvatarUrl(), sender.primaryRole(), profile.getAvatarFrame()),
                 contentHtml,
                 attachmentView,
                 m.getCreatedAt(),
                 m.isPinned(),
                 m.isSystem(),
                 reactions != null ? reactions : ReactionSummary.EMPTY,
-                reply);
+                reply,
+                stickerView,
+                m.getGiphyId());
     }
 
     @Transactional
@@ -238,7 +281,7 @@ public class MessageService {
             throw new ChatActionException("Chỉ người gửi mới được sửa tin nhắn.");
         }
         String text = clean(newContent);
-        if (text.isEmpty() && message.getAttachment() == null) {
+        if (text.isEmpty() && message.getAttachment() == null && message.getSticker() == null && message.getGiphyId() == null) {
             throw new ChatActionException("Tin nhắn không được để trống.");
         }
         message.setContent(text.isEmpty() ? null : text);

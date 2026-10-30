@@ -169,7 +169,7 @@ public class PostViewAssembler {
             User user = tag.getTaggedUser();
             byPost.computeIfAbsent(tag.getPost().getId(), id -> new ArrayList<>())
                     .add(new PostView.AuthorView(user.getId(), user.getUsername(), user.getProfile().getDisplayName(),
-                            user.getProfile().getAvatarUrl(), user.primaryRole()));
+                            user.getProfile().getAvatarUrl(), user.primaryRole(), user.getProfile().getAvatarFrame()));
         }
         return byPost;
     }
@@ -213,7 +213,7 @@ public class PostViewAssembler {
             }
         } else {
             authorView = new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
-                    profile.getAvatarUrl(), author.primaryRole());
+                    profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame());
         }
 
         PostView.GroupInfo groupInfo = null;

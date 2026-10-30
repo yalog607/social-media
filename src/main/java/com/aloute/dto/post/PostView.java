@@ -46,7 +46,10 @@ public record PostView(
         UUID groupId,
         GroupInfo group) {
 
-    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
+    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {
+        public AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
+            this(id, username, displayName, avatarUrl, primaryRole, null);
+        }
     }
 
     public record GroupInfo(

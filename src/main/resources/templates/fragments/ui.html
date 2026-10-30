@@ -3,7 +3,7 @@
 <body>
 
 <!-- Avatar: ảnh nếu có, không thì chữ cái đầu của tên hiển thị. Tên luôn nằm cạnh nên alt để trống. -->
-<span th:fragment="avatar(profile, cls)" class="avatar" th:classappend="${cls}">
+<span th:fragment="avatar(profile, cls)" class="avatar" th:classappend="${cls + ' ' + @avatarFrameView.cssClass(profile)}">
     <img th:if="${profile.avatarUrl != null}" th:src="${profile.avatarUrl}" alt="" loading="lazy">
     <th:block th:unless="${profile.avatarUrl != null}"
               th:text="${#strings.toUpperCase(#strings.substring(profile.displayName, 0, 1))}">A</th:block>

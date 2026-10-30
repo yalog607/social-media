@@ -367,7 +367,8 @@ public class GroupService {
                             u.getProfile().getDisplayName(),
                             u.getProfile().getAvatarUrl(),
                             m.getRole(),
-                            m.getJoinedAt()
+                            m.getJoinedAt(),
+                            u.getProfile().getAvatarFrame()
                     );
                 })
                 .sorted((a, b) -> {
@@ -451,7 +452,8 @@ public class GroupService {
                             u.getProfile().getDisplayName(),
                             u.getProfile().getAvatarUrl(),
                             r.getCreatedAt(),
-                            r.getAnswer()
+                            r.getAnswer(),
+                            u.getProfile().getAvatarFrame()
                     );
                 })
                 .sorted((a, b) -> a.createdAt().compareTo(b.createdAt()))

@@ -73,6 +73,9 @@ public class Notification {
     @Column(name = "reference_id")
     private UUID referenceId;
 
+    @Column(name = "sticker_pack_id", length = 50)
+    private String stickerPackId;
+
     @Column(name = "detail")
     private String detail;
 

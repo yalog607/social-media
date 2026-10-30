@@ -7,17 +7,39 @@
     <span th:replace="~{fragments/ui :: avatar(${c.author}, 'avatar--sm')}"></span>
     <div class="comment-content">
         <div class="comment-bubble" th:classappend="${c.deleted} ? 'is-deleted' : ''">
-            <a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${c.author.primaryRole})}"></svg>
-            <span class="fan-badge" th:if="${c.badge != null and !c.deleted}" th:text="${c.badge.emoji()} + ' ' + ${c.badge.label()}">🥇 Fan vàng</span>
+            <div class="comment-heading"><a class="comment-name" th:href="@{/u/{u}(u=${c.author.username})}" th:text="${c.author.displayName}">Tên</a><svg th:replace="~{fragments/ui :: verified(${c.author.primaryRole})}"></svg>
+            <span class="comment-time" th:unless="${c.deleted}" th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span>
+            <span class="fan-badge" th:if="${c.badge != null and !c.deleted}" th:text="${c.badge.emoji()} + ' ' + ${c.badge.label()}">🥇 Fan vàng</span></div>
             <div th:unless="${c.deleted or #strings.isEmpty(c.contentHtml)}" class="comment-text" th:utext="${c.contentHtml}"></div>
+            <div class="comment-sticker" th:if="${!c.deleted and c.sticker != null}"><th:block th:replace="~{fragments/sticker :: art(${c.sticker}, '', ${'comment-' + c.id})}"></th:block></div>
             <a class="lightbox-trigger comment-image-link" th:if="${!c.deleted and c.imageUrl != null}" role="button" tabindex="0"
                th:attr="data-lightbox=${c.imageUrl}, aria-label='Xem ảnh cỡ lớn'">
                 <img class="comment-image" th:src="${c.imageUrl}" alt="Ảnh trong bình luận" loading="lazy">
             </a>
             <div th:if="${c.deleted}" class="comment-text text-soft">Bình luận đã bị xóa.</div>
-            <div class="comment-reactions-badge" th:if="${!c.deleted}"
+        </div>
+        <div class="comment-meta" th:unless="${c.deleted}">
+            <div class="comment-react-wrapper position-relative d-inline-block" th:if="${me != null}">
+                <button type="button" class="comment-link-btn comment-react-btn"
+                        th:classappend="${c.reactions != null and c.reactions.mine() != null} ? 'is-reacted' : ''"
+                        th:attr="data-comment-id=${c.id}, data-mine=${c.reactions != null and c.reactions.mine() != null ? c.reactions.mine().name() : ''}">
+                    <span class="comment-react-label"
+                          th:text="${c.reactions != null and c.reactions.mine() != null ? c.reactions.mine().label() : 'Thích'}">Thích</span>
+                </button>
+                <div class="comment-reaction-popover" role="toolbar" aria-label="Chọn cảm xúc">
+                    <button type="button" class="comment-reaction-chip"
+                            th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
+                            th:attr="data-comment-id=${c.id}, data-type=${type.name()}"
+                            th:title="${type.label()}">
+                        <span class="emoji" th:text="${type.emoji()}"></span>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="comment-link-btn" data-reply-to th:if="${me != null}"
+                    th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}">Trả lời</button>
+            <button type="button" class="comment-reactions-badge"
                  th:classappend="${(c.reactions == null or c.reactions.total() == 0) ? 'd-none' : (c.reactions.total() == 1 ? 'is-single' : '')}"
-                 role="button" tabindex="0" title="Xem ai đã thả cảm xúc"
+                 aria-label="Xem ai đã thả cảm xúc" title="Xem ai đã thả cảm xúc"
                  data-bs-toggle="modal" data-bs-target="#reactorsModal"
                  th:attr="data-comment-id=${c.id}">
                 <span class="comment-reactions-emojis">
@@ -27,30 +49,8 @@
                           th:text="${type.emoji()}"></span>
                 </span>
                 <span class="comment-reactions-count"
-                      th:classappend="${(c.reactions != null and c.reactions.total() > 1) ? '' : 'd-none'}"
                       th:text="${c.reactions != null ? c.reactions.total() : 0}">0</span>
-            </div>
-        </div>
-        <div class="comment-meta" th:unless="${c.deleted}">
-            <span th:text="${@timeAgo.format(c.createdAt)}">vừa xong</span>
-            <div class="comment-react-wrapper position-relative d-inline-block" th:if="${me != null}">
-                <button type="button" class="comment-link-btn comment-react-btn"
-                        th:classappend="${c.reactions != null and c.reactions.mine() != null} ? 'is-reacted' : ''"
-                        th:attr="data-comment-id=${c.id}, data-mine=${c.reactions != null and c.reactions.mine() != null ? c.reactions.mine().name() : ''}">
-                    <span class="comment-react-label"
-                          th:text="${c.reactions != null and c.reactions.mine() != null ? c.reactions.mine().emoji() + ' ' + c.reactions.mine().label() : 'Thích'}">Thích</span>
-                </button>
-                <div class="comment-reaction-popover" role="toolbar" aria-label="Chọn cảm xúc">
-                    <button type="button" class="comment-reaction-chip"
-                            th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
-                            th:attr="data-comment-id=${c.id}, data-type=${type.name()}"
-                            th:title="${type.label()}">
-                        <span class="emoji" th:text="${type.emoji()}">❤️</span>
-                    </button>
-                </div>
-            </div>
-            <button type="button" class="comment-link-btn" data-reply-to th:if="${me != null}"
-                    th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}">Trả lời</button>
+            </button>
             <button type="button" class="comment-link-btn" th:if="${me != null and !c.mine}"
                     data-bs-toggle="modal" data-bs-target="#reportModal"
                     th:attr="data-report-type='COMMENT', data-report-id=${c.id}, data-report-label='bình luận này'">Báo cáo</button>
@@ -67,13 +67,14 @@
         <div class="comment-row">
             <th:block th:replace="~{::entry(${c})}"></th:block>
         </div>
-        <div class="comment-replies" th:if="${c.hasReplies()}">
+        <details class="comment-replies" th:if="${c.hasReplies()}">
+            <summary><span class="replies-show">Xem</span><span class="replies-hide">Ẩn</span> <span th:text="${#lists.size(c.replies)} + ' phản hồi'">1 phản hồi</span></summary>
             <div class="comment comment--reply" th:each="r : ${c.replies}" th:id="'comment-' + ${r.id}">
                 <div class="comment-row">
                     <th:block th:replace="~{::entry(${r})}"></th:block>
                 </div>
             </div>
-        </div>
+        </details>
     </div>
 </th:block>
 

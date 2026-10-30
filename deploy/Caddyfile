@@ -18,9 +18,9 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	# Khớp giới hạn upload của Spring (spring.servlet.multipart.max-request-size = 40MB): 4 ảnh x 8 MB hoặc 1 video 25 MB
+	# Khớp giới hạn Spring: 10 ảnh nhãn dán x 10 MB cùng dữ liệu biểu mẫu.
 	request_body {
-		max_size 40MB
+		max_size 105MB
 	}
 
 	reverse_proxy app:8080 {

@@ -11,6 +11,8 @@
   let elapsed = 0;
   let storyDuration = 5000;
   let currentVideoEl = null;
+  let storyLoadToken = 0;
+  let changingAuthor = false;
 
   const pastelColors = {
     lavender: '#E8DEFF',
@@ -54,6 +56,7 @@
           const resp = await window.Aloute.api('/stories/api/' + storyId);
           if (resp.ok) {
             const story = await resp.json();
+            storyLoadToken++;
             currentUserId = story.authorId;
             storiesList = [story];
             currentIndex = 0;
@@ -109,30 +112,34 @@
   }
 
   // ==================== 2. TRÌNH PHÁT STORY VIEWER ====================
-  async function openStoryViewer(userId, authorName, targetStoryId) {
-    currentUserId = userId;
+  async function openStoryViewer(userId, authorName, targetStoryId, options = {}) {
+    const loadToken = ++storyLoadToken;
     try {
       const resp = await window.Aloute.api('/stories/api/users/' + userId);
+      if (loadToken !== storyLoadToken) return 'stale';
       if (!resp.ok) {
-        window.Aloute.toast('Không thể tải khoảnh khắc.', 'error');
-        return;
+        if (!options.quiet) window.Aloute.toast('Không thể tải khoảnh khắc.', 'error');
+        return 'error';
       }
-      storiesList = await resp.json();
-      if (!storiesList || storiesList.length === 0) {
-        window.Aloute.toast('Người này hiện không có khoảnh khắc nào trong 24h qua.', 'warn');
-        return;
+      const loadedStories = await resp.json();
+      if (loadToken !== storyLoadToken) return 'stale';
+      if (!loadedStories || loadedStories.length === 0) {
+        if (!options.quiet) window.Aloute.toast('Người này hiện không có khoảnh khắc nào trong 24h qua.', 'warn');
+        return 'empty';
       }
+      currentUserId = userId;
+      storiesList = loadedStories;
 
       // Luôn ưu tiên đưa story là VIBE lên vị trí đầu tiên (index 0)
       storiesList.sort((a, b) => {
-        const aIsVibe = a.mediaType === 'VIBE' || a.isVibe || a.vibe || (a.emoji && a.emoji.trim() && a.mediaType === 'TEXT');
-        const bIsVibe = b.mediaType === 'VIBE' || b.isVibe || b.vibe || (b.emoji && b.emoji.trim() && b.mediaType === 'TEXT');
+        const aIsVibe = a.mediaType === 'VIBE';
+        const bIsVibe = b.mediaType === 'VIBE';
         if (aIsVibe && !bIsVibe) return -1;
         if (!aIsVibe && bIsVibe) return 1;
         return new Date(a.createdAt) - new Date(b.createdAt);
       });
 
-      currentIndex = 0;
+      currentIndex = options.last ? storiesList.length - 1 : 0;
       if (targetStoryId) {
         const foundIdx = storiesList.findIndex(s => s.id === targetStoryId);
         if (foundIdx !== -1) {
@@ -146,9 +153,12 @@
       modal.show();
 
       playStory(currentIndex);
+      return 'opened';
     } catch (err) {
+      if (loadToken !== storyLoadToken) return 'stale';
       console.error(err);
-      window.Aloute.toast('Có lỗi xảy ra khi mở story.', 'error');
+      if (!options.quiet) window.Aloute.toast('Có lỗi xảy ra khi mở story.', 'error');
+      return 'error';
     }
   }
 
@@ -176,10 +186,15 @@
     closeStoryViewersSheet();
     currentIndex = index;
     const story = storiesList[index];
+    updateStoryNavigation();
+    const particles = document.getElementById('reactionParticles');
+    if (particles) particles.replaceChildren();
 
     // Dọn dẹp timer cũ và video cũ
     cancelTimer();
     if (currentVideoEl) {
+      currentVideoEl.onloadedmetadata = null;
+      currentVideoEl.onended = null;
       currentVideoEl.pause();
       currentVideoEl = null;
     }
@@ -209,6 +224,8 @@
 
     if (avatarEl) {
       avatarEl.src = story.authorAvatarUrl || '/logo-proposals/aloute-sticker-icon.svg';
+      avatarEl.className = 'rounded-circle border border-2 border-dark';
+      if (/^[a-z0-9-]+$/.test(story.authorAvatarFrame || '')) avatarEl.classList.add('avatar-frame--' + story.authorAvatarFrame);
     }
     if (nameEl) {
       nameEl.textContent = story.authorDisplayName;
@@ -306,7 +323,7 @@
         nextStory();
       };
     } else { // TEXT hoặc VIBE
-      const isVibeStory = story.mediaType === 'VIBE' || story.isVibe || story.vibe || (story.emoji && story.emoji.trim() && story.mediaType === 'TEXT');
+      const isVibeStory = story.mediaType === 'VIBE';
       const bgHex = pastelColors[story.backgroundColor] || '#E8DEFF';
       textCardEl.style.background = bgHex;
       textContentEl.style.color = '#16121F';
@@ -322,7 +339,8 @@
         if (vibeCardBox) {
           vibeCardBox.classList.add('story-vibe-card-mode');
         }
-        textContentEl.textContent = '“ ' + story.caption + ' ”';
+        textContentEl.textContent = story.caption || '';
+        textContentEl.classList.toggle('story-vibe-text--long', (story.caption || '').trim().length > 32);
       } else {
         if (tapeEl) {
           tapeEl.textContent = '📌 GHI CHÚ';
@@ -331,6 +349,7 @@
         if (vibeCardBox) {
           vibeCardBox.classList.remove('story-vibe-card-mode');
         }
+        textContentEl.classList.remove('story-vibe-text--long');
         textContentEl.textContent = story.caption;
       }
 
@@ -362,8 +381,11 @@
     // Nếu tin đã có người thả cảm xúc trước đó, hiện bay lên tất cả cảm xúc cho người xem / người đăng thấy (Hình 1)
     if (story.reactions && story.reactions.length > 0) {
       setTimeout(() => {
+        if (!storiesList[currentIndex] || storiesList[currentIndex].id !== story.id) return;
         story.reactions.forEach((r, idx) => {
-          setTimeout(() => spawnReactionBurst(r), idx * 180);
+          setTimeout(() => {
+            if (storiesList[currentIndex] && storiesList[currentIndex].id === story.id) spawnReactionBurst(r);
+          }, idx * 180);
         });
       }, 350);
     }
@@ -441,23 +463,70 @@
     }
   }
 
-  function nextStory() {
+  function trayAuthorIds() {
+    return Array.from(document.querySelectorAll('#storyTrack .open-story-viewer-btn'))
+      .map(el => el.dataset.userId).filter((id, index, ids) => id && ids.indexOf(id) === index);
+  }
+
+  function updateStoryNavigation() {
+    const ids = trayAuthorIds();
+    const authorIndex = ids.indexOf(String(currentUserId));
+    const previous = document.getElementById('storyPrevBtn');
+    const next = document.getElementById('storyNextBtn');
+    if (previous) previous.disabled = changingAuthor || (currentIndex === 0 && authorIndex <= 0);
+    if (next) next.disabled = changingAuthor || (currentIndex === storiesList.length - 1 && (authorIndex < 0 || authorIndex === ids.length - 1));
+  }
+
+  async function changeAuthor(direction, manual) {
+    if (changingAuthor) return;
+    const authorIds = trayAuthorIds();
+    const authorIndex = authorIds.indexOf(String(currentUserId));
+    if (authorIndex < 0) {
+      if (direction > 0 && !manual) closeViewer();
+      return;
+    }
+    changingAuthor = true;
+    updateStoryNavigation();
+    cancelTimer();
+    if (currentVideoEl) currentVideoEl.pause();
+    const initialToken = storyLoadToken;
+    for (let i = authorIndex + direction; i >= 0 && i < authorIds.length; i += direction) {
+      const result = await openStoryViewer(authorIds[i], '', null, { quiet: true, last: direction < 0 });
+      if (result === 'opened') { changingAuthor = false; updateStoryNavigation(); return; }
+      if (result === 'stale') { changingAuthor = false; return; }
+      if (result === 'error') {
+        changingAuthor = false;
+        window.Aloute.toast('Không thể tải khoảnh khắc tiếp theo. Vui lòng thử lại.', 'error');
+        playStory(currentIndex);
+        return;
+      }
+      if (storyLoadToken !== initialToken + Math.abs(i - authorIndex)) { changingAuthor = false; return; }
+    }
+    changingAuthor = false;
+    if (direction > 0 && !manual) closeViewer();
+    else { playStory(currentIndex); updateStoryNavigation(); }
+  }
+
+  function nextStory(manual = false) {
+    if (changingAuthor) return;
     if (currentIndex + 1 < storiesList.length) {
       playStory(currentIndex + 1);
     } else {
-      closeViewer();
+      changeAuthor(1, manual);
     }
   }
 
   function prevStory() {
+    if (changingAuthor) return;
     if (currentIndex > 0) {
       playStory(currentIndex - 1);
     } else {
-      playStory(0);
+      changeAuthor(-1, true);
     }
   }
 
   function closeViewer(e) {
+    storyLoadToken++;
     if (e) {
       if (typeof e.preventDefault === 'function') e.preventDefault();
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -506,7 +575,11 @@
     const viewerModalEl = document.getElementById('storyViewerModal');
 
     if (tapLeft) tapLeft.addEventListener('click', prevStory);
-    if (tapRight) tapRight.addEventListener('click', nextStory);
+    if (tapRight) tapRight.addEventListener('click', () => nextStory(true));
+    const prevBtn = document.getElementById('storyPrevBtn');
+    const nextBtn = document.getElementById('storyNextBtn');
+    if (prevBtn) prevBtn.addEventListener('click', prevStory);
+    if (nextBtn) nextBtn.addEventListener('click', () => nextStory(true));
 
     if (pauseBtn) {
       pauseBtn.addEventListener('mousedown', function (e) { e.stopPropagation(); });
@@ -539,21 +612,21 @@
     // Giữ chuột / chạm màn hình để tạm dừng (chỉ trên viewport thực tế)
     if (viewport) {
       viewport.addEventListener('mousedown', function (e) {
-        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn') || e.target.closest('.story-reaction-particles')) {
+        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn, .story-nav-btn') || e.target.closest('.story-reaction-particles')) {
           return;
         }
         pauseStory();
       });
       viewport.addEventListener('mouseup', function (e) {
-        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn')) return;
+        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn, .story-nav-btn')) return;
         resumeStory();
       });
       viewport.addEventListener('touchstart', function (e) {
-        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn')) return;
+        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn, .story-nav-btn')) return;
         pauseStory();
       }, { passive: true });
       viewport.addEventListener('touchend', function (e) {
-        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn')) return;
+        if (e.target.closest('.story-header') || e.target.closest('.story-ctrl-btn, .story-nav-btn')) return;
         resumeStory();
       }, { passive: true });
     }
@@ -564,7 +637,7 @@
       if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
       if (e.key === 'ArrowRight') {
-        nextStory();
+        nextStory(true);
       } else if (e.key === 'ArrowLeft') {
         prevStory();
       } else if (e.key === ' ' || e.code === 'Space') {
@@ -577,6 +650,7 @@
 
     if (viewerModalEl) {
       viewerModalEl.addEventListener('hidden.bs.modal', function () {
+        storyLoadToken++;
         cancelTimer();
         if (currentVideoEl) {
           currentVideoEl.pause();
@@ -623,7 +697,7 @@
           }
           if (resp.ok) {
             window.Aloute.toast('Đã xóa khoảnh khắc thành công.', 'ok');
-            const wasVibe = currentStory.mediaType === 'VIBE' || Boolean(currentStory.isVibe) || Boolean(currentStory.vibe) || (currentStory.emoji && currentStory.emoji.trim());
+            const wasVibe = currentStory.mediaType === 'VIBE';
             if (wasVibe) {
               const myVibeBubbles = document.querySelectorAll('.story-vibe-bubble, .mood-emoji-badge, .profile-mood-pill');
               myVibeBubbles.forEach(b => b.remove());
@@ -906,7 +980,7 @@
         item.innerHTML = `
           <div class="d-flex align-items-center gap-2 flex-grow-1 minw-0" style="min-width: 0;">
             <img src="${v.avatarUrl || '/logo-proposals/aloute-sticker-icon.svg'}" alt=""
-                 class="rounded-circle border border-2 border-dark flex-shrink-0"
+                 class="rounded-circle border border-2 border-dark flex-shrink-0 ${/^[a-z0-9-]+$/.test(v.avatarFrame || '') ? 'avatar-frame--' + v.avatarFrame : ''}"
                  style="width: 38px; height: 38px; object-fit: cover; box-shadow: 1px 1px 0 var(--ink); background: var(--white);">
             <div class="flex-grow-1 minw-0" style="min-width: 0;">
               <div class="fw-bold text-truncate d-flex align-items-center" style="font-size: .92rem; line-height: 1.2; font-family: var(--font-display);">
@@ -1101,20 +1175,6 @@
       });
     }
 
-    const vibeColorRadios = document.querySelectorAll('#updateVibeForm input[name="colorTheme"]');
-    const vibePreviewBubble = document.getElementById('vibePreviewBubble');
-    const allNoteClasses = [
-      'note--lemon', 'note--pink', 'note--mint', 'note--lavender', 'note--sky',
-      'note--peach', 'note--rose', 'note--coral', 'note--sunshine'
-    ];
-    if (vibeColorRadios && vibePreviewBubble) {
-      vibeColorRadios.forEach(r => {
-        r.addEventListener('change', function () {
-          allNoteClasses.forEach(c => vibePreviewBubble.classList.remove(c));
-          vibePreviewBubble.classList.add('note--' + r.value);
-        });
-      });
-    }
   }
 
   // Chuyển tab giữa MEDIA, TEXT và VIBE trong modal tạo (Hình 1)

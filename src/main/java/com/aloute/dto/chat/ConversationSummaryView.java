@@ -17,5 +17,8 @@ public record ConversationSummaryView(
         String lastMessagePreview,
         Instant lastMessageAt,
         long unread,
-        Streak streak) {
+        Streak streak, String avatarFrame) {
+    public ConversationSummaryView(UUID id, ConversationType type, String title, String avatarUrl, String lastMessagePreview, Instant lastMessageAt, long unread, Streak streak) {
+        this(id, type, title, avatarUrl, lastMessagePreview, lastMessageAt, unread, streak, null);
+    }
 }

@@ -51,6 +51,9 @@ public class Conversation {
     @Column(nullable = false)
     private boolean allowAnyoneChangeNickname = true;
 
+    @Column(name = "members_can_send_messages", nullable = false)
+    private boolean membersCanSendMessages = true;
+
     /** Ảnh đại diện nhóm (chỉ GROUP); null = dùng ảnh mặc định. */
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;

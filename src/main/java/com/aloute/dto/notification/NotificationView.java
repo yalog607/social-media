@@ -21,5 +21,10 @@ public record NotificationView(
         UUID conversationId,
         UUID referenceId,
         Instant createdAt,
-        boolean read) {
+        boolean read,
+        String stickerPackId) {
+    public NotificationView(UUID id, PostView.AuthorView actor, NotificationType type, String text, UUID postId,
+                            String detail, UUID conversationId, UUID referenceId, Instant createdAt, boolean read) {
+        this(id, actor, type, text, postId, detail, conversationId, referenceId, createdAt, read, null);
+    }
 }

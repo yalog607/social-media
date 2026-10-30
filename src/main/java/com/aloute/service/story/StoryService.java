@@ -407,7 +407,7 @@ public class StoryService {
                     u.getProfile().getAvatarUrl(),
                     v.getViewedAt(),
                     timeAgo.format(v.getViewedAt()),
-                    v.getReaction());
+                    v.getReaction(), u.getProfile().getAvatarFrame());
         }).toList();
     }
 
@@ -461,8 +461,7 @@ public class StoryService {
         if (story.getMediaUrl() != null) {
             media.deleteMedia(story.getMediaUrl());
         }
-        boolean isVibe = story.getMediaType() == StoryMediaType.VIBE
-                || (story.getEmoji() != null && !story.getEmoji().isBlank());
+        boolean isVibe = story.getMediaType() == StoryMediaType.VIBE;
         if (isVibe && dailyMoods != null) {
             try {
                 dailyMoods.findByUserId(story.getUser().getId()).ifPresent(dailyMoods::delete);
@@ -535,7 +534,7 @@ public class StoryService {
                 viewed,
                 viewCount,
                 isOwner,
-                reactions);
+                reactions, author.getProfile().getAvatarFrame());
     }
 
     private AuthorView toAuthorView(User u) {
@@ -544,6 +543,6 @@ public class StoryService {
                 u.getUsername(),
                 u.getProfile().getDisplayName(),
                 u.getProfile().getAvatarUrl(),
-                u.primaryRole());
+                u.primaryRole(), u.getProfile().getAvatarFrame());
     }
 }

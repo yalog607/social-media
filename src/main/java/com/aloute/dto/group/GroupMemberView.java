@@ -11,6 +11,7 @@ public record GroupMemberView(
         String displayName,
         String avatarUrl,
         GroupRole role,
-        Instant joinedAt
+        Instant joinedAt,
+        String avatarFrame
 ) {
 }

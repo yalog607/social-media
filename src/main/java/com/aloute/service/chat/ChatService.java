@@ -274,6 +274,15 @@ public class ChatService {
         systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + (req ? " đã bật" : " đã tắt") + " tính năng duyệt thành viên.");
     }
 
+    @Transactional
+    public void setMembersCanSendMessages(UUID actorId, UUID conversationId, boolean allow) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        if (requireRole(actorId, conversationId) != GroupRole.OWNER) {
+            throw new ChatActionException("Chỉ trưởng nhóm mới có thể thay đổi quyền gửi tin nhắn.");
+        }
+        conversation.setMembersCanSendMessages(allow);
+    }
+
     // ---------- Quản lý nhóm: tên, ảnh, vai trò, thành viên, biệt danh ----------
 
     /** @throws ChatActionException không đủ quyền hoặc tên không hợp lệ */
@@ -422,7 +431,7 @@ public class ChatService {
     public List<MemberView> memberViews(UUID conversationId) {
         return members.findMembers(conversationId).stream()
                 .map(m -> new MemberView(m.getUser().getId(), m.getUser().getUsername(), m.getUser().getProfile().getDisplayName(),
-                        m.getNickname(), m.getUser().getProfile().getAvatarUrl(), m.getRole()))
+                        m.getNickname(), m.getUser().getProfile().getAvatarUrl(), m.getRole(), m.getUser().getProfile().getAvatarFrame()))
                 .toList();
     }
 
@@ -534,7 +543,7 @@ public class ChatService {
                     preview(latest),
                     latest != null ? latest.getCreatedAt() : conversation.getCreatedAt(),
                     unreadByConversation.getOrDefault(conversation.getId(), 0L),
-                    streakById.getOrDefault(conversation.getId(), Streak.NONE)));
+                    streakById.getOrDefault(conversation.getId(), Streak.NONE), displayAvatarFrame(conversation, userId)));
         }
         views.sort((a, b) -> b.lastMessageAt().compareTo(a.lastMessageAt()));
         return views;
@@ -542,7 +551,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public ConversationHeader header(UUID viewerId, Conversation conversation) {
-        return new ConversationHeader(displayTitle(conversation, viewerId), displayAvatar(conversation, viewerId), conversation.isGroup());
+        return new ConversationHeader(displayTitle(conversation, viewerId), displayAvatar(conversation, viewerId), conversation.isGroup(), displayAvatarFrame(conversation, viewerId));
     }
 
     private String displayTitle(Conversation conversation, UUID viewerId) {
@@ -552,6 +561,11 @@ public class ChatService {
         return otherMember(conversation, viewerId)
                 .map(m -> m.getNickname() != null ? m.getNickname() : m.getUser().getProfile().getDisplayName())
                 .orElse("Người dùng đã rời ALOUTE");
+    }
+
+    private String displayAvatarFrame(Conversation conversation, UUID viewerId) {
+        if (conversation.isGroup()) return null;
+        return otherMember(conversation, viewerId).map(m -> m.getUser().getProfile().getAvatarFrame()).orElse(null);
     }
 
     private String displayAvatar(Conversation conversation, UUID viewerId) {
@@ -571,6 +585,7 @@ public class ChatService {
         if (latest == null) {
             return "";
         }
+        if (latest.getGiphyId() != null || latest.getSticker() != null) return "Đã gửi một nhãn dán";
         if (latest.getContent() != null && !latest.getContent().isBlank()) {
             return latest.getContent();
         }

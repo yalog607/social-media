@@ -1,6 +1,7 @@
 package com.aloute.controller.comment;
 
 import com.aloute.exception.comment.InvalidCommentException;
+import com.aloute.exception.chat.ChatActionException;
 import com.aloute.model.comment.Comment;
 import com.aloute.service.comment.CommentService;
 
@@ -55,13 +56,14 @@ public class CommentController {
     public Map<String, Object> create(@PathVariable UUID postId, @RequestParam(required = false) UUID parentId,
                                       @RequestParam(required = false) String content,
                                       @RequestParam(required = false) MultipartFile image,
+                                      @RequestParam(required = false) String stickerId,
                                       @AuthenticationPrincipal AlouteUserPrincipal me) {
-        Comment created = comments.create(me.id(), postId, parentId, content, image);
+        Comment created = comments.create(me.id(), postId, parentId, content, image, stickerId);
         return Map.of("id", created.getId().toString());
     }
 
     /** Nội dung/ảnh không hợp lệ: 400 kèm thông báo tiếng Việt để JS hiện ngay cho người dùng. */
-    @ExceptionHandler({InvalidCommentException.class, InvalidMediaException.class})
+    @ExceptionHandler({InvalidCommentException.class, InvalidMediaException.class, ChatActionException.class})
     public ResponseEntity<Map<String, String>> invalid(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
     }
