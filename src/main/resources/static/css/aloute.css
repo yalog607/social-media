@@ -3287,7 +3287,10 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 }
 
 /* Hộp chọn Sticker Picker */
+.chat-composer-wrap { position: relative; }
 .chat-sticker-picker {
+  position: absolute; right: 0; bottom: 100%; z-index: 20;
+  max-height: calc(100dvh - var(--topbar-h) - 9rem); display: flex; flex-direction: column;
   margin-bottom: .6rem;
   background: var(--white);
   border: 2px solid var(--ink);
@@ -3301,7 +3304,7 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 .local-sticker-heading button { border: 0; background: transparent; color: var(--ink-soft); font-size: 1rem; padding: .25rem; }
 .local-sticker-search { padding: .6rem .8rem; }
 .local-sticker-search input { width: 100%; padding: .4rem .8rem; border: 1px solid #dcd8e2; border-radius: 999px; background: #faf9fc; font-size: .85rem; }
-.local-sticker-body { height: 270px; overflow-y: auto; padding: .3rem .65rem .8rem; }
+.local-sticker-body { height: 270px; min-height: 0; flex: 0 1 auto; overflow-y: auto; padding: .3rem .65rem .8rem; }
 .local-sticker-body h2 { font: 700 .85rem/1.4 var(--font-body); margin: .3rem .2rem .5rem; }
 #sticker-status { font-size: .8rem; color: var(--ink-soft); margin: .3rem; }
 #sticker-status:empty { display: none; }
