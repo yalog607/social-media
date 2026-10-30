@@ -441,6 +441,19 @@
         </div>
     </section>
 
+    <section class="note mb-3" th:if="${tab == 'manage' and myRole != null and myRole.name() == 'OWNER'}">
+        <h2 class="h5">Xóa hội nhóm</h2>
+        <p class="text-soft small">Nhóm, bài viết trong nhóm và phòng chat sẽ không còn hiển thị với các thành viên.</p>
+        <button type="button" class="btn-al btn-al--sm btn-al--white text-danger" data-bs-toggle="modal" data-bs-target="#deleteGroupModal">Xóa hội nhóm</button>
+    </section>
+    <div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-labelledby="deleteGroupTitle" aria-hidden="true" th:if="${myRole != null and myRole.name() == 'OWNER'}">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content sticker-confirm-dialog">
+            <div class="modal-header"><h2 class="h5 mb-0 fw-bold" id="deleteGroupTitle">Xóa hội nhóm?</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body"><p>Nhóm, bài viết trong nhóm và phòng chat sẽ không còn hiển thị với các thành viên. Bạn không thể tự khôi phục nhóm sau khi xóa.</p><strong th:text="${group.title}"></strong></div>
+            <div class="modal-footer"><button type="button" class="btn-al btn-al--sm btn-al--white" data-bs-dismiss="modal">Hủy</button><form method="post" th:action="@{/groups/{id}/delete(id=${group.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><button type="submit" class="btn-al btn-al--sm btn-al--pink">Xóa hội nhóm</button></form></div>
+        </div></div>
+    </div>
+
     <!-- Modals hệ thống -->
     <div th:replace="~{fragments/post-modals :: modals}"></div>
 

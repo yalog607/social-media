@@ -17,6 +17,8 @@ import com.aloute.service.post.PostService;
 import com.aloute.service.social.FriendService;
 import com.aloute.util.media.MediaLimits;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -74,7 +76,9 @@ public class GroupController {
                        @AuthenticationPrincipal AlouteUserPrincipal me,
                        Model model) {
         UUID userId = me != null ? me.id() : null;
-        GroupView group = groupService.getGroup(id, userId);
+        GroupView group;
+        try { group = groupService.getGroup(id, userId); }
+        catch (ChatActionException e) { throw new ResponseStatusException(HttpStatus.NOT_FOUND); }
 
         String activeTab = tab;
         if (!"members".equals(activeTab) && !"manage".equals(activeTab)) {
@@ -212,6 +216,18 @@ public class GroupController {
         } catch (ChatActionException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/groups/" + id;
+        }
+    }
+
+    @PostMapping("/{id}/delete")
+    public String delete(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id, RedirectAttributes flash) {
+        try {
+            groupService.deleteGroup(me.id(), id);
+            flash.addFlashAttribute("notice", "Đã xóa hội nhóm.");
+            return "redirect:/groups";
+        } catch (ChatActionException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            return "redirect:/groups";
         }
     }
 

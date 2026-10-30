@@ -55,11 +55,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             (:viewerId is not null and exists (select 1 from com.aloute.model.chat.ConversationMember cm
                     where cm.conversation.id = p.groupId and cm.user.id = :viewerId))""";
 
-    String IS_PUBLIC_GROUP = """
-            exists (select 1 from com.aloute.model.chat.Conversation c
-                    where c.id = p.groupId and c.approvalRequired = false)""";
-
-    /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem + bài trong nhóm (nhóm đã tham gia hoặc nhóm công khai). */
+    /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem + bài trong nhóm mà người xem đã tham gia. */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
             where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.model.user.UserStatus.ACTIVE
@@ -68,16 +64,16 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                         or (p.visibility = com.aloute.model.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
                    )))
                    or
-                   (p.groupId is not null and (
-                        """ + " " + IS_GROUP_MEMBER + """
-                        or (p.visibility = com.aloute.model.user.Visibility.PUBLIC and """ + " " + IS_PUBLIC_GROUP + """
-                        )
-                   ))
+                   (p.groupId is not null and """ + " " + IS_GROUP_MEMBER + """
+                   )
               )
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
             order by p.createdAt desc, p.id desc""")
     List<Post> feed(@Param("viewerId") UUID viewerId, @Param("cursorTime") Instant cursorTime,
                     @Param("cursorId") UUID cursorId, Pageable pageable);
+
+    @Query("select p from Post p join fetch p.author where p.groupId = :groupId and p.deletedAt is null")
+    List<Post> findLiveByGroup(@Param("groupId") UUID groupId);
 
     /** Bài viết trong một nhóm, mới nhất trước. */
     @Query("""

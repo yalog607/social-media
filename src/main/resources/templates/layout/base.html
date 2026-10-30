@@ -51,10 +51,10 @@
                 <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
                 <span class="ms-auto"></span>
                 <nav class="topbar-actions" aria-label="Lối tắt">
-                    <a class="topbar-icon" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}"
-                        aria-label="Trang chủ" title="Trang chủ" th:attr="aria-current=${active == 'home'} ? 'page'">
+                    <a class="topbar-icon" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}"
+                        aria-label="Trang cá nhân" title="Trang cá nhân" th:attr="aria-current=${active == 'profile'} ? 'page'">
                         <svg class="icon" aria-hidden="true">
-                            <use href="#i-home" />
+                            <use href="#i-user" />
                         </svg>
                     </a>
                     <div class="dropdown">
@@ -108,11 +108,11 @@
 
         <div class="app">
             <nav class="side-nav" aria-label="Menu chính">
-                <a class="nav-tab" th:classappend="${active == 'profile'} ? 'is-active'" th:href="@{/me}"
-                    th:attr="aria-current=${active == 'profile'} ? 'page'">
+                <a class="nav-tab" th:classappend="${active == 'home'} ? 'is-active'" th:href="@{/}"
+                    th:attr="aria-current=${active == 'home'} ? 'page'">
                     <svg class="icon" aria-hidden="true">
-                        <use href="#i-user" />
-                    </svg>Trang cá nhân</a>
+                        <use href="#i-home" />
+                    </svg>Trang chủ</a>
                 <a class="nav-tab" th:classappend="${active == 'friends'} ? 'is-active'" th:href="@{/friends}"
                     th:attr="aria-current=${active == 'friends'} ? 'page'">
                     <svg class="icon" aria-hidden="true">

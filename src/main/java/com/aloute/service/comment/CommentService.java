@@ -163,6 +163,7 @@ public class CommentService {
     public List<CommentView> list(UUID postId, UUID viewerId) {
         posts.getVisible(postId, viewerId);
         List<Comment> flat = comments.findByPostId(postId);
+
         Map<String, String> displayNames = new java.util.HashMap<>();
         Map<String, java.util.Set<String>> legacyNames = new java.util.HashMap<>();
         for (Comment item : flat) {
