@@ -15,8 +15,14 @@ public interface ConversationRequestRepository extends JpaRepository<Conversatio
     List<ConversationRequest> findByConversationIdWithUsers(@Param("conversationId") UUID conversationId);
 
     void deleteByConversationIdAndUserId(UUID conversationId, UUID userId);
+
+    @Query("SELECT r FROM ConversationRequest r WHERE r.conversation.id = :conversationId AND r.user.id = :userId")
+    java.util.Optional<ConversationRequest> findByConversationIdAndUserId(@Param("conversationId") UUID conversationId, @Param("userId") UUID userId);
     
     void deleteByConversationId(UUID conversationId);
     
     boolean existsByConversationIdAndUserId(UUID conversationId, UUID userId);
+
+    @Query("SELECT r FROM ConversationRequest r WHERE r.user.id = :userId")
+    List<ConversationRequest> findByUserId(@Param("userId") UUID userId);
 }

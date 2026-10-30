@@ -4,6 +4,8 @@ import com.aloute.dto.comment.CommentView;
 import com.aloute.exception.comment.InvalidCommentException;
 import com.aloute.model.comment.Comment;
 import com.aloute.service.comment.CommentService;
+import com.aloute.service.sticker.LocalStickerLibrary;
+import com.aloute.exception.chat.ChatActionException;
 
 import com.aloute.model.post.Post;
 import com.aloute.exception.post.PostNotFoundException;
@@ -26,6 +28,22 @@ class CommentServiceIT extends IntegrationTest {
 
     @Autowired CommentService comments;
     @Autowired PostService posts;
+    @Autowired LocalStickerLibrary stickerLibrary;
+
+    @Test
+    void commentCanContainAnOwnedStickerAndRejectsUnknownSticker() {
+        User author = createUser(), commenter = createUser();
+        Post post = publicPost(author);
+        String stickerId = stickerLibrary.library(commenter.getId()).packs().stream()
+                .flatMap(pack -> pack.stickers().stream()).filter(s -> s.visibleArtwork()).findFirst().orElseThrow().id();
+        Comment comment = comments.create(commenter.getId(), post.getId(), null, "", null, stickerId);
+        assertThat(comments.list(post.getId(), commenter.getId())).anySatisfy(view -> {
+            assertThat(view.id()).isEqualTo(comment.getId());
+            assertThat(view.sticker().id()).isEqualTo(stickerId);
+        });
+        assertThatThrownBy(() -> comments.create(commenter.getId(), post.getId(), null, "", null, "unknown"))
+                .isInstanceOf(ChatActionException.class);
+    }
 
     private Post publicPost(User author) {
         return posts.create(author.getId(), "bài của " + author.getUsername(), Visibility.PUBLIC, List.of(), null);

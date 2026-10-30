@@ -22,6 +22,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,6 +35,7 @@ import java.util.UUID;
 /** Trang danh sách hội thoại, trang một hội thoại, và các form quản lý (bắt đầu chat, tạo/rời/thêm người vào nhóm). */
 @Controller
 public class ChatController {
+
 
     private final ChatService chats;
     private final MessageService messagesService;
@@ -57,7 +60,7 @@ public class ChatController {
     }
 
     @GetMapping("/messages/{id}")
-    public String view(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+    public String view(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         if (!chats.isMember(me.id(), id)) {
             if (chats.exists(id)) {
                 return "chat/not_member";
@@ -66,7 +69,12 @@ public class ChatController {
             }
         }
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         chats.markRead(me.id(), id);
+        model.addAttribute("unreadMessages", chats.totalUnread(me.id()));
         List<PostView.AuthorView> members = chats.membersOf(id);
         List<UUID> memberIds = members.stream().map(PostView.AuthorView::id).toList();
         model.addAttribute("conversation", conversation);
@@ -77,6 +85,7 @@ public class ChatController {
         model.addAttribute("myRole", myRole);
         model.addAttribute("canManage", conversation.isGroup() && myRole.canManage());
         model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
+        model.addAttribute("canSendMessages", !conversation.isGroup() || conversation.isMembersCanSendMessages() || myRole.canManage());
         model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
         model.addAttribute("maxAttachmentMb", ChatLimits.MAX_ATTACHMENT_BYTES / (1024 * 1024));
         model.addAttribute("streak", streaks.forConversation(id));
@@ -97,8 +106,12 @@ public class ChatController {
     /** Mảnh HTML các tin cũ hơn con trỏ {@code before}, để chat.js chèn lên đầu khung chat khi cuộn lên. */
     @GetMapping("/api/conversations/{id}/messages")
     public String older(@PathVariable UUID id, @RequestParam(required = false) String before,
-                        @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+                        @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("page", messagesService.history(me.id(), id, before));
@@ -108,15 +121,19 @@ public class ChatController {
     /** Mảnh HTML kết quả tìm kiếm tin nhắn. */
     @GetMapping("/api/conversations/{id}/search")
     public String search(@PathVariable UUID id, @RequestParam String keyword,
-                         @AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+                         @AuthenticationPrincipal AlouteUserPrincipal me, RedirectAttributes flash, Model model) {
         Conversation conversation = chats.requireMembership(me.id(), id);
+        if (conversation.isSocialGroup() && !conversation.isChatEnabled()) {
+            flash.addFlashAttribute("notice", "Hội nhóm này hiện chưa mở phòng chat.");
+            return "redirect:/groups/" + id;
+        }
         model.addAttribute("conversation", conversation);
         model.addAttribute("header", chats.header(me.id(), conversation));
         model.addAttribute("searchResults", messagesService.searchMessages(me.id(), id, keyword));
         return "chat/search :: results";
     }
 
-    @PostMapping("/messages/start")
+    @RequestMapping(value = "/messages/start", method = {RequestMethod.GET, RequestMethod.POST})
     public String start(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String username,
                         RedirectAttributes flash) {
         User target = users.findByUsername(username).filter(User::isActive)
@@ -208,6 +225,12 @@ public class ChatController {
     public String nicknamePermission(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
                                      @RequestParam(required = false) boolean allow, RedirectAttributes flash) {
         return manage(id, flash, null, () -> chats.setAllowAnyoneChangeNickname(me.id(), id, allow));
+    }
+
+    @PostMapping("/messages/{id}/sending-permission")
+    public String sendingPermission(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                                    @RequestParam(defaultValue = "false") boolean allow, RedirectAttributes flash) {
+        return manage(id, flash, "Đã cập nhật quyền gửi tin nhắn.", () -> chats.setMembersCanSendMessages(me.id(), id, allow));
     }
 
     @PostMapping("/messages/{id}/pins/{messageId}")

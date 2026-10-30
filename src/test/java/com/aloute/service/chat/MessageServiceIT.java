@@ -6,9 +6,12 @@ import com.aloute.exception.chat.ChatActionException;
 import com.aloute.exception.chat.ConversationNotFoundException;
 import com.aloute.model.chat.AttachmentKind;
 import com.aloute.model.chat.Conversation;
+import com.aloute.model.chat.GroupRole;
 import com.aloute.model.chat.Message;
 import com.aloute.service.chat.ChatService;
 import com.aloute.service.chat.MessageService;
+import com.aloute.service.social.FriendService;
+import com.aloute.repository.chat.ConversationRepository;
 
 import com.aloute.exception.common.RateLimitExceededException;
 import com.aloute.support.IntegrationTest;
@@ -35,6 +38,37 @@ class MessageServiceIT extends IntegrationTest {
 
     @Autowired ChatService chats;
     @Autowired MessageService messages;
+    @Autowired FriendService friends;
+    @Autowired ConversationRepository conversations;
+
+    @Test
+    void groupOwnerControlsMemberSending() {
+        User owner = createUser();
+        User member = createUser();
+        User admin = createUser();
+        friends.sendRequest(owner.getId(), member.getId());
+        friends.accept(member.getId(), owner.getId());
+        friends.sendRequest(owner.getId(), admin.getId());
+        friends.accept(admin.getId(), owner.getId());
+        Conversation group = chats.createGroup(owner.getId(), "Nhóm", List.of(member.getId(), admin.getId()));
+        chats.setRole(owner.getId(), group.getId(), admin.getId(), GroupRole.ADMIN);
+        messages.send(member.getId(), group.getId(), "Trước khi tắt", null);
+
+        assertThatThrownBy(() -> chats.setMembersCanSendMessages(member.getId(), group.getId(), false))
+                .isInstanceOf(ChatActionException.class);
+        assertThatThrownBy(() -> chats.setMembersCanSendMessages(admin.getId(), group.getId(), false))
+                .isInstanceOf(ChatActionException.class);
+        chats.setMembersCanSendMessages(owner.getId(), group.getId(), false);
+        assertThatThrownBy(() -> messages.send(member.getId(), group.getId(), "Bị chặn", null))
+                .isInstanceOf(ChatActionException.class).hasMessageContaining("tắt quyền gửi");
+        assertThatThrownBy(() -> messages.sendSticker(member.getId(), group.getId(), "invalid", null))
+                .isInstanceOf(ChatActionException.class).hasMessageContaining("tắt quyền gửi");
+        assertThat(messages.send(owner.getId(), group.getId(), "Trưởng nhóm vẫn gửi được", null)).isNotNull();
+        assertThat(messages.send(admin.getId(), group.getId(), "Quản trị viên vẫn gửi được", null)).isNotNull();
+
+        chats.setMembersCanSendMessages(owner.getId(), group.getId(), true);
+        assertThat(messages.send(member.getId(), group.getId(), "Đã bật lại", null)).isNotNull();
+    }
 
     private static byte[] jpeg(int w, int h) throws IOException {
         BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -223,6 +257,29 @@ class MessageServiceIT extends IntegrationTest {
         clock.advance(Duration.ofSeconds(1));
         messages.send(a.getId(), direct.getId(), "2", null);
         assertThat(chats.totalUnread(b.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void unreadCountsIgnoreSystemMessagesAndClosedGroupChats() {
+        User owner = createUser(), member = createUser();
+        friends.sendRequest(owner.getId(), member.getId());
+        friends.accept(member.getId(), owner.getId());
+        Conversation group = chats.createGroup(owner.getId(), "Nhóm", List.of(member.getId()));
+        clock.advance(Duration.ofSeconds(1));
+        messages.sendSystemMessage(owner.getId(), group.getId(), "Đã ghim tin nhắn");
+        assertThat(chats.totalUnread(member.getId())).isZero();
+        assertThat(chats.listFor(member.getId()).get(0).unread()).isZero();
+
+        clock.advance(Duration.ofSeconds(1));
+        messages.send(owner.getId(), group.getId(), "Tin nhắn mới", null);
+        assertThat(chats.totalUnread(member.getId())).isEqualTo(1);
+        assertThat(chats.listFor(member.getId()).get(0).unread()).isEqualTo(1);
+
+        group.setSocialGroup(true);
+        group.setChatEnabled(false);
+        conversations.saveAndFlush(group);
+        assertThat(chats.listFor(member.getId())).isEmpty();
+        assertThat(chats.totalUnread(member.getId())).isZero();
     }
 
     @Test

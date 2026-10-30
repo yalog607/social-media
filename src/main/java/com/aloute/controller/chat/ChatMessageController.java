@@ -3,12 +3,14 @@ package com.aloute.controller.chat;
 import com.aloute.dto.chat.MessageReactionEvent;
 import com.aloute.dto.chat.MessageView;
 import com.aloute.dto.reaction.ReactionSummary;
+import com.aloute.exception.chat.ChatActionException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import com.aloute.model.reaction.ReactionType;
+import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.service.chat.ChatService;
 import com.aloute.service.chat.MessageReactionService;
 import com.aloute.service.chat.MessageService;
-
-import com.aloute.security.AlouteUserPrincipal;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -31,6 +33,12 @@ import java.util.UUID;
  */
 @Controller
 public class ChatMessageController {
+
+    @ExceptionHandler(ChatActionException.class)
+    @ResponseBody
+    public ResponseEntity<Map<String, String>> handleChatAction(ChatActionException error) {
+        return ResponseEntity.badRequest().body(Map.of("message", error.getMessage()));
+    }
 
     private final MessageService messages;
     private final SimpMessagingTemplate broker;
@@ -66,6 +74,25 @@ public class ChatMessageController {
                                     @RequestParam(required = false) String content,
                                     @RequestParam(required = false) MultipartFile attachment) {
         MessageView view = messages.send(me.id(), id, content, attachment);
+        broker.convertAndSend("/topic/conversations/" + id, view);
+        return Map.of("id", view.id().toString());
+    }
+
+    @PostMapping("/api/conversations/{id}/read")
+    @ResponseBody
+    public Map<String, Long> markRead(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me) {
+        chats.requireMembership(me.id(), id);
+        chats.markRead(me.id(), id);
+        return Map.of("unread", chats.totalUnread(me.id()));
+    }
+
+    /** Gửi nhãn dán (sticker) trong cuộc hội thoại. */
+    @PostMapping("/api/conversations/{id}/stickers")
+    @ResponseBody
+    public Map<String, Object> sendSticker(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                                           @RequestParam String stickerId,
+                                           @RequestParam(required = false) String replyHeader) {
+        MessageView view = messages.sendSticker(me.id(), id, stickerId, replyHeader);
         broker.convertAndSend("/topic/conversations/" + id, view);
         return Map.of("id", view.id().toString());
     }

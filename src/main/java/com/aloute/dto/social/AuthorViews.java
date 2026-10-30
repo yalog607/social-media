@@ -11,6 +11,6 @@ public final class AuthorViews {
 
     public static PostView.AuthorView of(User user) {
         return new PostView.AuthorView(user.getId(), user.getUsername(), user.getProfile().getDisplayName(),
-                user.getProfile().getAvatarUrl(), user.primaryRole());
+                user.getProfile().getAvatarUrl(), user.primaryRole(), user.getProfile().getAvatarFrame());
     }
 }

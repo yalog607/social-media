@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- ==================== DẢI KHOẢNH KHẮC 24H (STORY TRAY) ==================== -->
+<section th:fragment="storyTray(storyTray, me)" class="note note--white mb-3 p-3 position-relative story-tray-card" id="story-tray" th:if="${me != null}">
+    <!-- Tiêu đề -->
+    <div class="d-flex align-items-center mb-2 gap-1">
+        <div class="d-flex align-items-center gap-1 fw-bold" style="font-family: var(--font-display); font-size: .95rem;">
+            <span class="fs-5 story-camera-icon">📸</span>
+            <span>Khoảnh khắc</span>
+        </div>
+    </div>
+
+    <!-- Khung cuộn ngang có nút điều hướng -->
+    <div class="position-relative">
+        <button type="button" class="btn btn-sm story-scroll-arrow story-scroll-left position-absolute top-50 start-0 translate-middle-y z-3 d-none rounded-circle border border-dark p-1"
+                aria-label="Cuộn sang trái" style="width: 28px; height: 28px; line-height: 1;">‹</button>
+
+        <div class="story-track d-flex align-items-end gap-3 overflow-x-auto" id="storyTrack"
+             th:with="myGroup=${storyTray != null ? storyTray.myGroup() : null}">
+            <!-- Ô 1: CHÍNH BẠN (Tạo story hoặc xem story của mình) -->
+            <div class="story-track-item flex-shrink-0 text-center" th:with="myGroup=${storyTray != null ? storyTray.myGroup() : null}">
+                <!-- TH1: Đã có story trong ngày -> Bấm vào để xem, có nút nhỏ (+) ở góc để thêm mới -->
+                <div th:if="${myGroup != null and myGroup.hasStories()}">
+                    <div class="story-avatar-container position-relative d-inline-block">
+                        <!-- Icon Vibe nổi trên đỉnh đầu avatar của bạn (Hình 2) -->
+                        <div th:if="${myGroup.hasVibe()}"
+                             class="story-vibe-bubble"
+                             th:title="${myGroup.vibeTooltip()}"
+                             th:classappend="'note--' + ${myGroup.vibeColor()}"
+                             data-bs-toggle="modal" data-bs-target="#createStoryModal" onclick="switchStoryTab('VIBE')">
+                            <span class="story-vibe-bubble-emoji" th:text="${myGroup.vibeEmoji()}">🥰</span>
+                        </div>
+
+                        <div class="story-ring story-ring--active cursor-pointer open-story-viewer-btn"
+                             th:attr="data-user-id=${me.id}, data-author-name='Bạn'">
+                            <div class="story-avatar-wrap">
+                                <span style="--size: 54px;" th:replace="~{fragments/ui :: avatar(${me.profile}, '')}"></span>
+                            </div>
+                        </div>
+                        <!-- Nút thêm tin nữa ở góc dưới avatar (tách riêng khỏi tên bên dưới) -->
+                        <button type="button" class="btn story-add-badge"
+                                data-bs-toggle="modal" data-bs-target="#createStoryModal" title="Thêm khoảnh khắc mới" aria-label="Thêm khoảnh khắc">
+                            +
+                        </button>
+                    </div>
+                    <div class="story-friend-name small fw-bold mt-1 text-truncate" style="max-width: 66px;">Bạn</div>
+                </div>
+
+                <!-- TH2: Chưa có story -> Nút tròn to (+) màu hồng pastel viền đậm nổi bật -->
+                <div th:unless="${myGroup != null and myGroup.hasStories()}">
+                    <div class="story-avatar-container position-relative d-inline-block">
+                        <!-- Icon Vibe nổi trên đỉnh đầu nút Tạo tin nếu đã có vibe (Hình 2) -->
+                        <div th:if="${myGroup != null and myGroup.hasVibe()}"
+                             class="story-vibe-bubble"
+                             th:title="${myGroup.vibeTooltip()}"
+                             th:classappend="'note--' + ${myGroup.vibeColor()}"
+                             data-bs-toggle="modal" data-bs-target="#createStoryModal" onclick="switchStoryTab('VIBE')">
+                            <span class="story-vibe-bubble-emoji" th:text="${myGroup.vibeEmoji()}">🥰</span>
+                        </div>
+                        <button type="button" class="story-create-trigger btn p-0 border-0 bg-transparent text-decoration-none"
+                                data-bs-toggle="modal" data-bs-target="#createStoryModal" aria-label="Tạo khoảnh khắc">
+                            <div class="story-create-circle d-flex flex-column align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                                 style="background: #FF8FB1; box-shadow: 2.5px 2.5px 0 var(--ink);">
+                                <span style="font-size: 26px; font-weight: 900; line-height: 1; color: var(--ink);">+</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="story-friend-name small fw-bold mt-1 text-truncate" style="max-width: 66px;">Tạo tin</div>
+                </div>
+            </div>
+
+            <!-- CÁC Ô TIẾP THEO: BẠN BÈ CÓ STORY CÒN HẠN -->
+            <th:block th:if="${storyTray != null and storyTray.hasAnyFriendsWithStories()}">
+                <div th:each="fg : ${storyTray.friendGroups()}"
+                     class="story-track-item flex-shrink-0 text-center cursor-pointer open-story-viewer-btn"
+                     th:attr="data-user-id=${fg.author().id()}, data-author-name=${fg.author().displayName()}">
+                    <div class="story-avatar-container position-relative d-inline-block">
+                        <!-- Icon Vibe nổi trên đỉnh đầu avatar bạn bè (Hình 2) -->
+                        <div th:if="${fg.hasVibe()}"
+                             class="story-vibe-bubble"
+                             th:title="${fg.vibeTooltip()}"
+                             th:classappend="'note--' + ${fg.vibeColor()}">
+                            <span class="story-vibe-bubble-emoji" th:text="${fg.vibeEmoji()}">🥰</span>
+                        </div>
+
+                        <div class="story-ring" th:classappend="${fg.allSeen()} ? 'story-ring--seen' : 'story-ring--active'">
+                            <div class="story-avatar-wrap">
+                                <span style="--size: 54px;" th:replace="~{fragments/ui :: avatar(${fg.author()}, '')}"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="story-friend-name small fw-bold mt-1 text-truncate" style="max-width: 66px;"
+                         th:text="${fg.author().displayName()}">Tên bạn</div>
+                </div>
+            </th:block>
+        </div>
+
+        <button type="button" class="btn btn-sm story-scroll-arrow story-scroll-right position-absolute top-50 end-0 translate-middle-y z-3 d-none rounded-circle border border-dark p-1"
+                aria-label="Cuộn sang phải" style="width: 28px; height: 28px; line-height: 1;">›</button>
+    </div>
+</section>
+
+<!-- ==================== CÁC MODAL CỦA STORY ==================== -->
+<div th:fragment="storyModals(me)" th:if="${me != null}">
+
+    <!-- 1. MODAL TẠO KHOẢNH KHẮC MỚI -->
+    <div class="modal fade" id="createStoryModal" tabindex="-1" aria-labelledby="createStoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border border-3 border-dark rounded-4" style="background: var(--paper); box-shadow: 6px 6px 0 var(--ink);">
+                <div class="modal-header border-bottom border-2 border-dark" style="background: var(--paper-2);">
+                    <h5 class="modal-title fw-bold" id="createStoryModalLabel" style="font-family: var(--font-display);">
+                        ✨ Chia sẻ Khoảnh Khắc
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+
+                <div class="modal-body p-3">
+                    <!-- Hàng chọn loại tin: Ảnh/Video, Ghi chú, hoặc Cập nhật Vibe (Hình 1) -->
+                    <div class="story-create-tabs d-flex gap-2 mb-3">
+                        <button type="button" class="btn-al btn-al--sm flex-grow-1 story-type-tab is-active" id="tabStoryMedia"
+                                onclick="switchStoryTab('MEDIA')">
+                            📷 Ảnh / Video
+                        </button>
+                        <button type="button" class="btn-al btn-al--sm flex-grow-1 story-type-tab btn-al--ghost" id="tabStoryText"
+                                onclick="switchStoryTab('TEXT')">
+                            📝 Ghi chú
+                        </button>
+                        <button type="button" class="btn-al btn-al--sm flex-grow-1 story-type-tab btn-al--ghost" id="tabStoryVibe"
+                                onclick="switchStoryTab('VIBE')" title="Cập nhật Vibe hôm nay của bạn">
+                            🌈 Cập nhật Vibe
+                        </button>
+                    </div>
+
+                    <!-- FORM 1: TẠO STORY (ẢNH/VIDEO HOẶC GHI CHÚ) -->
+                    <form method="post" th:action="@{/stories}" enctype="multipart/form-data" id="createStoryForm">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="storyType" id="storyTypeInput" value="MEDIA">
+
+                        <!-- KHUNG 1: TẢI ẢNH HOẶC VIDEO -->
+                        <div id="storyMediaSection">
+                            <div class="story-dropzone border border-2 border-dashed border-dark rounded-3 p-3 text-center mb-3 position-relative cursor-pointer"
+                                 id="storyDropzone" style="background: var(--white); min-height: 160px;">
+                                <input type="file" name="mediaFile" id="storyFileInput" accept="image/*,video/mp4,video/webm"
+                                       class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer">
+                                
+                                <div id="dropzonePrompt" class="py-3">
+                                    <span class="fs-1 d-block mb-1">🖼️</span>
+                                    <div class="fw-bold">Chạm để chọn hoặc kéo thả Ảnh / Video</div>
+                                    <div class="text-soft small mt-1">Ảnh ≤ 8MB · Video ≤ 25MB (MP4, WEBM)</div>
+                                </div>
+
+                                <!-- Khung xem trước media -->
+                                <div id="mediaPreviewWrap" class="d-none position-relative">
+                                    <img id="imagePreview" src="" alt="Preview" class="img-fluid rounded-2 border border-dark d-none" style="max-height: 240px; object-fit: contain;">
+                                    <video id="videoPreview" class="rounded-2 border border-dark d-none w-100" style="max-height: 240px;" controls muted></video>
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle border border-dark"
+                                            id="removeMediaBtn" title="Chọn file khác" style="width: 26px; height: 26px; line-height: 1; padding: 0;">✕</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KHUNG 2: GHI CHÚ CHỮ GẮN CẢM XÚC (TEXT STORY) -->
+                        <div id="storyTextSection" class="d-none mb-3">
+                            <input type="hidden" name="emoji" id="storyEmojiInput" value="🥰">
+
+                            <!-- Bộ chọn icon cảm xúc (Emoji) -->
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <label class="form-label small fw-bold mb-0">Gắn icon cảm xúc:</label>
+                                <span class="small text-soft" id="selectedEmojiText" style="font-size: .75rem;">Đang chọn: 🥰</span>
+                            </div>
+                            <div class="story-emoji-picker d-flex flex-wrap gap-1 mb-2">
+                                <button type="button" class="btn story-picker-emoji is-active" data-emoji="🥰">🥰</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="😊">😊</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🥳">🥳</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="😎">😎</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🤩">🤩</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🥺">🥺</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="😴">😴</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🫠">🫠</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="😭">😭</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="😤">😤</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🤯">🤯</button>
+                                <button type="button" class="btn story-picker-emoji" data-emoji="🤔">🤔</button>
+                                <button type="button" class="btn story-picker-emoji btn-no-emoji" data-emoji="" title="Không dùng icon">🚫</button>
+                            </div>
+
+                            <!-- Bộ chọn màu nền pastel -->
+                            <label class="form-label small fw-bold mb-1">Chọn bảng màu pastel:</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="lavender" checked class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #E8DEFF;"></span>
+                                </label>
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="lemon" class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFF3C4;"></span>
+                                </label>
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="rose" class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFD6E0;"></span>
+                                </label>
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="sky" class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #D0F0FD;"></span>
+                                </label>
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="mint" class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #C8F7DC;"></span>
+                                </label>
+                                <label class="color-pick-radio cursor-pointer">
+                                    <input type="radio" name="backgroundColor" value="peach" class="d-none">
+                                    <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFE3D8;"></span>
+                                </label>
+                            </div>
+
+                            <!-- Live preview card cho text story -->
+                            <div class="story-text-preview rounded-3 border border-2 border-dark p-3 text-center my-2 d-flex flex-column align-items-center justify-content-center"
+                                 id="textPreviewCard" style="background: #E8DEFF; min-height: 150px; box-shadow: 2.5px 2.5px 0 var(--ink);">
+                                <div id="textPreviewEmoji" class="fs-1 mb-1 story-preview-emoji-bounce" style="line-height: 1;">🥰</div>
+                                <span class="fw-bold px-2" id="textPreviewContent" style="font-size: 1.15rem; font-family: var(--font-display); color: var(--ink);">
+                                    Nhập nội dung bên dưới để xem trước...
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Ô NHẬP LỜI NHẮN / CHÚ THÍCH -->
+                        <div class="mb-3">
+                            <label for="storyCaption" class="form-label small fw-bold mb-1" id="captionLabel">Lời nhắn / Chú thích:</label>
+                            <textarea class="form-control border border-2 border-dark rounded-3" id="storyCaption" name="caption" rows="2"
+                                      maxlength="500" placeholder="Viết vài dòng tâm sự hoặc biểu cảm..."></textarea>
+                        </div>
+
+                        <!-- QUYỀN RIÊNG TƯ -->
+                        <div class="d-flex align-items-center justify-content-between pt-1 mb-2">
+                            <label class="small fw-bold mb-0">Ai có thể xem:</label>
+                            <select class="form-select form-select-sm border border-dark rounded-pill" name="visibility" style="width: auto; font-size: .82rem;">
+                                <option value="FRIENDS" selected>👥 Bạn bè (Mặc định)</option>
+                                <option value="PUBLIC">🌍 Công khai</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top border-2 border-dark">
+                            <button type="button" class="btn-al btn-al--ghost btn-al--sm" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn-al btn-al--pink btn-al--sm px-3" id="submitStoryBtn">
+                                🚀 Đăng khoảnh khắc
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- FORM 2: CẬP NHẬT VIBE HÔM NAY (HÌNH 1) -->
+                    <form method="post" th:action="@{/mood}" id="updateVibeForm" class="d-none">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="next" th:value="${currentPath ?: '/'}">
+                        <input type="hidden" name="emoji" id="vibeEmojiInput" th:value="${myMood != null ? myMood.emoji : '🥰'}">
+
+                        <!-- Thông báo quy tắc 1 bài Vibe & reset lúc 0h -->
+                        <div class="vibe-info mb-3">
+                            <span class="vibe-info-icon" aria-hidden="true">⏳</span>
+                            <div><strong th:text="${myMood != null} ? 'Vibe hôm nay của bạn' : 'Một Vibe mỗi ngày'">Vibe hôm nay của bạn</strong>
+                                <span>Reset mỗi ngày lúc 0h.</span></div>
+                        </div>
+
+                        <!-- 1. Chọn icon cảm xúc (Emoji) -->
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="form-label small fw-bold mb-0">Chọn biểu cảm</span>
+                            <span class="small text-soft" id="selectedVibeEmojiText"
+                                  th:text="'Đang chọn: ' + (${myMood != null ? myMood.emoji : '🥰'})">Đang chọn: 🥰</span>
+                        </div>
+                        <div class="vibe-emoji-picker d-flex flex-wrap gap-1 mb-3">
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '🥰') == '🥰'} ? 'is-active'" data-emoji="🥰">🥰</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '😊'} ? 'is-active'" data-emoji="😊">😊</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🥳'} ? 'is-active'" data-emoji="🥳">🥳</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '😎'} ? 'is-active'" data-emoji="😎">😎</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🤩'} ? 'is-active'" data-emoji="🤩">🤩</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🥺'} ? 'is-active'" data-emoji="🥺">🥺</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '😴'} ? 'is-active'" data-emoji="😴">😴</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🫠'} ? 'is-active'" data-emoji="🫠">🫠</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '😭'} ? 'is-active'" data-emoji="😭">😭</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '😤'} ? 'is-active'" data-emoji="😤">😤</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🤯'} ? 'is-active'" data-emoji="🤯">🤯</button>
+                            <button type="button" class="btn story-picker-emoji" th:classappend="${(myMood != null ? myMood.emoji : '') == '🤔'} ? 'is-active'" data-emoji="🤔">🤔</button>
+                        </div>
+
+                        <!-- 2. Lời nhắn tâm trạng (tối đa 60 ký tự) -->
+                        <div class="mb-3">
+                            <label for="vibeTextInput" class="form-label small fw-bold mb-1">Lời nhắn hôm nay</label>
+                            <input type="text" class="form-control border border-2 border-dark rounded-3" id="vibeTextInput" name="moodText"
+                                   maxlength="60" required placeholder="Ví dụ: Đang yêu đời, Cạn năng lượng, Deadline dí..."
+                                   th:value="${myMood != null ? myMood.moodText : 'Đang yêu đời'}">
+                        </div>
+
+                        <input type="hidden" name="colorTheme" th:value="${myMood != null ? myMood.colorTheme : 'lemon'}">
+
+                        <!-- 4. Live preview avatar demo có icon vibe trên đầu (Hình 2) -->
+                        <div class="vibe-preview" id="vibePreviewCard">
+                            <div class="story-avatar-container position-relative d-inline-block">
+                                <div class="story-vibe-bubble" th:classappend="'note--' + ${myMood != null ? myMood.colorTheme : 'lemon'}" id="vibePreviewBubble">
+                                    <span class="story-vibe-bubble-emoji" id="vibePreviewEmoji" th:text="${myMood != null ? myMood.emoji : '🥰'}">🥰</span>
+                                </div>
+                                <div class="story-ring story-ring--active">
+                                    <div class="story-avatar-wrap">
+                                        <span style="--size: 54px;" th:replace="~{fragments/ui :: avatar(${me.profile}, '')}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="vibe-preview-copy"><span>Xem trước trên Khoảnh khắc</span><div class="fw-bold" id="vibePreviewText"
+                                 th:text="${myMood != null ? myMood.moodText : 'Đang yêu đời'}">
+                                Đang yêu đời
+                            </div></div>
+                        </div>
+
+                        <!-- Footer cho Form Vibe -->
+                        <div class="vibe-footer d-flex align-items-center justify-content-between pt-2 border-top border-2 border-dark mt-3">
+                            <button type="button" class="btn-al btn-al--ghost btn-al--sm" data-bs-dismiss="modal">Đóng</button>
+                            <div class="d-flex gap-2">
+                                <button th:if="${myMood != null}" type="button" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold"
+                                        onclick="document.getElementById('deleteMoodForm').submit();" style="font-size: .82rem;">
+                                    Gỡ vibe
+                                </button>
+                                <button type="submit" class="btn-al btn-al--lemon btn-al--sm px-3 fw-bold" style="box-shadow: 2px 2px 0 var(--ink);">
+                                    <span th:text="${myMood != null} ? '🌈 Lưu Vibe' : '🌈 Đăng Vibe'">🌈 Lưu Vibe</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Form ẩn để gỡ vibe -->
+                    <form method="post" th:action="@{/mood/delete}" id="deleteMoodForm" class="d-none">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <input type="hidden" name="next" th:value="${currentPath ?: '/'}">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MODAL STORY VIEWER (TRÌNH PHÁT KHOẢNH KHẮC) -->
+    <th:block th:replace="~{fragments/stories :: storyViewerOnly}"></th:block>
+</div>
+
+<!-- ==================== CHỈ MODAL XEM STORY (DÙNG CHO TRANG CHAT HOẶC TRANG NGOÀI) ==================== -->
+<th:block th:fragment="storyViewerOnly">
+    <!-- 2. MODAL STORY VIEWER (TRÌNH PHÁT KHOẢNH KHẮC) -->
+    <div class="modal fade" id="storyViewerModal" tabindex="-1" aria-labelledby="storyViewerModalLabel" aria-hidden="true" data-bs-backdrop="static" th:attr="data-my-id=${me != null ? me.id : ''}">
+        <div class="modal-dialog modal-dialog-centered story-viewer-dialog">
+            <div class="modal-content story-viewer-box position-relative overflow-hidden border border-3 border-dark"
+                 style="background: var(--paper); color: var(--ink); box-shadow: 8px 8px 0 var(--ink);">
+
+                <!-- THANH TIẾN TRÌNH SEGMENTED PROGRESS BARS (TRÊN CÙNG) -->
+                <div class="story-progress-wrapper position-absolute z-3 d-flex" id="storyProgressContainer">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- THANH HEADER (AVATAR, TÊN, THỜI GIAN, NÚT ĐIỀU KHIỂN NEO-BRUTALISM) -->
+                <div class="story-header position-absolute top-0 start-0 w-100 px-3 pt-3 pb-2 z-3 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <img id="viewerAuthorAvatar" src="" alt="" class="rounded-circle border border-2 border-dark"
+                             style="width: 40px; height: 40px; object-fit: cover; box-shadow: 1.5px 1.5px 0 var(--ink); background: var(--white);">
+                        <div>
+                            <div class="fw-bold small" id="viewerAuthorName"
+                                 style="line-height: 1.25; font-size: .95rem; font-family: var(--font-display); color: var(--ink);">Tên bạn</div>
+                            <div class="text-soft" style="font-size: .72rem; color: var(--ink-soft);" id="viewerTimeAgo">vừa xong</div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Nút Tạm dừng / Phát tiếp -->
+                        <button type="button" class="story-ctrl-btn" id="storyPauseBtn" title="Tạm dừng / Phát tiếp" aria-label="Tạm dừng hoặc phát tiếp">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                                <rect x="14" y="4" width="4" height="16" rx="1"/>
+                            </svg>
+                        </button>
+                        <!-- Nút Xóa (chỉ hiện khi xem story của chính mình) -->
+                        <button type="button" class="story-ctrl-btn story-ctrl-btn--danger d-none" id="storyDeleteBtn" title="Xóa khoảnh khắc này">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+                                <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            <span>Xóa</span>
+                        </button>
+                        <!-- Nút Đóng -->
+                        <button type="button" class="story-ctrl-btn" id="storyCloseBtn" data-bs-dismiss="modal" aria-label="Đóng" title="Đóng">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KHUNG CHÍNH HIỂN THỊ NỘI DUNG (ẢNH, VIDEO HOẶC GHI CHÚ) -->
+                <div class="story-viewport position-relative w-100 flex-grow-1 d-flex align-items-center justify-content-center overflow-hidden"
+                     id="storyViewport">
+                    <!-- Vùng bấm sang trái/phải -->
+                    <div class="story-tap-zone story-tap-left position-absolute top-0 start-0 h-100 z-2" style="width: 32%; cursor: pointer;"></div>
+                    <div class="story-tap-zone story-tap-right position-absolute top-0 end-0 h-100 z-2" style="width: 68%; cursor: pointer;"></div>
+
+                    <!-- TH1: Ảnh -->
+                    <img id="viewerImage" src="" alt="Story media" class="d-none img-fluid" style="object-fit: contain;">
+
+                    <!-- TH2: Video -->
+                    <video id="viewerVideo" class="d-none w-100 h-100" style="object-fit: contain;" playsinline></video>
+
+                    <!-- TH3: Ghi chú chữ / Vibe có gắn icon cảm xúc -->
+                    <div id="viewerTextCard" class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-center z-2 position-relative">
+                        <div class="story-note-tape mb-3 px-3 py-1 rounded-pill small fw-bold text-uppercase border border-dark"
+                             id="viewerTextTape"
+                             style="font-size: .75rem; letter-spacing: .08em; background: rgba(255, 255, 255, 0.85); box-shadow: 1.5px 1.5px 0 var(--ink); color: var(--ink);">
+                            📌 Ghi chú
+                        </div>
+                        <div class="story-vibe-content-box p-3 rounded-4 position-relative d-flex flex-column align-items-center justify-content-center"
+                             id="viewerVibeCardBox" style="transition: all .25s ease;">
+                            <div id="viewerTextEmoji" class="mb-2 story-viewer-emoji-bounce d-none" style="font-size: 4rem; line-height: 1;">🥰</div>
+                            <div class="fw-bold px-2" id="viewerTextContent" style="font-size: 1.6rem; font-family: var(--font-display); line-height: 1.45;">
+                                Nội dung ghi chú
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chú thích / Sticker nổi trên media dạng badge kính mờ -->
+                    <div class="story-caption-overlay position-absolute bottom-0 start-50 translate-middle-x mb-3 z-3 text-center d-none"
+                         id="viewerCaptionOverlay">
+                        <span class="story-caption-badge" id="viewerCaptionText"></span>
+                    </div>
+
+                    <!-- Vùng hiệu ứng các hạt emoji phản ứng bay lên -->
+                    <div class="story-reaction-particles position-absolute top-0 start-0 w-100 h-100 z-3 pointer-events-none overflow-hidden" id="reactionParticles"></div>
+                </div>
+
+                <!-- THANH TƯƠNG TÁC DƯỚI CÙNG -->
+                <div class="story-footer p-3 z-3 border-top border-2 border-dark" style="background: var(--paper-2);">
+                    <button type="button" class="story-nav-btn story-nav-prev" id="storyPrevBtn" aria-label="Khoảnh khắc trước" title="Khoảnh khắc trước">&#8249;</button>
+                    <!-- KHUNG DÀNH CHO NGƯỜI XEM: PHẢN HỒI NHANH QUA CHAT 1-1 -->
+                    <div id="storyReplyBar" class="d-none">
+                        <!-- Hàng emoji chạm nhanh -->
+                        <div class="d-flex align-items-center justify-content-around mb-2 px-1">
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="❤️">❤️</button>
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="🔥">🔥</button>
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="😂">😂</button>
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="😮">😮</button>
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="😢">😢</button>
+                            <button type="button" class="btn p-0 story-emoji-btn" data-emoji="👏">👏</button>
+                        </div>
+                        <!-- Ô gõ tin nhắn phản hồi -->
+                        <form id="storyReplyForm" class="d-flex gap-2 align-items-center">
+                            <input type="text" class="form-control form-control-sm story-reply-input rounded-pill px-3 py-1_5"
+                                   id="storyReplyInput" placeholder="Gửi tin nhắn cho bạn bè..." autocomplete="off">
+                            <button type="submit" class="btn btn-sm btn-al btn-al--pink rounded-pill px-3 py-1_5 fw-bold d-flex align-items-center gap-1"
+                                    style="box-shadow: 2px 2px 0 var(--ink);">
+                                <span>Gửi</span>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- KHUNG DÀNH CHO CHỦ SỞ HỮU: NÚT XEM LƯỢT XEM -->
+                    <div id="storyOwnerBar" class="d-none text-center py-1">
+                        <button type="button" class="btn btn-sm rounded-pill px-4 py-1_5 fw-bold story-viewers-pill border border-2 border-dark"
+                                id="openViewersBtn" style="background: var(--white); box-shadow: 2px 2px 0 var(--ink); color: var(--ink);">
+                            <span class="me-1">👁️</span> <strong id="storyViewCount">0</strong> người đã xem
+                        </button>
+                    </div>
+                    <button type="button" class="story-nav-btn story-nav-next" id="storyNextBtn" aria-label="Khoảnh khắc tiếp theo" title="Khoảnh khắc tiếp theo">&#8250;</button>
+                </div>
+
+                <!-- 3. BOTTOM SHEET DANH SÁCH NGƯỜI ĐÃ XEM STORY (HIỆN TỪ DƯỚI LÊN) -->
+                <div id="storyViewersBackdrop" class="story-viewers-backdrop d-none"></div>
+                <div id="storyViewersSheet" class="story-viewers-sheet">
+                    <!-- Thanh kéo handle ở đầu sheet -->
+                    <div class="story-sheet-handle-wrap py-2 d-flex justify-content-center cursor-pointer" id="closeViewersSheetHandle" title="Vuốt / Bấm để đóng">
+                        <span class="story-sheet-handle"></span>
+                    </div>
+
+                    <!-- Header của Bottom Sheet -->
+                    <div class="px-3 pb-2 border-bottom border-2 border-dark d-flex align-items-center justify-content-between" style="background: var(--paper-2);">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5">👁️</span>
+                            <h6 class="fw-bold mb-0" style="font-family: var(--font-display); font-size: .95rem;">
+                                Người đã xem & Thả cảm xúc
+                            </h6>
+                        </div>
+                        <button type="button" class="story-ctrl-btn" id="closeViewersSheetBtn" aria-label="Đóng" style="width: 28px; height: 28px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Body danh sách người xem cuộn mượt mà -->
+                    <div class="p-3 flex-grow-1 overflow-y-auto" style="max-height: 380px;">
+                        <div id="viewersList" class="d-flex flex-column gap-2">
+                            <!-- Rendered by JS -->
+                        </div>
+                        <div id="noViewersNotice" class="text-center py-4 text-soft small d-none">
+                            <span class="fs-4 d-block mb-1">👀</span>
+                            Chưa có bạn bè nào xem khoảnh khắc này.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. MODAL XÁC NHẬN XÓA KHOẢNH KHẮC (NEO-BRUTALISM) -->
+    <div class="modal fade" id="storyDeleteConfirmModal" tabindex="-1" aria-labelledby="storyDeleteConfirmTitle" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border border-3 border-dark rounded-4 p-3 text-center"
+                 style="background: var(--paper); box-shadow: 6px 6px 0 var(--ink); color: var(--ink);">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark mx-auto mb-2"
+                     style="width: 48px; height: 48px; background: #FFD6E0; box-shadow: 2px 2px 0 var(--ink);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </div>
+                <h5 class="fw-bold mb-1" id="storyDeleteConfirmTitle" style="font-family: var(--font-display);">Xóa khoảnh khắc?</h5>
+                <p class="small text-soft mb-0" style="font-size: .84rem; line-height: 1.4;">Khoảnh khắc này sẽ bị gỡ bỏ ngay lập tức và không thể khôi phục.</p>
+                <div class="d-flex justify-content-center gap-2 mt-3 pt-2 border-top border-2 border-dark">
+                    <button type="button" class="btn-al btn-al--white btn-al--sm px-3" data-bs-dismiss="modal" id="cancelDeleteStoryBtn">Giữ lại</button>
+                    <button type="button" class="btn-al btn-al--pink btn-al--sm px-3 fw-bold" id="confirmDeleteStoryBtn"
+                            style="box-shadow: 2px 2px 0 var(--ink);">
+                        Xóa luôn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+</body>
+</html>

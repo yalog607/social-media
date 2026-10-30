@@ -1,8 +1,6 @@
 package com.aloute.repository.post;
 
 import com.aloute.model.post.Post;
-import com.aloute.service.post.PostService;
-
 import com.aloute.model.user.Visibility;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,17 +51,43 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                     where f.status = com.aloute.model.social.FriendshipStatus.ACCEPTED
                       and ((f.userA.id = a.id and f.userB.id = :viewerId) or (f.userB.id = a.id and f.userA.id = :viewerId)))""";
 
-    /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem. */
+    String IS_GROUP_MEMBER = """
+            (:viewerId is not null and exists (select 1 from com.aloute.model.chat.ConversationMember cm
+                    where cm.conversation.id = p.groupId and cm.user.id = :viewerId))""";
+
+    String IS_PUBLIC_GROUP = """
+            exists (select 1 from com.aloute.model.chat.Conversation c
+                    where c.id = p.groupId and c.approvalRequired = false)""";
+
+    /** Bảng tin: bài công khai của mọi người + bài "chỉ bạn bè" của bạn bè + mọi bài của chính người xem + bài trong nhóm (nhóm đã tham gia hoặc nhóm công khai). */
     @Query("""
             select p from Post p join fetch p.author a join fetch a.profile
             where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.model.user.UserStatus.ACTIVE
-              and (p.visibility = com.aloute.model.user.Visibility.PUBLIC or a.id = :viewerId
-                   or (p.visibility = com.aloute.model.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
-              ))
+              and (
+                   (p.groupId is null and (p.visibility = com.aloute.model.user.Visibility.PUBLIC or a.id = :viewerId
+                        or (p.visibility = com.aloute.model.user.Visibility.FRIENDS and """ + " " + IS_FRIEND + """
+                   )))
+                   or
+                   (p.groupId is not null and (
+                        """ + " " + IS_GROUP_MEMBER + """
+                        or (p.visibility = com.aloute.model.user.Visibility.PUBLIC and """ + " " + IS_PUBLIC_GROUP + """
+                        )
+                   ))
+              )
               and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
             order by p.createdAt desc, p.id desc""")
     List<Post> feed(@Param("viewerId") UUID viewerId, @Param("cursorTime") Instant cursorTime,
                     @Param("cursorId") UUID cursorId, Pageable pageable);
+
+    /** Bài viết trong một nhóm, mới nhất trước. */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.groupId = :groupId and p.deletedAt is null and p.scheduledAt is null
+              and a.status = com.aloute.model.user.UserStatus.ACTIVE
+              and (p.createdAt < :cursorTime or (p.createdAt = :cursorTime and p.id < :cursorId))
+            order by p.createdAt desc, p.id desc""")
+    List<Post> byGroup(@Param("groupId") UUID groupId, @Param("cursorTime") Instant cursorTime,
+                       @Param("cursorId") UUID cursorId, Pageable pageable);
 
     /**
      * Bài của một tác giả, giới hạn theo các mức quyền xem mà người xem được thấy ({@code visibilities} là
@@ -134,4 +158,14 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     @Query("select count(p) from Post p where p.author.id = :authorId and p.isPinned = true and p.deletedAt is null")
     long countPinnedByAuthor(@Param("authorId") UUID authorId);
+
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.groupId = :groupId and p.deletedAt is null and p.scheduledAt is null
+              and a.status = com.aloute.model.user.UserStatus.ACTIVE and p.isPinned = true
+            order by p.createdAt desc, p.id desc""")
+    List<Post> findPinnedByGroup(@Param("groupId") UUID groupId);
+
+    @Query("select count(p) from Post p where p.groupId = :groupId and p.isPinned = true and p.deletedAt is null")
+    long countPinnedByGroup(@Param("groupId") UUID groupId);
 }

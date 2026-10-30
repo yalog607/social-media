@@ -1,4 +1,4 @@
-/* ALOUTE — trang một cuộc trò chuyện: nhận tin nhắn mới qua WebSocket (STOMP/SockJS), gửi tin qua fetch thường.
+﻿/* ALOUTE — trang một cuộc trò chuyện: nhận tin nhắn mới qua WebSocket (STOMP/SockJS), gửi tin qua fetch thường.
    Máy chủ đẩy MỌI tin nhắn mới (kể cả của chính mình) qua cùng một kênh, nên chỉ cần một chỗ để chèn bong bóng chat. */
 (function () {
   'use strict';
@@ -8,6 +8,7 @@
 
   var conversationId = main.dataset.conversationId;
   var myId = main.dataset.userId;
+  var stickerClipSequence = 0;
   var isGroup = main.dataset.group === 'true';
   var chatWindow = document.getElementById('chat-window');
   var composer = document.getElementById('chat-composer');
@@ -40,7 +41,10 @@
     marker.classList.add('is-loading');
     try {
       var response = await window.Aloute.api(marker.dataset.beforeUrl, { headers: { Accept: 'text/html' } });
-      if (!response.ok) throw new Error('HTTP ' + response.status);
+      if (!response.ok) {
+        var failure = await response.json().catch(function () { return {}; });
+        throw new Error(failure.message || 'Chưa gửi được tin nhắn, thử lại nhé.');
+      }
       var template = document.createElement('template');
       template.innerHTML = await response.text();
       // Bỏ tin đã có sẵn (vừa tới qua WebSocket trong lúc tải) để không bị lặp
@@ -99,6 +103,7 @@
 
     var avatar = document.createElement('span');
     avatar.className = 'avatar';
+    if (m.sender.avatarFrame) avatar.classList.add('avatar-frame--' + m.sender.avatarFrame);
     if (m.sender.avatarUrl) {
       var img = document.createElement('img');
       img.src = m.sender.avatarUrl;
@@ -129,34 +134,51 @@
       body.appendChild(senderRow);
     }
 
+    if (m.reply) {
+      var replyBox = document.createElement('div');
+      replyBox.className = 'msg-reply-container' + (mine ? ' is-mine' : '');
+      replyBox.title = 'Nhấn để xem tin nhắn gốc';
+      if (m.reply.messageId) replyBox.dataset.mid = m.reply.messageId;
+      replyBox.dataset.snippet = m.reply.snippet;
+      replyBox.onclick = function () {
+        if (typeof scrollToRepliedMessage === 'function') {
+          scrollToRepliedMessage(m.reply.messageId, m.reply.snippet);
+        }
+      };
+      var indicator = document.createElement('div');
+      indicator.className = 'msg-reply-indicator';
+      var isRepliedToMe = !isGroup;
+      var titleText = mine
+        ? ('Bạn đã trả lời ' + m.reply.senderName)
+        : (m.sender.displayName + ' đã trả lời ' + (isRepliedToMe ? 'bạn' : m.reply.senderName));
+      indicator.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg><span>' + escapeText(titleText) + '</span>';
+      
+      var snippetEl = document.createElement('div');
+      snippetEl.className = 'msg-reply-snippet-bubble';
+      snippetEl.textContent = m.reply.snippet;
+
+      replyBox.appendChild(indicator);
+      replyBox.appendChild(snippetEl);
+      body.appendChild(replyBox);
+    }
+
+    var row = document.createElement('div');
+    row.className = 'msg-row d-flex align-items-center gap-2' + (mine ? ' flex-row-reverse' : '');
+
     var bubbleWrap = document.createElement('div');
     bubbleWrap.className = 'msg-bubble-wrap position-relative';
-
-    var reactionBar = document.createElement('div');
-    reactionBar.className = 'msg-reaction-bar';
-    var emojis = [
-      { type: 'LOVE', emoji: '❤️', label: 'Yêu thích' },
-      { type: 'HAHA', emoji: '😂', label: 'Haha' },
-      { type: 'FIRE', emoji: '🔥', label: 'Cháy quá' },
-      { type: 'WOW', emoji: '😮', label: 'Wow' },
-      { type: 'SAD', emoji: '😢', label: 'Buồn ghê' }
-    ];
-    emojis.forEach(function (e) {
-      var rBtn = document.createElement('button');
-      rBtn.type = 'button';
-      rBtn.className = 'msg-reaction-btn';
-      rBtn.dataset.mid = m.id;
-      rBtn.dataset.cid = conversationId;
-      rBtn.dataset.type = e.type;
-      rBtn.title = e.label;
-      rBtn.innerHTML = '<span>' + e.emoji + '</span>';
-      reactionBar.appendChild(rBtn);
-    });
-    bubbleWrap.appendChild(reactionBar);
 
     var bubble = document.createElement('span');
     bubble.className = 'bubble ' + (mine ? 'bubble--out' : 'bubble--in');
     bubble.innerHTML = attachmentHtml(m.attachment) + (m.contentHtml || '');
+    if (m.sticker && (m.sticker.renderType === 'IMAGE' || Number.isInteger(m.sticker.spriteIndex))) {
+      bubble.className = 'msg-local-sticker';
+      bubble.insertBefore(stickerArt(m.sticker, 'sticker-art--message'), bubble.firstChild);
+    } else if (m.sticker || m.giphyId) {
+      var hiddenSticker = document.createElement('span');
+      hiddenSticker.className = 'text-soft small'; hiddenSticker.textContent = 'Nhãn dán cũ không còn hiển thị.';
+      bubble.insertBefore(hiddenSticker, bubble.firstChild);
+    }
     bubbleWrap.appendChild(bubble);
 
     var badge = document.createElement('div');
@@ -172,6 +194,13 @@
 
     var emojisSpan = document.createElement('span');
     emojisSpan.className = 'msg-reactions-emojis';
+    var emojis = [
+      { type: 'LOVE', emoji: '❤️', label: 'Yêu thích' },
+      { type: 'HAHA', emoji: '😂', label: 'Haha' },
+      { type: 'FIRE', emoji: '🔥', label: 'Cháy quá' },
+      { type: 'WOW', emoji: '😮', label: 'Wow' },
+      { type: 'SAD', emoji: '😢', label: 'Buồn ghê' }
+    ];
     emojis.forEach(function (e) {
       var s = document.createElement('span');
       s.className = 'mr-emoji mr-emoji--' + e.type + ' d-none';
@@ -184,10 +213,83 @@
     countSpan.className = 'msg-reactions-count d-none';
     countSpan.textContent = '0';
     badge.appendChild(countSpan);
-
     bubbleWrap.appendChild(badge);
-    body.appendChild(bubbleWrap);
 
+    // 3 tác nhân bên cạnh (cảm xúc, trả lời, khác)
+    var actions = document.createElement('div');
+    actions.className = 'msg-actions';
+
+    // 1. Bày tỏ cảm xúc
+    var reactContainer = document.createElement('div');
+    reactContainer.className = 'msg-reaction-container';
+    var reactBtn = document.createElement('button');
+    reactBtn.type = 'button';
+    reactBtn.className = 'msg-action-btn msg-action-btn--react';
+    reactBtn.title = 'Bày tỏ cảm xúc';
+    reactBtn.setAttribute('aria-label', 'Bày tỏ cảm xúc');
+    reactBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>';
+
+    var reactionBar = document.createElement('div');
+    reactionBar.className = 'msg-reaction-bar';
+    emojis.forEach(function (e) {
+      var rBtn = document.createElement('button');
+      rBtn.type = 'button';
+      rBtn.className = 'msg-reaction-btn';
+      rBtn.dataset.mid = m.id;
+      rBtn.dataset.cid = conversationId;
+      rBtn.dataset.type = e.type;
+      rBtn.title = e.label;
+      rBtn.innerHTML = '<span>' + e.emoji + '</span>';
+      reactionBar.appendChild(rBtn);
+    });
+    reactContainer.appendChild(reactBtn);
+    reactContainer.appendChild(reactionBar);
+    actions.appendChild(reactContainer);
+
+    // 2. Trả lời
+    var replyBtn = document.createElement('button');
+    replyBtn.type = 'button';
+    replyBtn.className = 'msg-action-btn msg-action-btn--reply';
+    replyBtn.title = 'Trả lời';
+    replyBtn.setAttribute('aria-label', 'Trả lời');
+    replyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>';
+    replyBtn.addEventListener('click', function () {
+      if (typeof startReply === 'function') {
+        startReply(m.id, m.sender.displayName);
+      }
+    });
+    actions.appendChild(replyBtn);
+
+    // 3. Khác (Ghim, Sửa, Xóa)
+    var moreDropdown = document.createElement('div');
+    moreDropdown.className = 'dropdown msg-more-dropdown';
+    var moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'msg-action-btn msg-action-btn--more';
+    moreBtn.setAttribute('data-bs-toggle', 'dropdown');
+    moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.title = 'Khác';
+    moreBtn.setAttribute('aria-label', 'Khác');
+    moreBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>';
+
+    var dropdownMenu = document.createElement('ul');
+    dropdownMenu.className = 'dropdown-menu menu-al msg-dropdown-menu' + (mine ? ' dropdown-menu-end' : '');
+    var menuHtml = '';
+    if (mine && !m.giphyId && !m.sticker) {
+      menuHtml += '<li><button class="dropdown-item" type="button" onclick="editMessage(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg><span>Sửa tin nhắn</span></button></li>';
+    }
+    menuHtml += '<li><button class="dropdown-item" type="button" onclick="copyMessageText(\'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Sao chép văn bản</span></button></li>';
+    if (mine) {
+      menuHtml += '<li><hr class="dropdown-divider my-1"></li><li><button class="dropdown-item text-danger" type="button" onclick="confirmDeleteMessage(\'' + conversationId + '\', \'' + m.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg><span>Xóa tin nhắn</span></button></li>';
+    }
+    dropdownMenu.innerHTML = menuHtml;
+    moreDropdown.appendChild(moreBtn);
+    moreDropdown.appendChild(dropdownMenu);
+    actions.appendChild(moreDropdown);
+
+    row.appendChild(bubbleWrap);
+    row.appendChild(actions);
+    body.appendChild(row);
     var time = document.createElement('span');
     time.className = 'msg-time';
     time.textContent = 'vừa xong';
@@ -200,6 +302,8 @@
     chatWindow.appendChild(msg);
     if (follow) scrollToBottom();
   }
+
+  function escapeText(text) { var d = document.createElement("div"); d.textContent = text || ""; return d.innerHTML; }
 
   function attachmentHtml(a) {
     if (!a) return '';
@@ -241,9 +345,42 @@
   }
 
   // Bấm vào nút cảm xúc trên thanh nổi để thả/đổi/bỏ
+  
+  // Click vào nút mặt cười để bật / tắt thanh cảm xúc (Chỉ click mới hiện - Hình 2)
+  document.addEventListener('click', function (event) {
+    var reactBtn = event.target.closest('.msg-action-btn--react');
+    if (reactBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      var container = reactBtn.closest('.msg-reaction-container');
+      if (!container) return;
+      var bar = container.querySelector('.msg-reaction-bar');
+      if (!bar) return;
+
+      var wasOpen = bar.classList.contains('is-open');
+      document.querySelectorAll('.msg-reaction-bar.is-open').forEach(function (el) {
+        el.classList.remove('is-open');
+      });
+      if (!wasOpen) {
+        bar.classList.add('is-open');
+      }
+      return;
+    }
+
+    // Click ra ngoài thì đóng thanh cảm xúc
+    if (!event.target.closest('.msg-reaction-bar')) {
+      document.querySelectorAll('.msg-reaction-bar.is-open').forEach(function (el) {
+        el.classList.remove('is-open');
+      });
+    }
+  });
+
   document.addEventListener('click', async function (event) {
     var btn = event.target.closest('.msg-reaction-btn');
     if (!btn || !btn.dataset.mid || !btn.dataset.type) return;
+
+    var bar = btn.closest('.msg-reaction-bar');
+    if (bar) bar.classList.remove('is-open');
 
     var mid = btn.dataset.mid;
     var cid = btn.dataset.cid || conversationId;
@@ -279,6 +416,22 @@
     }
   });
 
+  async function markCurrentConversationRead() {
+    if (document.hidden) return;
+    try {
+      var response = await window.Aloute.api('/api/conversations/' + conversationId + '/read', { method: 'POST' });
+      if (!response.ok) return;
+      var data = await response.json();
+      document.querySelectorAll('[data-unread-messages]').forEach(function (badge) {
+        badge.textContent = String(data.unread);
+        badge.hidden = data.unread === 0;
+      });
+    } catch (_) { /* Lần mở hoặc tin mới tiếp theo sẽ thử lại. */ }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) markCurrentConversationRead();
+  });
+
   function connect() {
     var socket = new SockJS('/ws');
     var client = Stomp.over(socket);
@@ -290,6 +443,7 @@
           handleMessageReactionEvent(data);
         } else {
           appendMessage(data);
+          markCurrentConversationRead();
         }
       });
     }, function () {
@@ -363,6 +517,11 @@
     var content = textarea.value.trim();
     if (!content && !attachedFile) return;
 
+    if (window.chatReplyState) {
+      content = '[reply:' + window.chatReplyState.messageId + ':@' + window.chatReplyState.senderName + ': "' + window.chatReplyState.snippet + '"]\n' + content;
+      if (typeof cancelReply === 'function') cancelReply();
+    }
+
     var body = new FormData();
     if (content) body.append('content', content);
     if (attachedFile) body.append('attachment', attachedFile);
@@ -375,7 +534,7 @@
       textarea.value = '';
       clearAttachment();
     } catch (error) {
-      window.Aloute.toast('Chưa gửi được tin nhắn, thử lại nhé.', 'error');
+      window.Aloute.toast(error.message || 'Chưa gửi được tin nhắn, thử lại nhé.', 'error');
     } finally {
       submitBtn.disabled = false;
     }
@@ -387,4 +546,146 @@
       composer.requestSubmit();
     }
   });
+
+  // Local character sticker packs. Favorites and recent sends are saved per account.
+  var stickerBtn = document.getElementById('chat-sticker-btn');
+  var stickerPicker = document.getElementById('chat-sticker-picker');
+  var stickerGrid = document.getElementById('sticker-grid');
+  var stickerSearch = document.getElementById('sticker-search');
+  var stickerTabs = document.getElementById('sticker-pack-tabs');
+  var stickerStatus = document.getElementById('sticker-status');
+  var stickerRetry = document.getElementById('sticker-retry');
+  var library = {packs: [], recent: [], favorites: []};
+  var activeStickerTab = '', loadingLibrary = false, sendingSticker = false;
+
+  function stickerArt(sticker, extraClass) {
+    if (sticker.renderType === 'IMAGE') {
+      var img = document.createElement('img'); img.className = 'sticker-art sticker-image ' + (extraClass || '');
+      img.src = sticker.imageUrl; img.alt = sticker.name || 'Nhãn dán'; img.loading = 'lazy'; return img;
+    }
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var art = document.createElementNS(svgNS, 'svg'); art.setAttribute('class', 'sticker-art ' + (extraClass || ''));
+    art.setAttribute('role', 'img'); art.setAttribute('aria-label', sticker.name || 'Nhãn dán');
+    if (sticker.artwork) {
+      art.setAttribute('viewBox', sticker.artwork.viewBox);
+      var clipId = 'local-art-' + (++stickerClipSequence);
+      var defs = document.createElementNS(svgNS, 'defs');
+      var clip = document.createElementNS(svgNS, 'clipPath'); clip.id = clipId; clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+      var polygon = document.createElementNS(svgNS, 'polygon'); polygon.setAttribute('points', sticker.artwork.clipPoints);
+      clip.appendChild(polygon); defs.appendChild(clip); art.appendChild(defs);
+      var image = document.createElementNS(svgNS, 'image'); image.setAttribute('href', '/stickers/original/characters.png');
+      image.setAttribute('width', '1024'); image.setAttribute('height', '1536'); image.setAttribute('clip-path', 'url(#' + clipId + ')');
+      art.appendChild(image);
+    }
+    return art;
+  }
+
+  function normalizeStickerText(value) {
+    return (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+
+  async function loadStickerLibrary() {
+    if (loadingLibrary) return;
+    loadingLibrary = true; stickerStatus.textContent = 'Đang tải nhãn dán…'; stickerRetry.hidden = true;
+    try {
+      var response = await window.Aloute.api('/api/stickers/library');
+      if (!response.ok) throw new Error('library');
+      library = await response.json();
+      if (!activeStickerTab) activeStickerTab = library.recent.length ? 'recent' : ((library.packs[0] || {}).id || 'recent');
+      renderStickerTabs(); renderLocalStickers();
+    } catch (error) { stickerStatus.textContent = 'Chưa tải được bộ nhãn dán. Bạn thử lại nhé.'; stickerRetry.hidden = false; }
+    finally { loadingLibrary = false; }
+  }
+
+  function renderStickerTabs() {
+    var restoreFocus = stickerTabs.contains(document.activeElement);
+    stickerTabs.replaceChildren();
+    var tabs = [{id: 'recent', name: 'Gần đây', icon: '◷'}, {id: 'favorites', name: 'Yêu thích', icon: '♡'}].concat(library.packs);
+    tabs.forEach(function (tab) {
+      var button = document.createElement('button'); button.type = 'button'; button.title = tab.name;
+      button.setAttribute('aria-label', tab.name); button.setAttribute('aria-pressed', String(activeStickerTab === tab.id));
+      if (tab.iconUrl && tab.iconUrl !== '/stickers/original/characters.png') button.appendChild(stickerArt({renderType: 'IMAGE', imageUrl: tab.iconUrl, name: tab.name}));
+      else if (tab.stickers && tab.stickers[0]) button.appendChild(stickerArt(tab.stickers[0])); else button.textContent = tab.icon;
+      if (tab.accessType === 'AWARD') {
+        var gift = document.createElement('span'); gift.className = 'local-sticker-award'; gift.textContent = '🎁'; gift.setAttribute('aria-hidden', 'true'); button.appendChild(gift);
+        button.setAttribute('aria-label', tab.name + ' · Phần thưởng'); button.title = tab.name + ' · Phần thưởng';
+      }
+      button.addEventListener('click', function () { activeStickerTab = tab.id; stickerSearch.value = ''; renderStickerTabs(); renderLocalStickers(); });
+      stickerTabs.appendChild(button);
+    });
+    if (restoreFocus) { var selectedTab = stickerTabs.querySelector('[aria-pressed="true"]'); if (selectedTab) selectedTab.focus(); }
+  }
+
+  function renderLocalStickers() {
+    stickerGrid.replaceChildren(); stickerRetry.hidden = true;
+    var all = library.packs.flatMap(function (pack) { return pack.stickers; });
+    var query = normalizeStickerText(stickerSearch.value.trim());
+    var selected = library.packs.find(function (pack) { return pack.id === activeStickerTab; });
+    var items;
+    if (query) items = all.filter(function (sticker) { return normalizeStickerText(sticker.name + ' ' + (sticker.keywords || '')).includes(query); });
+    else if (activeStickerTab === 'recent' || activeStickerTab === 'favorites') items = library[activeStickerTab].map(function (id) { return all.find(function (s) { return s.id === id; }); }).filter(Boolean);
+    else items = selected ? selected.stickers : [];
+    document.getElementById('sticker-section-title').textContent = query ? 'Kết quả tìm kiếm' : activeStickerTab === 'recent' ? 'Gần đây' : activeStickerTab === 'favorites' ? 'Yêu thích' : (selected || {}).name || 'Nhãn dán';
+    if (!query && selected && selected.accessType === 'AWARD') document.getElementById('sticker-section-title').textContent += ' · 🎁 Phần thưởng';
+    stickerStatus.textContent = items.length ? '' : query ? 'Không tìm thấy nhãn dán phù hợp.' : activeStickerTab === 'favorites' ? 'Nhấn ngôi sao trên nhãn dán để thêm vào yêu thích.' : 'Những nhãn dán bạn gửi sẽ xuất hiện ở đây.';
+    items.forEach(function (sticker) {
+      var cell = document.createElement('div'); cell.className = 'local-sticker-cell';
+      cell.dataset.stickerId = sticker.id;
+      var send = document.createElement('button'); send.type = 'button'; send.className = 'local-sticker-send'; send.title = sticker.name;
+      send.setAttribute('aria-label', 'Gửi ' + sticker.name); send.appendChild(stickerArt(sticker));
+      send.addEventListener('click', function () { sendLocalSticker(sticker.id); });
+      var favorite = document.createElement('button'); favorite.type = 'button'; favorite.className = 'local-sticker-favorite';
+      var saved = library.favorites.includes(sticker.id); favorite.textContent = saved ? '★' : '☆'; favorite.setAttribute('aria-pressed', String(saved));
+      favorite.setAttribute('aria-label', (saved ? 'Bỏ yêu thích ' : 'Yêu thích ') + sticker.name);
+      favorite.addEventListener('click', async function () {
+        favorite.disabled = true;
+        try {
+          var response = await window.Aloute.api('/api/stickers/favorites/' + encodeURIComponent(sticker.id), {method: saved ? 'DELETE' : 'POST'});
+          if (!response.ok) throw new Error('favorite');
+          library.favorites = saved ? library.favorites.filter(function (id) { return id !== sticker.id; }) : [sticker.id].concat(library.favorites);
+          renderLocalStickers();
+          var matching = Array.from(stickerGrid.children).find(function (item) { return item.dataset.stickerId === sticker.id; });
+          if (matching) matching.querySelector('.local-sticker-favorite').focus(); else stickerSearch.focus();
+        } catch (error) { favorite.disabled = false; window.Aloute.toast('Chưa lưu được yêu thích, thử lại nhé.', 'error'); }
+      });
+      cell.append(send, favorite); stickerGrid.appendChild(cell);
+    });
+  }
+
+  async function sendLocalSticker(id) {
+    if (sendingSticker) return;
+    sendingSticker = true;
+    var reply = window.chatReplyState;
+    var body = new FormData(); body.append('stickerId', id);
+    if (reply) body.append('replyHeader', '[reply:' + reply.messageId + ':@' + reply.senderName + ': "' + reply.snippet + '"]');
+    try {
+      var response = await window.Aloute.api('/api/conversations/' + conversationId + '/stickers', {method: 'POST', body: body});
+      if (!response.ok) {
+        var failure = await response.json().catch(function () { return {}; });
+        throw new Error(failure.message || 'Chưa gửi được nhãn dán, bạn thử lại nhé.');
+      }
+      library.recent = [id].concat(library.recent.filter(function (value) { return value !== id; })).slice(0, 24);
+      if (reply && typeof cancelReply === 'function') cancelReply();
+      closeLocalStickers(false);
+      textarea.focus();
+    } catch (error) { window.Aloute.toast(error.message || 'Chưa gửi được nhãn dán, bạn thử lại nhé.', 'error'); }
+    finally { sendingSticker = false; }
+  }
+
+  function closeLocalStickers(focus) {
+    stickerPicker.classList.add('d-none'); stickerBtn.setAttribute('aria-expanded', 'false'); if (focus) stickerBtn.focus();
+  }
+  if (stickerBtn && stickerPicker) {
+    stickerPicker.addEventListener('click', function (event) { event.stopPropagation(); });
+    stickerBtn.addEventListener('click', function () {
+      var open = stickerPicker.classList.contains('d-none');
+      stickerPicker.classList.toggle('d-none', !open); stickerBtn.setAttribute('aria-expanded', String(open));
+      if (open) { stickerSearch.focus(); loadStickerLibrary(); }
+    });
+    document.getElementById('sticker-close').addEventListener('click', function () { closeLocalStickers(true); });
+    stickerSearch.addEventListener('input', renderLocalStickers);
+    stickerRetry.addEventListener('click', loadStickerLibrary);
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && !stickerPicker.classList.contains('d-none')) closeLocalStickers(true); });
+    document.addEventListener('click', function (event) { if (!stickerPicker.contains(event.target) && !stickerBtn.contains(event.target)) closeLocalStickers(false); });
+  }
 })();

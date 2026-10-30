@@ -52,6 +52,7 @@ mvn verify    # thêm test tích hợp (Testcontainers + PostgreSQL thật), c�
 | `ALOUTE_STORAGE_TYPE` | Nơi lưu ảnh/video: `local` (mặc định) hoặc `cloudinary` | |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Thông tin tài khoản Cloudinary | **Bắt buộc** khi `ALOUTE_STORAGE_TYPE=cloudinary` |
 
+
 ### Bật đăng nhập Google/Facebook (Firebase Authentication)
 Firebase chỉ dùng để xác minh danh tính, miễn phí và không cần thẻ; không liên quan tới nơi lưu ảnh.
 1. Tạo project Firebase, bật **Authentication** (Google, Facebook).
@@ -85,3 +86,6 @@ src/main/resources/templates   View: Thymeleaf
 src/main/resources/{db/migration, static}
 ```
 `<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user, wallet…
+
+### Nhãn dán trong chat
+Ba bộ Mèo Mỡ, Ếch Nhỏ và Cún Bông chạy trực tiếp trong ứng dụng, không cần khóa API. Tìm kiếm theo biểu cảm; Gần đây và Yêu thích được lưu theo tài khoản.

@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${group.title}, ~{::main}, 'groups', ~{::aside})}">
+<head><title th:text="${group.title}">Hội nhóm</title></head>
+<body>
+<main>
+    <div class="mb-3">
+        <a th:href="@{/groups}" class="btn-al btn-al--sm btn-al--white d-inline-flex align-items-center gap-1">
+            ← Danh sách hội nhóm
+        </a>
+    </div>
+
+    <!-- Group Hero Banner -->
+    <section class="group-hero note note--white mb-4" aria-labelledby="group-hero-title">
+        <div class="group-hero-header">
+            <div class="group-hero-avatar">
+                <img th:if="${group.avatarUrl != null}" th:src="${group.avatarUrl}" alt="Ảnh nhóm" loading="lazy">
+                <span th:unless="${group.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(group.title, 0, 1))}">G</span>
+            </div>
+            <div class="group-hero-info">
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                    <h1 id="group-hero-title" class="group-hero-title mb-0" th:text="${group.title}">Tên nhóm</h1>
+                </div>
+                <div class="group-meta-row mb-2">
+                    <span class="group-badge group-badge--members">
+                        👥 <span th:text="${group.memberCount} + ' thành viên'">3 thành viên</span>
+                    </span>
+                    <span class="group-badge group-badge--approval" th:if="${group.approvalRequired}">
+                        🔒 Cần phê duyệt
+                    </span>
+                    <span class="group-badge group-badge--public" th:unless="${group.approvalRequired}">
+                        🌐 Nhóm công khai
+                    </span>
+                    <span class="group-badge group-badge--role" th:if="${group.myRole != null}" th:text="${group.myRole.label()}">
+                        Thành viên
+                    </span>
+                </div>
+                <p class="group-hero-desc mb-0" th:if="${!#strings.isEmpty(group.description)}" th:text="${group.description}">
+                    Mô tả nhóm
+                </p>
+            </div>
+        </div>
+
+        <div class="group-hero-actions d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <!-- Nút phòng chat nếu là thành viên -->
+                <a th:if="${isMember and group.chatEnabled}" th:href="@{/messages/{id}(id=${group.id})}" class="btn-al btn-al--lavender">
+                    💬 Phòng chat nhóm
+                </a>
+
+                <!-- Dành cho Chủ nhóm / Quản trị viên: Nút Mở / Đóng phòng chat -->
+                <form th:if="${myRole != null and (myRole.name() == 'OWNER' or myRole.name() == 'ADMIN')}"
+                      method="post" th:action="@{/groups/{id}/toggle-chat(id=${group.id})}" class="d-inline">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al" th:classappend="${group.chatEnabled} ? 'btn-al--white' : 'btn-al--lemon'"
+                            th:title="${group.chatEnabled} ? 'Đóng phòng chat nhóm' : 'Mở liên kết phòng chat để các thành viên nhắn tin trò chuyện'">
+                        <span th:if="${!group.chatEnabled}">🔗 Mở phòng chat nhóm</span>
+                        <span th:if="${group.chatEnabled}">🔒 Đóng phòng chat</span>
+                    </button>
+                </form>
+
+                <!-- Nút tham gia nếu chưa vào nhóm (nhóm công khai không cần duyệt) -->
+                <form th:if="${!isMember and !isPending and !group.approvalRequired}" method="post" th:action="@{/groups/{id}/join(id=${group.id})}">
+                    <input type="hidden" name="redirectUrl" th:value="'/groups/' + ${group.id}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--pink">
+                        ➕ Tham gia nhóm ngay
+                    </button>
+                </form>
+
+                <!-- Nút xin tham gia nếu nhóm cần duyệt nhưng không có câu hỏi -->
+                <form th:if="${!isMember and !isPending and group.approvalRequired and #strings.isEmpty(group.approvalQuestion)}"
+                      method="post" th:action="@{/groups/{id}/join(id=${group.id})}">
+                    <input type="hidden" name="redirectUrl" th:value="'/groups/' + ${group.id}">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--sky">
+                        📩 Xin tham gia nhóm
+                    </button>
+                </form>
+
+                <!-- Nút xin tham gia kích hoạt modal nếu có câu hỏi duyệt -->
+                <button th:if="${!isMember and !isPending and group.approvalRequired and !#strings.isEmpty(group.approvalQuestion)}"
+                        type="button" class="btn-al btn-al--sky" data-bs-toggle="modal" data-bs-target="#joinGroupModal">
+                    📩 Xin tham gia nhóm
+                </button>
+
+                <!-- Trạng thái chờ duyệt -->
+                <div th:if="${!isMember and isPending}" class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn-al btn-al--lemon" disabled>
+                        ⏳ Đang chờ quản trị viên duyệt
+                    </button>
+                    <form method="post" th:action="@{/groups/{id}/cancel-request(id=${group.id})}">
+                        <input type="hidden" name="redirectUrl" th:value="'/groups/' + ${group.id}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--white">Hủy yêu cầu</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Nút rời nhóm nếu là thành viên -->
+            <div th:if="${isMember}">
+                <form method="post" th:action="@{/groups/{id}/leave(id=${group.id})}"
+                      onsubmit="return confirm('Bạn có chắc chắn muốn rời nhóm này không?');">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm text-danger" title="Rời nhóm">
+                        Rời nhóm
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- TABS ĐIỀU HƯỚNG TRONG NHÓM -->
+    <div class="search-tabs mb-4">
+        <a th:href="@{/groups/{id}(id=${group.id}, tab='feed')}" th:classappend="${tab == 'feed'} ? 'is-active'">
+            📌 Bảng tin
+        </a>
+        <a th:href="@{/groups/{id}(id=${group.id}, tab='members')}" th:classappend="${tab == 'members'} ? 'is-active'">
+            👥 Thành viên (<span th:text="${group.memberCount}">0</span>)
+        </a>
+        <a th:if="${canModerate}" th:href="@{/groups/{id}(id=${group.id}, tab='manage')}" th:classappend="${tab == 'manage'} ? 'is-active'">
+            ⚙️ Cài đặt &amp; Quản lý
+            <span th:if="${(pendingCount ?: 0) + (reportCount ?: 0) > 0}"
+                  class="badge border border-2 border-dark ms-1"
+                  style="background: #FF5E8E; color: white; box-shadow: 1px 1px 0 var(--ink); border-radius: 999px; font-weight: 800; font-size: .75rem; padding: 2px 7px;"
+                  th:text="${(pendingCount ?: 0) + (reportCount ?: 0)}">1</span>
+        </a>
+    </div>
+
+    <!-- TAB 1: BẢNG TIN NHÓM -->
+    <section th:if="${tab == 'feed'}" class="group-tab-content">
+        <!-- Ô ĐĂNG BÀI TRONG NHÓM (Nếu là thành viên) -->
+        <div th:if="${isMember}" class="mb-4">
+            <div th:replace="~{fragments/composer :: composer}"></div>
+        </div>
+
+        <!-- Thông báo nếu chưa phải là thành viên -->
+        <div th:unless="${isMember}" class="note note--sky mb-4 text-center py-3">
+            <p class="mb-0">
+                🔒 Bạn cần tham gia nhóm để đăng bài viết và tham gia bình luận cùng các thành viên khác.
+            </p>
+        </div>
+
+        <!-- DANH SÁCH BÀI VIẾT ĐÃ GHIM (NẾU CÓ) -->
+        <div th:if="${pinnedPosts != null and !#lists.isEmpty(pinnedPosts)}" class="pinned-posts-section mb-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge bg-warning text-dark px-2.5 py-1" style="font-size:0.85rem; font-weight:800; border:2px solid var(--ink); border-radius:6px; box-shadow: 2px 2px 0 var(--ink);">
+                    📌 BÀI VIẾT ĐÃ GHIM (<span th:text="${#lists.size(pinnedPosts)}">1</span>)
+                </span>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div th:each="p : ${pinnedPosts}" class="pinned-card-highlight">
+                    <th:block th:replace="~{fragments/post :: card(${p})}"></th:block>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tiêu đề Bảng tin nhóm -->
+        <div class="group-feed-header d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <h2 class="h5 mb-0">📌 Bảng tin nhóm</h2>
+                <span class="group-badge group-badge--members" th:if="${page != null and page.posts != null}" th:text="${#lists.size(page.posts)} + ' bài viết'">0 bài viết</span>
+            </div>
+            <span class="text-soft small">Mới nhất</span>
+        </div>
+
+        <!-- Danh sách bài viết trong nhóm -->
+        <div id="feed" class="feed" th:if="${page != null}">
+            <th:block th:replace="~{feed/list :: list}"></th:block>
+        </div>
+
+        <!-- Trạng thái trống nếu nhóm chưa có bài đăng -->
+        <section class="note note--sky empty" aria-labelledby="empty-group-title" th:if="${page != null and #lists.isEmpty(page.posts) and (pinnedPosts == null or #lists.isEmpty(pinnedPosts))}">
+            <svg viewBox="0 0 160 120" role="img" aria-label="Tấm bảng trống">
+                <rect x="14" y="14" width="132" height="92" rx="10" fill="#FFF8EC" stroke="#16121F" stroke-width="3"/>
+                <rect x="34" y="34" width="44" height="30" rx="4" fill="#FFE45E" stroke="#16121F" stroke-width="3" transform="rotate(-4 56 49)"/>
+                <rect x="88" y="42" width="38" height="36" rx="4" fill="#FF8FB1" stroke="#16121F" stroke-width="3" transform="rotate(5 107 60)"/>
+                <circle cx="56" cy="32" r="5" fill="#7DE0B5" stroke="#16121F" stroke-width="2.5"/>
+                <circle cx="107" cy="40" r="5" fill="#B8A4FF" stroke="#16121F" stroke-width="2.5"/>
+                <path d="M42 88h76" stroke="#16121F" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
+            </svg>
+            <h2 id="empty-group-title" class="h4">Chưa có bài viết nào trong nhóm</h2>
+            <p th:if="${isMember}">Hãy là người đầu tiên đăng bài, chia sẻ thông tin hoặc thảo luận cùng nhóm nhé!</p>
+            <p th:unless="${isMember}">Hãy tham gia nhóm để trở thành người đầu tiên chia sẻ bài viết!</p>
+        </section>
+    </section>
+
+    <!-- TAB 2: DANH SÁCH THÀNH VIÊN -->
+    <section th:if="${tab == 'members'}" class="group-tab-content">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="h5 mb-0">👥 Thành viên nhóm (<span th:text="${#lists.size(groupMembers)}">0</span>)</h2>
+        </div>
+
+        <div class="members-list d-flex flex-column gap-2">
+            <div class="note note--white p-3 d-flex flex-wrap align-items-center justify-content-between gap-3"
+                 th:each="m : ${groupMembers}"
+                 style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 2px 2px 0 var(--ink);">
+                <div class="d-flex align-items-center gap-3">
+                    <a th:href="@{/u/{u}(u=${m.username})}" class="post-avatar text-decoration-none">
+                        <span class="avatar" th:classappend="${m.avatarFrame != null} ? 'avatar-frame--' + ${m.avatarFrame} : ''">
+                            <img th:if="${m.avatarUrl != null}" th:src="${m.avatarUrl}" alt="" loading="lazy">
+                            <span th:unless="${m.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(m.displayName, 0, 1))}">A</span>
+                        </span>
+                    </a>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <a th:href="@{/u/{u}(u=${m.username})}" class="fw-bold text-ink text-decoration-none" th:text="${m.displayName}">Tên</a>
+                            <span class="badge px-2 py-0"
+                                  th:classappend="${m.role.name() == 'OWNER'} ? 'bg-warning text-dark' : (${m.role.name() == 'ADMIN'} ? 'bg-primary text-white' : (${m.role.name() == 'MODERATOR'} ? 'bg-info text-dark' : 'bg-light text-dark'))"
+                                  style="font-size: 0.75rem; border: 1.5px solid var(--ink);"
+                                  th:text="${m.role.label()}">Thành viên</span>
+                        </div>
+                        <div class="text-soft small">
+                            <span>@</span><span th:text="${m.username}">username</span>
+                            <span class="mx-1">•</span>
+                            <span>Tham gia <span th:text="${@timeAgo.format(m.joinedAt)}">1 ngày trước</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hành động phân quyền / mời ra khỏi nhóm (OWNER hoặc ADMIN) -->
+                <div class="d-flex align-items-center gap-2 flex-wrap ms-auto"
+                     th:if="${canManage and myRole != null and myRole.outranks(m.role)}">
+                    <!-- Dropdown phân quyền -->
+                    <form class="d-inline-flex align-items-center gap-1" method="post"
+                          th:action="@{/groups/{id}/members/{uid}/role(id=${group.id}, uid=${m.id})}">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <select name="role" class="form-select form-select-sm"
+                                style="border: 2px solid var(--ink); border-radius: 6px; font-size: 0.82rem; width: auto; font-weight: 600;"
+                                onchange="this.form.submit()">
+                            <!-- OWNER có thể phân ADMIN, MODERATOR, MEMBER -->
+                            <th:block th:if="${myRole.name() == 'OWNER'}">
+                                <option value="ADMIN" th:selected="${m.role.name() == 'ADMIN'}">👑 Quản trị viên</option>
+                                <option value="MODERATOR" th:selected="${m.role.name() == 'MODERATOR'}">🛡️ Kiểm duyệt viên</option>
+                                <option value="MEMBER" th:selected="${m.role.name() == 'MEMBER'}">👤 Thành viên</option>
+                            </th:block>
+                            <!-- ADMIN có thể phân MODERATOR, MEMBER -->
+                            <th:block th:if="${myRole.name() == 'ADMIN'}">
+                                <option value="MODERATOR" th:selected="${m.role.name() == 'MODERATOR'}">🛡️ Kiểm duyệt viên</option>
+                                <option value="MEMBER" th:selected="${m.role.name() == 'MEMBER'}">👤 Thành viên</option>
+                            </th:block>
+                        </select>
+                    </form>
+
+                    <!-- Nút mời ra khỏi nhóm -->
+                    <form method="post" th:action="@{/groups/{id}/members/{uid}/remove(id=${group.id}, uid=${m.id})}"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi nhóm?');">
+                        <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                        <button type="submit" class="btn-al btn-al--sm btn-al--white text-danger" title="Mời ra khỏi nhóm">
+                            Mời ra
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB 3: CÀI ĐẶT & QUẢN LÝ NHÓM (DÀNH CHO MODERATOR / ADMIN / OWNER) -->
+    <section th:if="${tab == 'manage' and canModerate}" class="group-tab-content d-flex flex-column gap-4">
+        <!-- PHẦN 1: YÊU CẦU CHỜ DUYỆT VÀO NHÓM -->
+        <div class="note note--white p-4" style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 3px 3px 0 var(--ink);">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="h5 mb-0 d-flex align-items-center gap-2">
+                    <span>📩 Yêu cầu chờ duyệt vào nhóm</span>
+                    <span class="badge border border-2 border-dark"
+                          style="background: var(--sky, #BEE3F8); color: var(--ink); box-shadow: 1.5px 1.5px 0 var(--ink); border-radius: 999px; font-weight: 800; font-size: .8rem; padding: 2px 8px;"
+                          th:text="${#lists.size(pendingRequests)}">0</span>
+                </h2>
+            </div>
+
+            <div th:if="${#lists.isEmpty(pendingRequests)}" class="text-soft small py-2">
+                Hiện không có yêu cầu xin vào nhóm nào đang chờ duyệt.
+            </div>
+
+            <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(pendingRequests)}">
+                <div class="note note--sky p-3" th:each="r : ${pendingRequests}"
+                     style="border: 2px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--ink);">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <a th:href="@{/u/{u}(u=${r.username})}" class="text-decoration-none">
+                                <span class="avatar" th:classappend="${r.avatarFrame != null} ? 'avatar-frame--' + ${r.avatarFrame} : ''">
+                                    <img th:if="${r.avatarUrl != null}" th:src="${r.avatarUrl}" alt="" loading="lazy">
+                                    <span th:unless="${r.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(r.displayName, 0, 1))}">A</span>
+                                </span>
+                            </a>
+                            <div>
+                                <a th:href="@{/u/{u}(u=${r.username})}" class="fw-bold text-ink text-decoration-none" th:text="${r.displayName}">Tên</a>
+                                <span class="text-soft small">(@<span th:text="${r.username}">username</span>)</span>
+                                <div class="text-soft small">Gửi yêu cầu: <span th:text="${@timeAgo.format(r.createdAt)}">vừa xong</span></div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <form method="post" th:action="@{/groups/{id}/requests/{uid}/approve(id=${group.id}, uid=${r.userId})}">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <button type="submit" class="btn-al btn-al--sm btn-al--mint">✓ Phê duyệt</button>
+                            </form>
+                            <form method="post" th:action="@{/groups/{id}/requests/{uid}/reject(id=${group.id}, uid=${r.userId})}">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <button type="submit" class="btn-al btn-al--sm btn-al--white text-danger">✕ Từ chối</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Hiển thị câu trả lời của thành viên xin gia nhập -->
+                    <div th:if="${r.answer != null and !#strings.isEmpty(r.answer)}" class="note note--white p-2 mt-2"
+                         style="border: 1.5px dashed var(--ink); border-radius: 8px;">
+                        <div class="small fw-bold text-ink mb-1">💬 Câu trả lời câu hỏi duyệt:</div>
+                        <div class="small text-soft" th:text="${r.answer}">Câu trả lời</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHẦN 2: BÁO CÁO BÀI VIẾT TRONG NHÓM -->
+        <div class="note note--white p-4" style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 3px 3px 0 var(--ink);">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="h5 mb-0 d-flex align-items-center gap-2">
+                    <span>🚩 Báo cáo bài viết cần xử lý</span>
+                    <span class="badge border border-2 border-dark"
+                          style="background: var(--lemon, #FFE45E); color: var(--ink); box-shadow: 1.5px 1.5px 0 var(--ink); border-radius: 999px; font-weight: 800; font-size: .8rem; padding: 2px 8px;"
+                          th:text="${#lists.size(reports)}">0</span>
+                </h2>
+            </div>
+
+            <div th:if="${#lists.isEmpty(reports)}" class="text-soft small py-2">
+                Không có bài viết nào bị báo cáo vi phạm trong nhóm.
+            </div>
+
+            <div class="d-flex flex-column gap-3" th:unless="${#lists.isEmpty(reports)}">
+                <div class="note note--white p-3" th:each="rep : ${reports}"
+                     style="border: 2px solid var(--ink); border-radius: 14px; box-shadow: 3.5px 3.5px 0 var(--ink);">
+                    
+                    <!-- Header người báo cáo và nút thao tác -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-2 mb-2 border-bottom border-2 border-dark">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                                  style="width: 32px; height: 32px; background: #FFD6E0; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                                    <line x1="4" y1="22" x2="4" y2="15"></line>
+                                </svg>
+                            </span>
+                            <div>
+                                <div class="small fw-bold text-ink">
+                                    Báo cáo bởi: <span th:text="${rep.reporterName}">Người báo cáo</span>
+                                    <span class="text-soft fw-normal">(@<span th:text="${rep.reporterUsername}">username</span>)</span>
+                                </div>
+                                <div class="small text-soft" style="font-size: .78rem;" th:text="${@timeAgo.format(rep.createdAt)}">2 giờ trước</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 ms-auto">
+                            <form method="post" th:action="@{/groups/{id}/reports/{rid}/dismiss(id=${group.id}, rid=${rep.id})}">
+                                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                                <button type="submit" class="btn-al btn-al--sm btn-al--white d-inline-flex align-items-center gap-1" title="Bỏ qua báo cáo này">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    <span>Bỏ qua</span>
+                                </button>
+                            </form>
+                            <button type="button" class="btn-al btn-al--sm btn-al--pink d-inline-flex align-items-center gap-1"
+                                    th:attr="onclick='openDeleteReportModal(\'' + ${group.id} + '\', \'' + ${rep.id} + '\')'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                <span>Xóa bài viết</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lý do báo cáo -->
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge border border-2 border-dark"
+                              style="background: #FFD6E0; color: #DC2626; box-shadow: 1.5px 1.5px 0 var(--ink); border-radius: 6px; font-weight: 800; font-size: .78rem; padding: 2px 8px;">
+                            LÝ DO
+                        </span>
+                        <span class="fw-bold small text-ink" th:text="${rep.reason}">Thông tin sai lệch, lừa đảo</span>
+                    </div>
+
+                    <!-- Khung trích đoạn bài viết vi phạm -->
+                    <div class="p-2.5 rounded-3" style="background: var(--paper-2); border: 1.5px solid var(--ink); border-left: 4px solid var(--ink); box-shadow: 1.5px 1.5px 0 var(--ink);">
+                        <div class="small text-soft fw-bold d-flex align-items-center gap-1 mb-1.5">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <span>Nội dung bài viết:</span>
+                        </div>
+                        <div class="small text-ink fw-medium mb-2" style="word-break: break-word; line-height: 1.5;" th:text="${rep.postSnippet}">Trích đoạn bài viết...</div>
+                        <div class="d-flex justify-content-end">
+                            <a th:href="@{/posts/{pid}(pid=${rep.postId})}" target="_blank"
+                               class="btn-al btn-al--sm btn-al--white text-decoration-none d-inline-flex align-items-center gap-1 fw-bold"
+                               style="font-size: .8rem; padding: .25rem .7rem; box-shadow: 1px 1px 0 var(--ink);">
+                                <span>Xem bài viết đầy đủ</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHẦN 3: CÀI ĐẶT NHÓM & NỘI QUY (DÀNH CHO CHỦ NHÓM & QUẢN TRỊ VIÊN) -->
+        <div th:if="${canManage}" class="note note--white p-4" style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 3px 3px 0 var(--ink);">
+            <h2 class="h5 mb-3">⚙️ Cài đặt nhóm &amp; Nội quy</h2>
+            <form method="post" th:action="@{/groups/{id}/settings(id=${group.id})}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+
+                <div class="field mb-3">
+                    <label for="groupTitle" class="form-label fw-bold small">Tên hội nhóm <span class="text-danger">*</span></label>
+                    <input type="text" id="groupTitle" name="title" class="input-al w-100" th:value="${group.title}" required maxlength="100">
+                </div>
+
+                <div class="field mb-3">
+                    <label for="groupDesc" class="form-label fw-bold small">Mô tả giới thiệu nhóm</label>
+                    <textarea id="groupDesc" name="description" class="input-al w-100" rows="3" maxlength="500"
+                              placeholder="Mô tả mục đích, chủ đề của nhóm..." th:text="${group.description}"></textarea>
+                </div>
+
+                <div class="field mb-3">
+                    <label for="groupRules" class="form-label fw-bold small">📜 Nội quy nhóm</label>
+                    <textarea id="groupRules" name="rules" class="input-al w-100" rows="5" maxlength="2000"
+                              placeholder="Nhập nội quy của nhóm (mỗi quy tắc một dòng)..." th:text="${group.rules}"></textarea>
+                    <p class="field-hint small text-soft mt-1">Nội quy sẽ được hiển thị ở bảng bên phải để thành viên tuân thủ.</p>
+                </div>
+
+                <div class="field mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="approvalRequiredCheck" name="approvalRequired" value="true"
+                               th:checked="${group.approvalRequired}" style="cursor: pointer;">
+                        <label class="form-check-label fw-bold small" for="approvalRequiredCheck" style="cursor: pointer;">
+                            🔒 Yêu cầu phê duyệt thành viên trước khi vào nhóm
+                        </label>
+                    </div>
+                    <p class="field-hint small text-soft mt-1">Khi bật, thành viên mới phải gửi yêu cầu và được ban quản trị xét duyệt mới có thể vào nhóm.</p>
+                </div>
+
+                <div class="field mb-4">
+                    <label for="approvalQuestionInput" class="form-label fw-bold small">❓ Câu hỏi duyệt thành viên (tùy chọn)</label>
+                    <input type="text" id="approvalQuestionInput" name="approvalQuestion" class="input-al w-100"
+                           th:value="${group.approvalQuestion}" maxlength="500"
+                           placeholder="Ví dụ: Bạn biết đến nhóm từ đâu? Bạn đồng ý với nội quy nhóm chứ?">
+                    <p class="field-hint small text-soft mt-1">Người dùng sẽ phải trả lời câu hỏi này khi bấm xin tham gia nhóm.</p>
+                </div>
+
+                <button type="submit" class="btn-al btn-al--lemon">
+                    💾 Lưu thay đổi cài đặt
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Modals hệ thống -->
+    <div th:replace="~{fragments/post-modals :: modals}"></div>
+
+    <!-- MODAL TRẢ LỜI CÂU HỎI KHI XIN VÀO NHÓM -->
+    <div class="modal fade" id="joinGroupModal" tabindex="-1" aria-labelledby="joinGroupModalLabel" aria-hidden="true" th:if="${!isMember and !isPending}">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content note note--white" method="post" th:action="@{/groups/{id}/join(id=${group.id})}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <input type="hidden" name="redirectUrl" th:value="'/groups/' + ${group.id}">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h5 mb-0" id="joinGroupModalLabel">📩 Trả lời câu hỏi tham gia nhóm</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="small text-soft mb-2">Ban quản trị nhóm yêu cầu thành viên mới trả lời câu hỏi dưới đây trước khi xét duyệt:</p>
+                    <div class="note note--mint mb-3 p-3">
+                        <strong class="d-block mb-1">❓ Câu hỏi:</strong>
+                        <span th:text="${group.approvalQuestion}">Câu hỏi phê duyệt</span>
+                    </div>
+                    <div class="field">
+                        <label for="joinAnswer" class="form-label fw-bold small">Câu trả lời của bạn <span class="text-danger">*</span></label>
+                        <textarea id="joinAnswer" name="answer" class="input-al w-100" rows="3" required
+                                  placeholder="Nhập câu trả lời của bạn để ban quản trị xem xét..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink">Gửi yêu cầu tham gia</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal xác nhận xóa bài viết vi phạm bị báo cáo -->
+    <div class="modal fade" id="deleteReportPostModal" tabindex="-1" aria-labelledby="deleteReportPostTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <form id="deleteReportPostModalForm" class="modal-content note note--white text-center p-3" method="post"
+                  style="border: 2.5px solid var(--ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--ink);">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark mx-auto mb-2"
+                     style="width: 48px; height: 48px; background: #FFD6E0; box-shadow: 2px 2px 0 var(--ink);">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </div>
+                <h2 class="h5 mb-1 fw-bold" id="deleteReportPostTitle">Xóa bài viết vi phạm?</h2>
+                <p class="text-soft mb-3" style="font-size: .84rem; line-height: 1.45;">Bạn có chắc chắn muốn xóa bài viết vi phạm này khỏi nhóm? Thao tác này không thể hoàn tác.</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn-al btn-al--white btn-al--sm px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-al btn-al--pink btn-al--sm px-3 fw-bold">Xác nhận xóa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        function openDeleteReportModal(groupId, reportId) {
+            const form = document.getElementById('deleteReportPostModalForm');
+            if (form) {
+                form.action = '/groups/' + groupId + '/reports/' + reportId + '/delete-post';
+                const modalEl = document.getElementById('deleteReportPostModal');
+                if (modalEl && window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                } else {
+                    if (confirm('Bạn có chắc chắn muốn xóa bài viết vi phạm này khỏi nhóm?')) form.submit();
+                }
+            }
+        }
+    </script>
+</main>
+
+<!-- Sidebar bên phải -->
+<aside class="app-rail">
+    <!-- Thẻ giới thiệu nhóm -->
+    <section class="note note--white p-3 mb-3" style="border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3.5px 3.5px 0 var(--ink);" aria-labelledby="about-group-title">
+        <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-2 border-dark">
+            <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                      style="width: 28px; height: 28px; background: #DDF1FF; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0; font-size: .9rem;">
+                    ℹ️
+                </span>
+                <h2 id="about-group-title" class="h6 mb-0 fw-bold text-ink" style="font-family: var(--font-display);">Giới thiệu nhóm</h2>
+            </div>
+        </div>
+
+        <p class="small text-soft mb-3" style="line-height: 1.5; word-break: break-word;"
+           th:text="${#strings.isEmpty(group.description)} ? 'Chưa có thông tin mô tả chi tiết cho nhóm này.' : ${group.description}">
+            Mô tả
+        </p>
+
+        <div class="d-flex flex-column gap-2 small">
+            <div class="d-flex align-items-center justify-content-between py-1 border-bottom border-1" style="border-color: rgba(0,0,0,0.08) !important;">
+                <span class="text-soft d-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Trưởng nhóm:</span>
+                </span>
+                <span class="fw-bold text-ink" th:text="${group.ownerName}">Admin</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between py-1 border-bottom border-1" style="border-color: rgba(0,0,0,0.08) !important;">
+                <span class="text-soft d-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Quyền riêng tư:</span>
+                </span>
+                <span class="badge border border-2 border-dark"
+                      th:style="${group.approvalRequired} ? 'background: #FFE3EC; color: #DC2626; box-shadow: 1px 1px 0 var(--ink); border-radius: 6px; font-weight: 800; font-size: .75rem; padding: 2px 7px;' : 'background: #D3F6E6; color: #047857; box-shadow: 1px 1px 0 var(--ink); border-radius: 6px; font-weight: 800; font-size: .75rem; padding: 2px 7px;'"
+                      th:text="${group.approvalRequired ? 'Cần duyệt' : 'Công khai'}">Cần duyệt</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between py-1">
+                <span class="text-soft d-flex align-items-center gap-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Thành viên:</span>
+                </span>
+                <span class="badge border border-2 border-dark"
+                      style="background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink); border-radius: 999px; font-weight: 800; font-size: .75rem; padding: 2px 8px;"
+                      th:text="${group.memberCount} + ' người'">3 người</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Thẻ phòng chat nhóm (khi đã mở chat và là thành viên) -->
+    <section class="note note--white p-3 mb-3" style="border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3.5px 3.5px 0 var(--ink);" aria-labelledby="group-chat-title" th:if="${isMember and group.chatEnabled}">
+        <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-2 border-dark">
+            <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                      style="width: 28px; height: 28px; background: #FFE45E; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0; font-size: .9rem;">
+                    💬
+                </span>
+                <h2 id="group-chat-title" class="h6 mb-0 fw-bold text-ink" style="font-family: var(--font-display);">Trò chuyện nhóm</h2>
+            </div>
+            <span class="badge border border-2 border-dark" style="background: #D3F6E6; color: #047857; box-shadow: 1px 1px 0 var(--ink); border-radius: 6px; font-weight: 800; font-size: .72rem; padding: 2px 6px;">
+                ● Mở
+            </span>
+        </div>
+        <p class="small text-soft mb-3" style="line-height: 1.45;">Trò chuyện theo thời gian thực và chia sẻ tài liệu cùng mọi người.</p>
+        <a th:href="@{/messages/{id}(id=${group.id})}" class="btn-al btn-al--lemon btn-al--sm w-100 text-center fw-bold d-inline-flex align-items-center justify-content-center gap-2 text-decoration-none" style="box-shadow: 2px 2px 0 var(--ink);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span>Vào phòng chat ngay</span>
+        </a>
+    </section>
+
+    <!-- Thẻ gợi ý mở phòng chat cho Chủ nhóm/Quản trị viên (khi chưa mở chat) -->
+    <section class="note note--white p-3 mb-3" style="border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3.5px 3.5px 0 var(--ink);" aria-labelledby="group-chat-suggest"
+             th:if="${myRole != null and (myRole.name() == 'OWNER' or myRole.name() == 'ADMIN') and !group.chatEnabled}">
+        <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-2 border-dark">
+            <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                      style="width: 28px; height: 28px; background: #FFE45E; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0; font-size: .9rem;">
+                    💬
+                </span>
+                <h2 id="group-chat-suggest" class="h6 mb-0 fw-bold text-ink" style="font-family: var(--font-display);">Trò chuyện nhóm</h2>
+            </div>
+            <span class="badge border border-2 border-dark" style="background: var(--paper-2); color: var(--ink-soft); box-shadow: 1px 1px 0 var(--ink); border-radius: 6px; font-weight: 700; font-size: .72rem; padding: 2px 6px;">
+                Chưa mở
+            </span>
+        </div>
+        <p class="small text-soft mb-3" style="line-height: 1.45;">Nhóm chưa liên kết với tin nhắn. Bạn có thể mở phòng chat để các thành viên trao đổi trực tiếp.</p>
+        <form method="post" th:action="@{/groups/{id}/toggle-chat(id=${group.id})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <button type="submit" class="btn-al btn-al--lemon btn-al--sm w-100 text-center fw-bold d-inline-flex align-items-center justify-content-center gap-2" style="box-shadow: 2px 2px 0 var(--ink);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                <span>Mở phòng chat nhóm</span>
+            </button>
+        </form>
+    </section>
+
+    <!-- Thẻ quy tắc nhóm -->
+    <section class="note note--mint p-3 mb-3" style="border: 2px solid var(--ink); border-radius: 16px; box-shadow: 3.5px 3.5px 0 var(--ink);" aria-labelledby="rules-title">
+        <div class="d-flex align-items-center justify-content-between pb-2 mb-2 border-bottom border-2 border-dark">
+            <div class="d-flex align-items-center gap-2">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
+                      style="width: 28px; height: 28px; background: #C8FCEA; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0; font-size: .9rem;">
+                    📜
+                </span>
+                <h2 id="rules-title" class="h6 mb-0 fw-bold text-ink" style="font-family: var(--font-display);">Nội quy nhóm</h2>
+            </div>
+        </div>
+
+        <div th:if="${group.rules != null and !#strings.isEmpty(group.rules)}"
+             class="small text-ink fw-medium p-2.5 rounded"
+             style="background: rgba(255,255,255,0.7); border: 1.5px dashed var(--ink); border-radius: 8px; white-space: pre-line; line-height: 1.6;"
+             th:text="${group.rules}">
+            Nội quy
+        </div>
+        <div th:unless="${group.rules != null and !#strings.isEmpty(group.rules)}" class="d-flex flex-column gap-2 small">
+            <div class="d-flex align-items-start gap-2">
+                <span class="badge border border-2 border-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
+                      style="width: 20px; height: 20px; background: var(--white); flex-shrink: 0; font-size: .7rem; font-weight: 800; box-shadow: 1px 1px 0 var(--ink);">1</span>
+                <span class="text-ink fw-medium">Tôn trọng và lịch sự với mọi thành viên.</span>
+            </div>
+            <div class="d-flex align-items-start gap-2">
+                <span class="badge border border-2 border-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
+                      style="width: 20px; height: 20px; background: var(--white); flex-shrink: 0; font-size: .7rem; font-weight: 800; box-shadow: 1px 1px 0 var(--ink);">2</span>
+                <span class="text-ink fw-medium">Đăng bài đúng chủ đề và nội dung phù hợp.</span>
+            </div>
+            <div class="d-flex align-items-start gap-2">
+                <span class="badge border border-2 border-dark rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
+                      style="width: 20px; height: 20px; background: var(--white); flex-shrink: 0; font-size: .7rem; font-weight: 800; box-shadow: 1px 1px 0 var(--ink);">3</span>
+                <span class="text-ink fw-medium">Không spam hoặc đăng nội dung vi phạm.</span>
+            </div>
+        </div>
+    </section>
+</aside>
+
+</body>
+</html>

@@ -18,4 +18,13 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     @Query("select c from Conversation c where c.id = :id and c.type = com.aloute.model.chat.ConversationType.GROUP")
     Optional<Conversation> findGroupById(@Param("id") UUID id);
+
+    @Query("select c from Conversation c where c.type = com.aloute.model.chat.ConversationType.GROUP order by c.createdAt desc")
+    java.util.List<Conversation> findAllGroupConversations();
+
+    @Query("select c from Conversation c where c.type = com.aloute.model.chat.ConversationType.GROUP and c.socialGroup = true order by c.createdAt desc")
+    java.util.List<Conversation> findAllSocialGroups();
+
+    @Query("select c from Conversation c where c.id = :id and c.type = com.aloute.model.chat.ConversationType.GROUP and c.socialGroup = true")
+    Optional<Conversation> findSocialGroupById(@Param("id") UUID id);
 }

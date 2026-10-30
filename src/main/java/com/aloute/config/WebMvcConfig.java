@@ -43,6 +43,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns("/login", "/register", "/forgot-password", "/reset-password",
                         "/logout", "/auth/**", "/error", "/css/**", "/js/**", "/img/**", "/fonts/**",
-                        "/webjars/**", "/uploads/**", "/favicon.ico");
+                        "/webjars/**", "/uploads/**", "/favicon.ico", "/favicon.svg", "/logo-proposals/**");
     }
 }

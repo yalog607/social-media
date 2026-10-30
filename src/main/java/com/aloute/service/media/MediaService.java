@@ -27,6 +27,7 @@ public class MediaService {
     private static final Logger log = LoggerFactory.getLogger(MediaService.class);
     private static final String FOLDER = "posts";
     private static final String COMMENT_FOLDER = "comments";
+    private static final String STORY_FOLDER = "stories";
 
     public record StoredMedia(MediaKind kind, String url, String contentType, long sizeBytes) {
     }
@@ -91,6 +92,47 @@ public class MediaService {
             throw new InvalidMediaException("Mỗi ảnh tối đa " + megabytes(MediaLimits.MAX_IMAGE_BYTES) + " MB.");
         }
         return storeImage(image, COMMENT_FOLDER);
+    }
+
+    /**
+     * Lưu ảnh hoặc video cho Khoảnh khắc 24H (Story).
+     */
+    public StoredMedia storeStoryMedia(MultipartFile file) {
+        if (!hasContent(file)) {
+            return null;
+        }
+        try {
+            VideoSniffer.VideoType videoType;
+            try (InputStream in = file.getInputStream()) {
+                videoType = VideoSniffer.sniff(in.readNBytes(VideoSniffer.HEAD_BYTES)).orElse(null);
+            }
+            if (videoType != null) {
+                if (file.getSize() > MediaLimits.MAX_VIDEO_BYTES) {
+                    throw new InvalidMediaException("Video khoảnh khắc tối đa " + megabytes(MediaLimits.MAX_VIDEO_BYTES) + " MB.");
+                }
+                try (InputStream in = file.getInputStream()) {
+                    String url = storage.storeStream(in, STORY_FOLDER, videoType.extension());
+                    return new StoredMedia(MediaKind.VIDEO, url, videoType.contentType(), file.getSize());
+                }
+            }
+        } catch (IOException e) {
+            throw new InvalidMediaException("Không đọc được file media, hãy thử lại.");
+        }
+
+        if (file.getSize() > MediaLimits.MAX_IMAGE_BYTES) {
+            throw new InvalidMediaException("Ảnh khoảnh khắc tối đa " + megabytes(MediaLimits.MAX_IMAGE_BYTES) + " MB.");
+        }
+        return storeImage(file, STORY_FOLDER);
+    }
+
+    public void deleteMedia(String url) {
+        if (url != null && !url.isBlank()) {
+            try {
+                storage.delete(url);
+            } catch (RuntimeException e) {
+                log.warn("Không xóa được file media {}: {}", url, e.getMessage());
+            }
+        }
     }
 
     /** Xóa file của những media đã lưu (dùng khi tạo bài thất bại). Lỗi xóa chỉ ghi log. */

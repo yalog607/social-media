@@ -51,9 +51,32 @@ public class Conversation {
     @Column(nullable = false)
     private boolean allowAnyoneChangeNickname = true;
 
+    @Column(name = "members_can_send_messages", nullable = false)
+    private boolean membersCanSendMessages = true;
+
     /** Ảnh đại diện nhóm (chỉ GROUP); null = dùng ảnh mặc định. */
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
+
+    /** Mô tả hoặc giới thiệu ngắn về nhóm/câu lạc bộ. */
+    @Column(length = 500)
+    private String description;
+
+    /** Nội quy nhóm do ban quản trị nhóm soạn thảo. */
+    @Column(length = 2000)
+    private String rules;
+
+    /** Câu hỏi duyệt thành viên trước khi vào nhóm (nếu approvalRequired = true). */
+    @Column(name = "approval_question", length = 500)
+    private String approvalQuestion;
+
+    /** Đánh dấu đây là Hội nhóm (Social Group) hay Nhóm trò chuyện thuần túy (Chat Group). */
+    @Column(name = "is_social_group", nullable = false)
+    private boolean socialGroup = false;
+
+    /** Phòng chat của nhóm có đang mở/liên kết hay không. Mặc định hội nhóm không liên kết tin nhắn, chỉ khi chủ nhóm mở mới kích hoạt. */
+    @Column(name = "chat_enabled", nullable = false)
+    private boolean chatEnabled = false;
 
     @Column(name = "direct_key", length = 80, updatable = false)
     private String directKey;

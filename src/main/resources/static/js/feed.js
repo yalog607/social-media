@@ -395,7 +395,7 @@
         const labelEl = btn.querySelector('.comment-react-label');
         if (labelEl) {
           if (data.mine && commentEmojiLabels[data.mine]) {
-            labelEl.textContent = commentEmojiLabels[data.mine].emoji + ' ' + commentEmojiLabels[data.mine].label;
+            labelEl.textContent = commentEmojiLabels[data.mine].label;
           } else {
             labelEl.textContent = 'Thích';
           }
@@ -409,7 +409,6 @@
         const countEl = badge.querySelector('.comment-reactions-count');
         if (countEl) {
           countEl.textContent = String(data.total);
-          countEl.classList.toggle('d-none', data.total <= 1);
         }
 
         badge.querySelectorAll('.cr-emoji').forEach(function (emojiSpan) {
@@ -430,10 +429,17 @@
 
   async function loadComments(section, url) {
     const list = section.querySelector('[data-comment-list]');
+    const openReplies = Array.from(list.querySelectorAll('.comment-replies[open]'))
+      .map(details => details.parentElement.id);
     try {
       const response = await window.Aloute.api(url, { headers: { Accept: 'text/html' } });
       if (!response.ok) throw new Error('HTTP ' + response.status);
       list.innerHTML = await response.text();
+      openReplies.forEach(id => {
+        const comment = document.getElementById(id);
+        const replies = comment && comment.querySelector('.comment-replies');
+        if (replies) replies.open = true;
+      });
       section.dataset.loaded = 'true';
     } catch (error) {
       delete section.dataset.loaded;
@@ -503,6 +509,86 @@
   const COMMENT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   const COMMENT_IMAGE_MAX_BYTES = 8 * MB; // khớp MediaLimits.MAX_IMAGE_BYTES; máy chủ vẫn kiểm lại
   const commentImages = new WeakMap(); // form -> File đang chờ gửi
+  const commentStickers = new WeakMap();
+  let commentStickerClipId = 0;
+
+  function commentStickerArt(sticker) {
+    if (sticker.renderType === 'IMAGE') {
+      const image = document.createElement('img');
+      image.src = sticker.imageUrl;
+      image.alt = sticker.name || 'Nhãn dán';
+      return image;
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', sticker.artwork.viewBox);
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', sticker.name || 'Nhãn dán');
+    const defs = document.createElementNS(ns, 'defs');
+    const clip = document.createElementNS(ns, 'clipPath');
+    const id = 'comment-sticker-clip-' + (++commentStickerClipId);
+    clip.id = id; clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+    const polygon = document.createElementNS(ns, 'polygon'); polygon.setAttribute('points', sticker.artwork.clipPoints);
+    clip.appendChild(polygon); defs.appendChild(clip); svg.appendChild(defs);
+    const image = document.createElementNS(ns, 'image'); image.setAttribute('href', '/stickers/original/characters.png');
+    image.setAttribute('width', '1024'); image.setAttribute('height', '1536'); image.setAttribute('clip-path', 'url(#' + id + ')');
+    svg.appendChild(image); return svg;
+  }
+
+  function clearCommentSticker(form) {
+    commentStickers.delete(form);
+    form.querySelector('[data-comment-sticker-selection]').hidden = true;
+    form.querySelector('[data-comment-sticker-preview]').replaceChildren();
+  }
+
+  async function openCommentStickers(form) {
+    const picker = form.querySelector('[data-comment-sticker-picker]');
+    const toggle = form.querySelector('[data-comment-sticker-open]');
+    if (!picker.hidden) { picker.hidden = true; toggle.setAttribute('aria-expanded', 'false'); return; }
+    picker.hidden = false; toggle.setAttribute('aria-expanded', 'true');
+    const tabs = picker.querySelector('[data-comment-sticker-tabs]');
+    const grid = picker.querySelector('[data-comment-sticker-grid]');
+    const status = picker.querySelector('[data-comment-sticker-status]');
+    tabs.replaceChildren(); grid.replaceChildren(); status.textContent = 'Đang tải nhãn dán…';
+    try {
+      const response = await window.Aloute.api('/api/stickers/library');
+      if (!response.ok) throw new Error();
+      const library = await response.json();
+      const packs = library.packs.filter(pack => pack.stickers.some(s => s.renderType === 'IMAGE' || s.artwork));
+      if (!packs.length) { status.textContent = 'Bạn chưa có nhãn dán để sử dụng.'; return; }
+      function showPack(pack) {
+        grid.replaceChildren(); status.textContent = '';
+        tabs.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.packId === pack.id)));
+        pack.stickers.filter(s => s.renderType === 'IMAGE' || s.artwork).forEach(sticker => {
+          const button = document.createElement('button'); button.type = 'button'; button.title = sticker.name;
+          button.setAttribute('aria-label', sticker.name); button.appendChild(commentStickerArt(sticker));
+          button.addEventListener('click', function () {
+            commentStickers.set(form, sticker.id);
+            form.querySelector('[data-comment-sticker-preview]').replaceChildren(commentStickerArt(sticker));
+            form.querySelector('[data-comment-sticker-selection]').hidden = false;
+            picker.hidden = true; toggle.setAttribute('aria-expanded', 'false');
+          });
+          grid.appendChild(button);
+        });
+      }
+      packs.forEach(pack => {
+        const button = document.createElement('button'); button.type = 'button'; button.dataset.packId = pack.id;
+        button.textContent = pack.name; button.addEventListener('click', () => showPack(pack)); tabs.appendChild(button);
+      });
+      showPack(packs[0]);
+    } catch (_) { status.textContent = 'Không tải được nhãn dán. Đóng và thử lại nhé.'; }
+  }
+
+  document.addEventListener('click', function (event) {
+    const open = event.target.closest('[data-comment-sticker-open]');
+    if (open) { openCommentStickers(open.closest('.comment-form')); return; }
+    const close = event.target.closest('[data-comment-sticker-close]');
+    if (close) {
+      const form = close.closest('.comment-form'); form.querySelector('[data-comment-sticker-picker]').hidden = true;
+      const toggle = form.querySelector('[data-comment-sticker-open]'); toggle.setAttribute('aria-expanded', 'false'); toggle.focus(); return;
+    }
+    const clear = event.target.closest('[data-comment-sticker-clear]');
+    if (clear) clearCommentSticker(clear.closest('.comment-form'));
+  });
 
   function setCommentImage(form, file) {
     clearCommentImage(form);
@@ -550,11 +636,13 @@
     const textarea = form.elements.content;
     const content = textarea.value.trim();
     const image = commentImages.get(form);
-    if (!content && !image) return;
+    const sticker = commentStickers.get(form);
+    if (!content && !image && !sticker) return;
     const section = form.closest('.post-comments');
     const body = new FormData();
     if (content) body.append('content', content);
     if (image) body.append('image', image);
+    if (sticker) body.append('stickerId', sticker);
     if (form.dataset.parentId) {
       body.append('parentId', form.dataset.parentId);
     }
@@ -569,9 +657,14 @@
         return;
       }
       if (!response.ok) throw new Error('HTTP ' + response.status);
+      const created = await response.json();
       clearReplyContext(form);
       clearCommentImage(form);
+      clearCommentSticker(form);
       await loadComments(section, form.dataset.commentsUrl);
+      const newComment = document.getElementById('comment-' + created.id);
+      const replies = newComment && newComment.closest('.comment-replies');
+      if (replies) replies.open = true;
     } catch (error) {
       window.Aloute.toast('Chưa gửi được bình luận, thử lại nhé.', 'error');
     } finally {

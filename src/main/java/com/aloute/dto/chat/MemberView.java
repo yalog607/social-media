@@ -5,7 +5,7 @@ import com.aloute.model.chat.GroupRole;
 import java.util.UUID;
 
 /** Một thành viên của hội thoại để hiển thị: tên thật, biệt danh (nếu có) và vai trò. */
-public record MemberView(UUID id, String username, String displayName, String nickname, String avatarUrl, GroupRole role) {
+public record MemberView(UUID id, String username, String displayName, String nickname, String avatarUrl, GroupRole role, String avatarFrame) {
 
     /** Tên hiển thị trong chat: biệt danh nếu có, không thì tên thật. */
     public String shownName() {

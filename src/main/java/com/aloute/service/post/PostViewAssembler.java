@@ -1,33 +1,40 @@
 package com.aloute.service.post;
 
+import com.aloute.dto.category.CategoryView;
 import com.aloute.dto.post.PostView;
+import com.aloute.dto.reaction.ReactionSummary;
+import com.aloute.model.chat.Conversation;
+import com.aloute.model.chat.ConversationMember;
+import com.aloute.model.chat.GroupRole;
 import com.aloute.model.post.Post;
 import com.aloute.model.post.PostMedia;
 import com.aloute.model.post.PostTag;
+import com.aloute.model.user.Profile;
+import com.aloute.model.user.Role;
+import com.aloute.model.user.User;
+import com.aloute.repository.chat.ConversationMemberRepository;
+import com.aloute.repository.chat.ConversationRepository;
+import com.aloute.repository.comment.CommentRepository;
 import com.aloute.repository.post.PostMediaRepository;
 import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.post.PostTagRepository;
-import com.aloute.util.post.PostTextRenderer;
-
 import com.aloute.service.category.CategoryService;
-import com.aloute.dto.category.CategoryView;
-import com.aloute.repository.comment.CommentRepository;
 import com.aloute.service.reaction.ReactionService;
-import com.aloute.dto.reaction.ReactionSummary;
-import com.aloute.model.user.Profile;
-import com.aloute.model.user.User;
 import com.aloute.service.wallet.PaidContentAccess;
+import com.aloute.util.post.PostTextRenderer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Chuyển một danh sách bài thành {@link PostView}. Mọi dữ liệu quan hệ (media, cảm xúc, bình luận, chia sẻ,
@@ -43,11 +50,14 @@ public class PostViewAssembler {
     private final PostTagRepository tagRepository;
     private final PaidContentAccess paidAccess;
     private final CategoryService categories;
+    private final ConversationRepository conversationRepository;
+    private final ConversationMemberRepository memberRepository;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
                              ReactionService reactions, CommentRepository commentRepository,
                              PostTagRepository tagRepository, PaidContentAccess paidAccess,
-                             CategoryService categories) {
+                             CategoryService categories, ConversationRepository conversationRepository,
+                             ConversationMemberRepository memberRepository) {
         this.categories = categories;
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
@@ -55,6 +65,8 @@ public class PostViewAssembler {
         this.commentRepository = commentRepository;
         this.tagRepository = tagRepository;
         this.paidAccess = paidAccess;
+        this.conversationRepository = conversationRepository;
+        this.memberRepository = memberRepository;
     }
 
     /** @param viewerId người xem, null nếu là khách (để đánh dấu bài "của tôi") */
@@ -93,10 +105,30 @@ public class PostViewAssembler {
         Map<UUID, CategoryView> categoryById = categories.byIds(
                 allPosts.stream().map(Post::getCategoryId).filter(java.util.Objects::nonNull).distinct().toList());
 
+        // Nạp thông tin nhóm và vai trò thành viên cho các bài viết thuộc nhóm
+        Set<UUID> groupIds = allPosts.stream().map(Post::getGroupId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, Conversation> conversationById = new HashMap<>();
+        Map<UUID, Map<UUID, GroupRole>> memberRolesByGroup = new HashMap<>();
+        if (!groupIds.isEmpty()) {
+            for (Conversation c : conversationRepository.findAllById(groupIds)) {
+                conversationById.put(c.getId(), c);
+            }
+            Set<UUID> userIds = allPosts.stream().filter(p -> p.getGroupId() != null).map(p -> p.getAuthor().getId()).collect(Collectors.toSet());
+            if (viewerId != null) {
+                userIds = new HashSet<>(userIds);
+                userIds.add(viewerId);
+            }
+            for (ConversationMember cm : memberRepository.findByConversationIdInAndUserIdIn(groupIds, userIds)) {
+                memberRolesByGroup.computeIfAbsent(cm.getConversation().getId(), k -> new HashMap<>())
+                        .put(cm.getUser().getId(), cm.getRole());
+            }
+        }
+
         // Bước 1: dựng bài GỐC trước (sharedPost luôn null ở bước này — bài gốc không bao giờ tự nó là một chia sẻ khác)
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
-            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost, taggedByPost, unlocked, categoryById, null));
+            baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost,
+                    taggedByPost, unlocked, categoryById, conversationById, memberRolesByGroup, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -107,7 +139,7 @@ public class PostViewAssembler {
                 result.add(baseViews.get(post.getId()));
             } else {
                 PostView withoutShared = baseViews.get(post.getId());
-                result.add(withShared(withoutShared, sharedId, baseViews.get(sharedId)));
+                result.add(withoutShared != null ? withShared(withoutShared, sharedId, baseViews.get(sharedId)) : null);
             }
         }
         return result;
@@ -137,7 +169,7 @@ public class PostViewAssembler {
             User user = tag.getTaggedUser();
             byPost.computeIfAbsent(tag.getPost().getId(), id -> new ArrayList<>())
                     .add(new PostView.AuthorView(user.getId(), user.getUsername(), user.getProfile().getDisplayName(),
-                            user.getProfile().getAvatarUrl(), user.primaryRole()));
+                            user.getProfile().getAvatarUrl(), user.primaryRole(), user.getProfile().getAvatarFrame()));
         }
         return byPost;
     }
@@ -162,16 +194,41 @@ public class PostViewAssembler {
                                    Map<UUID, ReactionSummary> reactionsByPost, Map<UUID, Long> commentCountByPost,
                                    Map<UUID, Long> shareCountByPost,
                                    Map<UUID, List<PostView.AuthorView>> taggedByPost, Set<UUID> unlocked,
-                                   Map<UUID, CategoryView> categoryById, PostView sharedPost) {
+                                   Map<UUID, CategoryView> categoryById,
+                                   Map<UUID, Conversation> conversationById,
+                                   Map<UUID, Map<UUID, GroupRole>> memberRolesByGroup,
+                                   PostView sharedPost) {
         User author = post.getAuthor();
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
         UUID sharedId = sharedPost != null ? sharedPost.id() : null;
         boolean locked = post.getUnlockPrice() != null && !mine && !unlocked.contains(post.getId());
+        PostView.AuthorView authorView;
+        if (post.isAnonymous()) {
+            if (mine) {
+                authorView = new PostView.AuthorView(author.getId(), author.getUsername(),
+                        profile.getDisplayName() + " (Bạn - Ẩn danh)", profile.getAvatarUrl(), author.primaryRole());
+            } else {
+                authorView = new PostView.AuthorView(null, "", "Người tham gia ẩn danh", null, Role.USER);
+            }
+        } else {
+            authorView = new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
+                    profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame());
+        }
+
+        PostView.GroupInfo groupInfo = null;
+        if (post.getGroupId() != null) {
+            Conversation conv = conversationById.get(post.getGroupId());
+            if (conv != null) {
+                GroupRole authorRole = memberRolesByGroup.getOrDefault(post.getGroupId(), Map.of()).get(post.getAuthor().getId());
+                GroupRole viewerRole = viewerId != null ? memberRolesByGroup.getOrDefault(post.getGroupId(), Map.of()).get(viewerId) : null;
+                groupInfo = new PostView.GroupInfo(conv.getId(), conv.getTitle(), conv.getAvatarUrl(), authorRole, viewerRole);
+            }
+        }
+
         return new PostView(
                 post.getId(),
-                new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
-                        profile.getAvatarUrl(), author.primaryRole()),
+                authorView,
                 locked ? "" : PostTextRenderer.toSafeHtml(post.getContent()),
                 post.getVisibility(),
                 post.getCreatedAt(),
@@ -188,7 +245,7 @@ public class PostViewAssembler {
                 post.getUnlockPrice(),
                 locked,
                 post.getCategoryId() == null ? null : categoryById.get(post.getCategoryId()),
-                post.isPinned());
+                post.isPinned(), post.isAnonymous(), post.getGroupId(), groupInfo);
     }
 
     /** Bản sao của {@code view} với {@code sharedPost} được gắn (bản thân {@code view} được dựng như bài thường ở bước 1). */
@@ -196,6 +253,6 @@ public class PostViewAssembler {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
                 view.shareCount(), sharedPostId, sharedPost, view.tagged(),
-                view.unlockPrice(), view.locked(), view.category(), view.isPinned());
+                view.unlockPrice(), view.locked(), view.category(), view.isPinned(), view.isAnonymous(), view.groupId(), view.group());
     }
 }

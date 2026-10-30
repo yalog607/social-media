@@ -22,6 +22,10 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     long countByConversationId(UUID conversationId);
 
+    @Query("select cm from ConversationMember cm where cm.conversation.id in :conversationIds and cm.user.id in :userIds")
+    List<ConversationMember> findByConversationIdInAndUserIdIn(@Param("conversationIds") java.util.Collection<UUID> conversationIds,
+                                                               @Param("userIds") java.util.Collection<UUID> userIds);
+
     @Query("select cm from ConversationMember cm join fetch cm.user u join fetch u.profile "
             + "where cm.conversation.id = :conversationId order by cm.joinedAt")
     List<ConversationMember> findMembers(@Param("conversationId") UUID conversationId);
@@ -39,8 +43,11 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
     @Query(value = """
             select cm.conversation_id as conversationId, count(m.id) as unread
             from conversation_members cm
+            join conversations c on c.id = cm.conversation_id
             join messages m on m.conversation_id = cm.conversation_id
             where cm.user_id = :userId
+              and (c.is_social_group = false or c.chat_enabled = true)
+              and m.is_system = false
               and m.sender_id <> :userId
               and m.created_at > coalesce(cm.last_read_at, cm.joined_at)
             group by cm.conversation_id
@@ -52,8 +59,11 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
             select coalesce(sum(t.unread), 0) from (
                 select count(m.id) as unread
                 from conversation_members cm
+                join conversations c on c.id = cm.conversation_id
                 join messages m on m.conversation_id = cm.conversation_id
                 where cm.user_id = :userId
+                  and (c.is_social_group = false or c.chat_enabled = true)
+                  and m.is_system = false
                   and m.sender_id <> :userId
                   and m.created_at > coalesce(cm.last_read_at, cm.joined_at)
                 group by cm.conversation_id

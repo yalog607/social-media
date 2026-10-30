@@ -6,33 +6,56 @@
     <div class="chat-more" th:if="${page.hasMore()}"
          th:attr="data-before-url=@{/api/conversations/{id}/messages(id=${conversation.id}, before=${page.nextCursor})}"></div>
         
-        <th:block th:each="m : ${page.messages}">
-            
-            <!-- Tin nhắn hệ thống -->
-            <div th:if="${m.isSystem}" class="msg justify-content-center text-center my-3" th:id="'msg-' + ${m.id}">
-                <span class="text-dark fw-medium" th:utext="${m.contentHtml}">Nội dung</span>
-            </div>
-            
-            <!-- Tin nhắn bình thường -->
-            <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'" th:attr="data-id=${m.id}">
-                <a th:href="@{/{user}(user=${m.sender.username})}">
-                    <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
-                </a>
-                <div class="msg-body">
-                    <div class="d-flex align-items-center mb-1" th:if="${header.group}">
-                        <span class="msg-sender mb-0" th:text="${m.sender.displayName}">Tên</span>
-                        <svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
+    <th:block th:each="m : ${page.messages}">
+        
+        <!-- Tin nhắn hệ thống -->
+        <div th:if="${m.isSystem}" class="msg justify-content-center text-center my-3" th:id="'msg-' + ${m.id}">
+            <span class="text-dark fw-medium" th:utext="${m.contentHtml}">Nội dung</span>
+        </div>
+        
+        <!-- Tin nhắn bình thường -->
+        <div th:unless="${m.isSystem}" class="msg" th:id="'msg-' + ${m.id}" th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine'" th:attr="data-id=${m.id}">
+            <a th:href="@{/{user}(user=${m.sender.username})}">
+                <span th:replace="~{fragments/ui :: avatar(${m.sender}, '')}"></span>
+            </a>
+            <div class="msg-body">
+                <div class="d-flex align-items-center mb-1" th:if="${header.group}">
+                    <span class="msg-sender mb-0" th:text="${m.sender.displayName}">Tên</span>
+                    <svg th:replace="~{fragments/ui :: verified(${m.sender.primaryRole})}"></svg>
+                </div>
+                
+                <!-- Khung trả lời tin nhắn kiểu Messenger (Hình 3) -->
+                <div th:if="${m.reply != null}" class="msg-reply-container"
+                     th:classappend="${m.sender.id.equals(me.id)} ? 'is-mine' : ''"
+                     th:attr="data-mid=${m.reply.messageId}, data-snippet=${m.reply.snippet}"
+                     onclick="scrollToRepliedMessage(this.dataset.mid, this.dataset.snippet)"
+                     title="Nhấn để xem tin nhắn gốc">
+                    <div class="msg-reply-indicator">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                        <span th:text="${m.sender.id.equals(me.id)} ? ('Bạn đã trả lời ' + ${m.reply.senderName}) : (${header.group} ? (${m.sender.displayName} + ' đã trả lời ' + ${m.reply.senderName}) : (${m.sender.displayName} + ' đã trả lời bạn'))">Bạn đã trả lời Tuấn</span>
                     </div>
+                    <div class="msg-reply-snippet-bubble" th:text="${m.reply.snippet}">Nội dung trích dẫn</div>
+                </div>
+
+                <!-- Hàng hiển thị bóng chat và 3 tác nhân bên cạnh (Hình 1 & 2) -->
+                <div class="msg-row d-flex align-items-center gap-2" th:classappend="${m.sender.id.equals(me.id)} ? 'flex-row-reverse' : ''">
                     <div class="msg-bubble-wrap position-relative">
-                        <div class="msg-reaction-bar" th:if="${me != null}">
-                            <button type="button" class="msg-reaction-btn"
-                                    th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
-                                    th:attr="data-mid=${m.id}, data-cid=${conversation.id}, data-type=${type.name()}"
-                                    th:title="${type.label()}">
-                                <span th:text="${type.emoji()}"></span>
-                            </button>
+                        <!-- Tin nhắn nhãn dán (Sticker) -->
+                        <div th:if="${m.sticker != null or m.giphyId != null}" class="msg-sticker-wrap" th:classappend="${m.sender.id.equals(me.id)} ? 'text-end' : 'text-start'">
+                            <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
+                            <span th:if="${m.giphyId != null}" class="text-soft small">Nhãn dán từ nguồn cũ không còn hiển thị.</span>
+                            <svg th:if="${m.sticker != null and m.sticker.artwork() != null}" class="sticker-art sticker-art--message"
+                                 th:attr="viewBox=${m.sticker.artwork().viewBox}" role="img" th:aria-label="${m.sticker.name}">
+                                <defs><clipPath th:id="'message-art-' + ${m.id}" clipPathUnits="userSpaceOnUse"><polygon th:attr="points=${m.sticker.artwork().clipPoints}"></polygon></clipPath></defs>
+                                <image th:href="@{/stickers/original/characters.png}" width="1024" height="1536" th:attr="clip-path='url(#message-art-' + ${m.id} + ')'"></image>
+                            </svg>
+                            <img th:if="${m.sticker != null and m.sticker.renderType == 'IMAGE'}" class="sticker-art sticker-art--message sticker-image" th:src="${m.sticker.imageUrl}" th:alt="${m.sticker.name}" loading="lazy">
+                            <span th:if="${m.sticker != null and !m.sticker.visibleArtwork()}" class="text-soft small">Nhãn dán cũ không còn hiển thị.</span>
+                            <span th:if="${!#strings.isEmpty(m.contentHtml)}" class="bubble d-block mt-1" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'" th:utext="${m.contentHtml}">Nội dung</span>
                         </div>
-                        <span class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
+                        
+                        <!-- Tin nhắn thường (văn bản / file) -->
+                        <span th:unless="${m.sticker != null or m.giphyId != null}" class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
                             <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
                             <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
                                th:href="${m.attachment.url}" target="_blank" rel="noopener">
@@ -60,37 +83,79 @@
                                   th:text="${m.reactions != null ? m.reactions.total() : 0}">0</span>
                         </div>
                     </div>
-                    <span class="msg-time d-flex align-items-center gap-2">
-                        <span th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
-                        <th:block th:with="isSender=${m.sender.id == me.id}, canPin=${header.group and canManage}, canDelete=${isSender or (header.group and canManage)}">
-                            <div class="dropdown" th:if="${isSender or canDelete or canPin}">
-                                <button class="btn-link text-decoration-none p-0 text-soft small border-0 bg-transparent" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-weight: bold; font-size: 1rem; line-height: 1;">
-                                    ⋯
+
+                    <!-- 3 tác nhân bên cạnh: 1. Bày tỏ cảm xúc, 2. Trả lời, 3. Khác (Ghim, Sửa, Xóa) -->
+                    <div class="msg-actions" th:if="${me != null}">
+                        <!-- 1. Bày tỏ cảm xúc -->
+                        <div class="msg-reaction-container">
+                            <button type="button" class="msg-action-btn msg-action-btn--react" title="Bày tỏ cảm xúc" aria-label="Bày tỏ cảm xúc">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+                            </button>
+                            <div class="msg-reaction-bar">
+                                <button type="button" class="msg-reaction-btn"
+                                        th:each="type : ${T(com.aloute.model.reaction.ReactionType).values()}"
+                                        th:attr="data-mid=${m.id}, data-cid=${conversation.id}, data-type=${type.name()}"
+                                        th:title="${type.label()}">
+                                    <span th:text="${type.emoji()}"></span>
                                 </button>
-                                <ul class="dropdown-menu shadow-sm" style="min-width: 100px; padding: .5rem; border-radius: 12px; border: 1px solid var(--line);">
-                                    <li th:if="${isSender}">
-                                        <button class="dropdown-item" type="button" th:attr="onclick='editMessage(\'' + ${m.id} + '\')'">Sửa</button>
-                                    </li>
-                                    <li th:if="${canDelete}">
-                                        <form method="post" th:action="@{/messages/{id}/delete/{mid}(id=${conversation.id}, mid=${m.id})}" onsubmit="return confirm('Chắc chắn xóa tin nhắn này?')">
-                                            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
-                                            <button class="dropdown-item text-danger" type="submit">Xóa</button>
-                                        </form>
+                            </div>
+                        </div>
+
+                        <!-- 2. Trả lời -->
+                        <button type="button" class="msg-action-btn msg-action-btn--reply"
+                                th:attr="onclick='startReply(\'' + ${m.id} + '\', \'' + ${#strings.escapeJavaScript(m.sender.displayName)} + '\')'"
+                                title="Trả lời" aria-label="Trả lời">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+                        </button>
+
+                        <!-- 3. Hành động khác -->
+                        <th:block th:with="isSender=${m.sender.id == me.id}, canPin=${header.group and canManage}, canDelete=${isSender or (header.group and canManage)}">
+                            <div class="dropdown msg-more-dropdown">
+                                <button type="button" class="msg-action-btn msg-action-btn--more" data-bs-toggle="dropdown" aria-expanded="false" title="Khác" aria-label="Khác">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+                                </button>
+                                <ul class="dropdown-menu menu-al msg-dropdown-menu" th:classappend="${m.sender.id.equals(me.id)} ? 'dropdown-menu-end' : ''">
+                                    <li th:if="${isSender and m.sticker == null and m.giphyId == null}">
+                                        <button class="dropdown-item" type="button" th:attr="onclick='editMessage(\'' + ${m.id} + '\')'">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                            <span>Sửa tin nhắn</span>
+                                        </button>
                                     </li>
                                     <li th:if="${canPin}">
                                         <form method="post" th:action="@{/messages/{id}/pins/{mid}(id=${conversation.id}, mid=${m.id})}">
                                             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                                             <input type="hidden" name="pin" th:value="${!m.pinned}">
-                                            <button class="dropdown-item" type="submit" th:text="${m.pinned ? 'Bỏ ghim' : 'Ghim'}">Ghim</button>
+                                            <button class="dropdown-item" type="submit">
+                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>
+                                                <span th:text="${m.pinned ? 'Bỏ ghim' : 'Ghim tin nhắn'}">Ghim tin nhắn</span>
+                                            </button>
                                         </form>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item" type="button" th:attr="onclick='copyMessageText(\'' + ${m.id} + '\')'">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                            <span>Sao chép văn bản</span>
+                                        </button>
+                                    </li>
+                                    <li th:if="${canDelete}"><hr class="dropdown-divider my-1"></li>
+                                    <li th:if="${canDelete}">
+                                        <button class="dropdown-item text-danger" type="button" th:attr="onclick='confirmDeleteMessage(\'' + ${conversation.id} + '\', \'' + ${m.id} + '\')'">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                            <span>Xóa tin nhắn</span>
+                                        </button>
                                     </li>
                                 </ul>
                             </div>
                         </th:block>
-                    </span>
+                    </div>
                 </div>
+
+                <span class="msg-time d-flex align-items-center gap-2">
+                    <span th:title="${@timeAgo.full(m.createdAt)}" th:text="${@timeAgo.format(m.createdAt)}">vừa xong</span>
+                </span>
             </div>
-        </th:block>
+        </div>
+    </th:block>
 </th:block>
 </body>
 </html>

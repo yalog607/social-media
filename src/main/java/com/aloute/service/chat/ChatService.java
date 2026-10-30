@@ -116,6 +116,8 @@ public class ChatService {
         conversation.setDirectKey(key);
         conversation.setCreatedBy(users.getReferenceById(actorId));
         conversation.setCreatedAt(clock.instant());
+        conversation.setSocialGroup(false);
+        conversation.setChatEnabled(true);
         conversations.save(conversation);
         addMemberRow(conversation, actorId, GroupRole.MEMBER);
         addMemberRow(conversation, targetId, GroupRole.MEMBER);
@@ -151,6 +153,8 @@ public class ChatService {
         conversation.setTitle(cleanTitle);
         conversation.setCreatedBy(users.getReferenceById(actorId));
         conversation.setCreatedAt(clock.instant());
+        conversation.setSocialGroup(false);
+        conversation.setChatEnabled(true);
         conversations.save(conversation);
         addMemberRow(conversation, actorId, GroupRole.OWNER);
         for (UUID otherId : others) {
@@ -268,6 +272,15 @@ public class ChatService {
         
         User actor = users.findById(actorId).orElseThrow();
         systemMessage(conversation, actorId, actor.getProfile().getDisplayName() + (req ? " đã bật" : " đã tắt") + " tính năng duyệt thành viên.");
+    }
+
+    @Transactional
+    public void setMembersCanSendMessages(UUID actorId, UUID conversationId, boolean allow) {
+        Conversation conversation = requireGroupMembership(actorId, conversationId);
+        if (requireRole(actorId, conversationId) != GroupRole.OWNER) {
+            throw new ChatActionException("Chỉ trưởng nhóm mới có thể thay đổi quyền gửi tin nhắn.");
+        }
+        conversation.setMembersCanSendMessages(allow);
     }
 
     // ---------- Quản lý nhóm: tên, ảnh, vai trò, thành viên, biệt danh ----------
@@ -418,7 +431,7 @@ public class ChatService {
     public List<MemberView> memberViews(UUID conversationId) {
         return members.findMembers(conversationId).stream()
                 .map(m -> new MemberView(m.getUser().getId(), m.getUser().getUsername(), m.getUser().getProfile().getDisplayName(),
-                        m.getNickname(), m.getUser().getProfile().getAvatarUrl(), m.getRole()))
+                        m.getNickname(), m.getUser().getProfile().getAvatarUrl(), m.getRole(), m.getUser().getProfile().getAvatarFrame()))
                 .toList();
     }
 
@@ -498,7 +511,9 @@ public class ChatService {
     /** Danh sách hội thoại của {@code userId}, mới nhất trước, kèm tên/avatar/xem trước đã dựng sẵn theo góc nhìn của họ. */
     @Transactional(readOnly = true)
     public List<ConversationSummaryView> listFor(UUID userId) {
-        List<ConversationMember> mine = members.findWithConversationForUser(userId);
+        List<ConversationMember> mine = members.findWithConversationForUser(userId).stream()
+                .filter(m -> !m.getConversation().isSocialGroup() || m.getConversation().isChatEnabled())
+                .toList();
         if (mine.isEmpty()) {
             return List.of();
         }
@@ -528,7 +543,7 @@ public class ChatService {
                     preview(latest),
                     latest != null ? latest.getCreatedAt() : conversation.getCreatedAt(),
                     unreadByConversation.getOrDefault(conversation.getId(), 0L),
-                    streakById.getOrDefault(conversation.getId(), Streak.NONE)));
+                    streakById.getOrDefault(conversation.getId(), Streak.NONE), displayAvatarFrame(conversation, userId)));
         }
         views.sort((a, b) -> b.lastMessageAt().compareTo(a.lastMessageAt()));
         return views;
@@ -536,7 +551,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public ConversationHeader header(UUID viewerId, Conversation conversation) {
-        return new ConversationHeader(displayTitle(conversation, viewerId), displayAvatar(conversation, viewerId), conversation.isGroup());
+        return new ConversationHeader(displayTitle(conversation, viewerId), displayAvatar(conversation, viewerId), conversation.isGroup(), displayAvatarFrame(conversation, viewerId));
     }
 
     private String displayTitle(Conversation conversation, UUID viewerId) {
@@ -546,6 +561,11 @@ public class ChatService {
         return otherMember(conversation, viewerId)
                 .map(m -> m.getNickname() != null ? m.getNickname() : m.getUser().getProfile().getDisplayName())
                 .orElse("Người dùng đã rời ALOUTE");
+    }
+
+    private String displayAvatarFrame(Conversation conversation, UUID viewerId) {
+        if (conversation.isGroup()) return null;
+        return otherMember(conversation, viewerId).map(m -> m.getUser().getProfile().getAvatarFrame()).orElse(null);
     }
 
     private String displayAvatar(Conversation conversation, UUID viewerId) {
@@ -565,6 +585,7 @@ public class ChatService {
         if (latest == null) {
             return "";
         }
+        if (latest.getGiphyId() != null || latest.getSticker() != null) return "Đã gửi một nhãn dán";
         if (latest.getContent() != null && !latest.getContent().isBlank()) {
             return latest.getContent();
         }

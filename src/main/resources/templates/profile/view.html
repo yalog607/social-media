@@ -93,8 +93,8 @@
 
             <!-- Hàng thông tin & huy hiệu: Vibe tâm trạng, Vai trò, Ngày tham gia -->
             <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <!-- Huy hiệu tâm trạng hôm nay -->
-                <div th:replace="~{fragments/mood :: moodBadge(${ownerMood})}"></div>
+                
+                
 
                 <!-- Chip vai trò -->
                 <th:block th:if="${owner.primaryRole().name() != 'USER'}">
@@ -286,7 +286,7 @@
         </div>
     </div>
 
-    <div th:replace="~{fragments/mood :: customMoodModal}"></div>
+    
 </main>
 </body>
 </html>

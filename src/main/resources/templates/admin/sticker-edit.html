@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(${pack.name}, ~{::main}, 'admin', ~{})}"><head><title>Quản lý bộ nhãn dán</title></head><body><main id="sticker-admin" th:attr="data-pack-id=${pack.id},data-sticker-count=${pack.totalStickers}">
+    <div class="page-title"><h1 th:text="${pack.name}"></h1></div>
+    <th:block th:replace="~{admin/nav :: tabs('stickers')}"></th:block>
+    <div class="sticker-admin-toolbar mb-3">
+        <a th:href="@{/admin/stickers}" class="btn-al btn-al--sm btn-al--white">← Danh sách bộ</a>
+        <div class="sticker-admin-publish">
+            <div class="sticker-admin-publish-status"><span class="sticker-admin-status-label">Trạng thái</span><strong th:text="${pack.status == 'DRAFT'} ? 'Bản nháp' : (${pack.status == 'PUBLISHED'} ? 'Đang cung cấp' : 'Đã ngừng cung cấp')"></strong></div>
+            <form th:if="${pack.status != 'PUBLISHED'}" method="post" th:action="@{/admin/stickers/{id}/publish(id=${pack.id})}"><button class="btn-al btn-al--sm btn-al--mint" type="submit" th:text="${pack.status == 'RETIRED'} ? 'Xuất bản lại' : 'Xuất bản bộ'"></button></form>
+            <form th:if="${pack.status == 'PUBLISHED'}" method="post" th:action="@{/admin/stickers/{id}/retire(id=${pack.id})}" data-sticker-confirm data-confirm-title="Ngừng cung cấp bộ?" data-confirm-message="Người mới sẽ không nhận được bộ này. Những người đã sở hữu vẫn có thể sử dụng." data-confirm-action="Ngừng cung cấp"><button class="btn-al btn-al--sm btn-al--white" type="submit">Ngừng cung cấp</button></form>
+        </div>
+    </div>
+    <section class="note sticker-admin-section mb-4"><span class="sticker-admin-eyebrow">THÔNG TIN</span><h2 class="h4">Thông tin bộ nhãn dán</h2><p class="text-soft small">Cập nhật tên, mô tả và ảnh đại diện của bộ.</p>
+        <form method="post" enctype="multipart/form-data" th:action="@{/admin/stickers/{id}/save(id=${pack.id})}">
+            <div class="field"><label for="edit-name">Tên bộ</label><input class="input-al" id="edit-name" name="name" maxlength="100" th:value="${pack.name}" required></div>
+            <div class="field"><label for="edit-description">Mô tả</label><textarea class="input-al" id="edit-description" name="description" maxlength="255" rows="2" th:text="${pack.description}"></textarea></div>
+            <div class="field"><label for="edit-type">Quyền sử dụng</label><select class="input-al" id="edit-type" name="accessType" th:disabled="${!editableImages}"><option value="FREE" th:selected="${pack.accessType == 'FREE'}">Miễn phí</option><option value="AWARD" th:selected="${pack.accessType == 'AWARD'}">Phần thưởng</option></select><input th:if="${!editableImages}" type="hidden" name="accessType" th:value="${pack.accessType}"><p class="field-hint" th:if="${!editableImages}">Quyền sử dụng được giữ cố định sau khi xuất bản.</p></div>
+            <div class="field"><label for="pack-icon">Ảnh đại diện bộ (không bắt buộc)</label><input class="input-al" type="file" id="pack-icon" name="icon" accept="image/png,image/webp"><p class="field-hint">PNG/WebP tĩnh, tối đa 10 MB. Nếu chưa chọn, dùng ảnh nhãn dán đầu tiên.</p></div>
+            <button class="btn-al btn-al--pink" type="submit">Lưu thông tin</button>
+        </form>
+    </section>
+    <section class="note sticker-admin-section mb-4"><span class="sticker-admin-eyebrow">HÌNH ẢNH</span><h2 class="h4">Thêm nhãn dán</h2>
+        <p class="field-hint">Mỗi nhãn dán là một ảnh PNG/WebP tĩnh, tối đa 10 MB. Tải tối đa 10 ảnh mỗi lần và 50 ảnh mỗi bộ. Khuyến nghị 512×512 px; tối đa 2048 px mỗi chiều.</p>
+        <form id="sticker-upload-form" method="post" enctype="multipart/form-data" th:action="@{/admin/stickers/{id}/upload(id=${pack.id})}">
+            <label class="visually-hidden" for="sticker-files">Chọn ảnh nhãn dán</label><input class="input-al mb-3" id="sticker-files" type="file" name="files" accept="image/png,image/webp" multiple required>
+            <div id="sticker-upload-preview" class="sticker-upload-preview"></div><p id="sticker-upload-error" role="alert" class="text-danger"></p>
+            <button class="btn-al btn-al--mint" type="submit">Thêm ảnh vào bộ</button>
+        </form>
+    </section>
+    <section class="note sticker-admin-section mb-4">
+        <div class="sticker-admin-list-heading"><div><h2 class="h4 mb-1">Danh sách nhãn dán</h2><p class="text-soft small mb-0">Chọn nhãn dán để chỉnh sửa hoặc xóa.</p></div><span class="sticker-status-badge" th:text="${pack.totalStickers} + ' nhãn dán'">0 nhãn dán</span></div>
+        <p th:if="${#lists.isEmpty(pack.stickers)}" class="text-soft">Bộ chưa có nhãn dán. Thêm ít nhất một ảnh để xuất bản.</p>
+        <p class="sticker-admin-list-hint" th:if="${!editableImages and !#lists.isEmpty(pack.stickers)}">Nhãn đã gửi vẫn hiển thị trong tin nhắn sau khi xóa khỏi bộ.</p>
+        <div class="sticker-admin-list">
+        <details class="sticker-admin-item" name="sticker-editor" th:each="s : ${pack.stickers}">
+            <summary class="sticker-admin-item-summary">
+                <span class="sticker-admin-art"><th:block th:replace="~{fragments/sticker :: art(${s}, '', ${'edit-' + s.id})}"></th:block></span>
+                <span class="sticker-admin-item-label"><strong th:text="${s.name}" th:title="${s.name}">Tên nhãn dán</strong><small th:text="'Thứ tự ' + ${s.sortOrder}">Thứ tự 0</small></span>
+                <span class="sticker-admin-item-action"><span class="sticker-admin-edit-label">Chỉnh sửa</span><svg class="sticker-admin-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </summary>
+            <div class="sticker-admin-item-content">
+                <form class="sticker-admin-item-form" method="post" enctype="multipart/form-data" th:action="@{/admin/stickers/{id}/items/{sid}(id=${pack.id},sid=${s.id})}">
+                    <div class="field"><label th:for="'name-' + ${s.id}">Tên nhãn dán</label><input class="input-al" name="name" th:id="'name-' + ${s.id}" th:value="${s.name}" maxlength="100" required></div>
+                    <div class="field"><label th:for="'tags-' + ${s.id}">Từ khóa tìm kiếm</label><input class="input-al" name="keywords" th:id="'tags-' + ${s.id}" th:value="${s.keywords}" maxlength="300" placeholder="vui, cười, cảm ơn…"></div>
+                    <div class="field"><label th:for="'order-' + ${s.id}">Thứ tự</label><input class="input-al" type="number" name="sortOrder" th:id="'order-' + ${s.id}" th:value="${s.sortOrder}" min="0" max="9999" required></div>
+                    <div th:if="${editableImages}" class="field"><label th:for="'image-' + ${s.id}">Thay ảnh (không bắt buộc)</label><input class="input-al" type="file" name="image" th:id="'image-' + ${s.id}" accept="image/png,image/webp"></div>
+                    <button class="btn-al btn-al--sm btn-al--mint" type="submit">Lưu thay đổi</button>
+                </form>
+                <form class="sticker-admin-delete" method="post" th:action="@{/admin/stickers/{id}/items/{sid}/delete(id=${pack.id},sid=${s.id})}" data-sticker-confirm data-confirm-title="Xóa nhãn dán khỏi bộ?" data-confirm-action="Xóa nhãn dán" th:attr="data-confirm-message=${editableImages} ? 'Nhãn dán này sẽ được xóa khỏi bộ.' : 'Nhãn dán sẽ không thể gửi mới. Tin nhắn và bình luận đã gửi vẫn giữ hình ảnh.'"><button class="btn-al btn-al--sm btn-al--white text-danger" type="submit">Xóa khỏi bộ</button></form>
+            </div>
+        </details>
+        </div>
+    </section>
+    <section th:if="${pack.accessType == 'AWARD'}" class="note sticker-admin-section mb-4"><span class="sticker-admin-eyebrow">PHẦN THƯỞNG</span><h2 class="h4">Cấp bộ cho người nhận</h2>
+        <p th:if="${pack.status != 'PUBLISHED'}" class="text-soft">Hãy xuất bản bộ để cấp cho người nhận.</p>
+        <form th:if="${pack.status == 'PUBLISHED'}" id="sticker-grant-form" th:action="@{/admin/stickers/{id}/grants(id=${pack.id})}" method="post">
+            <label for="sticker-recipient-search">Tìm người nhận theo username hoặc tên</label><input id="sticker-recipient-search" class="input-al my-2" type="search" maxlength="100" placeholder="Nhập ít nhất 2 ký tự" autocomplete="off">
+            <div id="sticker-recipient-results" class="sticker-recipient-results" aria-live="polite"></div>
+            <h3 class="h6 mt-3">Danh sách sẽ nhận quà</h3><div id="sticker-selected-recipients" class="sticker-selected-recipients"></div>
+            <div class="field mt-3"><label for="sticker-grant-reason">Lý do nhận quà</label><textarea class="input-al" id="sticker-grant-reason" name="reason" maxlength="300" rows="2" required placeholder="Ví dụ: Giải nhất cuộc thi tháng 11"></textarea></div>
+            <p id="sticker-grant-status" role="alert"></p><button type="submit" class="btn-al btn-al--pink" id="sticker-grant-button" disabled>Xác nhận cấp quà</button>
+            <noscript>Cần bật JavaScript để tìm và chọn nhiều người nhận.</noscript>
+        </form>
+        <h3 class="h5 mt-4">Lịch sử người nhận</h3>
+        <div class="sticker-table-scroll"><table class="table-al"><thead><tr><th>Người nhận</th><th>Lý do</th><th>Trạng thái</th><th></th></tr></thead><tbody><tr th:each="r : ${recipients}"><td><span th:text="${r.displayName}"></span><br><small th:text="'@' + ${r.username}"></small></td><td th:text="${r.reason}"></td><td th:text="${r.revokedAt == null} ? 'Đang sở hữu' : 'Đã thu hồi'"></td><td><form th:if="${r.revokedAt == null}" method="post" th:action="@{/admin/stickers/{id}/revoke/{user}(id=${pack.id},user=${r.id})}" data-sticker-confirm data-confirm-title="Thu hồi quyền sử dụng?" th:attr="data-confirm-message='Thu hồi quyền dùng bộ này của ' + ${r.displayName} + '? Các tin nhắn và bình luận cũ vẫn hiển thị.'" data-confirm-action="Thu hồi"><button class="btn-al btn-al--sm btn-al--white" type="submit">Thu hồi</button></form></td></tr></tbody></table></div>
+        <p th:if="${#lists.isEmpty(recipients)}" class="text-soft small">Chưa cấp bộ này cho ai.</p>
+    </section>
+    <div class="modal fade" id="stickerConfirmModal" tabindex="-1" aria-labelledby="stickerConfirmTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content sticker-confirm-dialog">
+            <div class="modal-header"><h2 class="h5 mb-0 fw-bold" id="stickerConfirmTitle">Xác nhận</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body" id="stickerConfirmMessage"></div>
+            <div class="modal-footer"><button type="button" class="btn-al btn-al--sm btn-al--white" data-bs-dismiss="modal">Hủy</button><button type="button" class="btn-al btn-al--sm btn-al--pink" id="stickerConfirmAction">Xác nhận</button></div>
+        </div></div>
+    </div>
+    <script defer th:src="@{/js/admin-stickers.js(v=4)}"></script>
+</main></body></html>
