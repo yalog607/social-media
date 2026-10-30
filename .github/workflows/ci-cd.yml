@@ -1,0 +1,65 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Unit test
+        run: mvn -B test
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (không push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    # PR chỉ chạy CI; chỉ push/merge vào main mới deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, docker-build]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy lên VPS qua SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          envs: VPS_PATH
+          script_stop: true
+          script: |
+            cd "$VPS_PATH"
+            git pull --ff-only origin main
+            docker compose -f docker-compose.prod.yml -f docker-compose.hostcaddy.yml up -d --build --remove-orphans
+            docker image prune -f
+        env:
+          VPS_PATH: ${{ secrets.VPS_PATH }}
