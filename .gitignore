@@ -26,6 +26,7 @@ replay_pid*
 target/
 /docs/
 /.playwright-cli/
+/.playwright-mcp/
 .idea/
 *.iml
 .vscode/

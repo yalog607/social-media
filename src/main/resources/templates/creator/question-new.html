@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Đặt câu hỏi', ~{::main}, 'creator', ~{})}">
+<head><title>Đặt câu hỏi</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Đặt câu hỏi</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <section class="note note--taped mb-4" aria-labelledby="qa-title">
+        <h2 id="qa-title" class="h4 mb-2">Câu hỏi mới</h2>
+        <p class="text-soft small">Câu hỏi được đăng công khai lên bảng tin và gửi thông báo cho người theo dõi (không gồm người chặn bạn hoặc bị bạn chặn). Mọi người trả lời bằng bình luận; các câu trả lời sau đó không gửi thêm thông báo.</p>
+        <form th:action="@{/creator/questions}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="qText">Câu hỏi</label>
+                <textarea id="qText" name="question" class="input-al" rows="4" required maxlength="2000" th:text="${draftQuestion}"></textarea>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Đăng câu hỏi</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

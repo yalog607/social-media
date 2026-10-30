@@ -3,6 +3,7 @@ package com.aloute.service.post;
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.exception.post.PostNotFoundException;
 import com.aloute.model.post.Post;
+import com.aloute.model.post.PostKind;
 import com.aloute.model.post.PostMedia;
 import com.aloute.model.post.PostTag;
 import com.aloute.repository.post.PostRepository;
@@ -212,6 +213,9 @@ public class PostService {
             post.setEditedAt(clock.instant());
         }
         if (visibility != null) {
+            if (post.getPostKind() != PostKind.POST && visibility != Visibility.PUBLIC) {
+                throw new InvalidPostException("Bình chọn và câu hỏi luôn công khai nên không đổi quyền xem được.");
+            }
             post.setVisibility(visibility);
         }
         if (!post.isScheduled() && !post.isShare()) seasonActivity.eligibility(post.getId(), actorId, post.getCreatedAt(), post.getVisibility() == Visibility.PUBLIC, post.getHashtags());

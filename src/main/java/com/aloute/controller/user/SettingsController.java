@@ -55,13 +55,10 @@ public class SettingsController {
         SettingsForms.ProfileForm profile = new SettingsForms.ProfileForm();
         profile.setDisplayName(p.getDisplayName());
         profile.setBio(p.getBio());
-        SettingsForms.PrivacyForm privacy = new SettingsForms.PrivacyForm();
-        privacy.setProfileVisibility(p.getProfileVisibility());
-        privacy.setDefaultPostVisibility(p.getDefaultPostVisibility());
-        privacy.setMessagePermission(p.getMessagePermission());
+        profile.setBirthDate(p.getBirthDate());
 
         model.addAttribute("profileForm", profile);
-        model.addAttribute("privacyForm", privacy);
+        model.addAttribute("privacyForm", currentPrivacy(user));
         return render(model, user, null, null, null);
     }
 
@@ -71,7 +68,7 @@ public class SettingsController {
                               BindingResult errors, Model model, RedirectAttributes redirect) {
         if (!errors.hasErrors()) {
             try {
-                profiles.updateProfile(principal.id(), form.getDisplayName(), form.getBio(),
+                profiles.updateProfile(principal.id(), form.getDisplayName(), form.getBio(), form.getBirthDate(),
                         form.getAvatar(), form.getCover());
                 redirect.addFlashAttribute("notice", "Đã lưu hồ sơ!");
                 return "redirect:/settings";
@@ -170,6 +167,7 @@ public class SettingsController {
         SettingsForms.ProfileForm form = new SettingsForms.ProfileForm();
         form.setDisplayName(user.getProfile().getDisplayName());
         form.setBio(user.getProfile().getBio());
+        form.setBirthDate(user.getProfile().getBirthDate());
         return form;
     }
 

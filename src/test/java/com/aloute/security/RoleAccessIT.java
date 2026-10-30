@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class RoleAccessIT extends IntegrationTest {
 
     @org.springframework.beans.factory.annotation.Autowired RefreshTokenService refreshTokens;
+    @org.springframework.beans.factory.annotation.Autowired com.aloute.service.admin.AdminService admin;
 
     private int statusFor(String path, User user) throws Exception {
         MockHttpServletRequestBuilder request = get(path);
@@ -127,5 +128,39 @@ class RoleAccessIT extends IntegrationTest {
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .cookie(new jakarta.servlet.http.Cookie(CookieService.REFRESH_COOKIE, refresh)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void revokedManagerLosesAccessImmediatelyButStaysLoggedIn() throws Exception {
+        User adminUser = createUser(Role.ADMIN);
+        User manager = createUser(Role.MANAGER);
+        // Token được phát ra khi manager còn quyền, giống hệt cookie đang có trong trình duyệt của họ.
+        var request = asUser(manager);
+
+        admin.revokeManager(adminUser.getId(), manager.getId());
+
+        assertThat(mvc.perform(get("/manage").with(request)).andReturn().getResponse().getStatus())
+                .as("quyền bị thu hồi nên /manage phải chặn ngay, không chờ token hết hạn")
+                .isEqualTo(403);
+        assertThat(mvc.perform(get("/settings").with(request)).andReturn().getResponse().getStatus())
+                .as("vẫn giữ phiên: các trang thường vẫn dùng được, không bị đăng xuất")
+                .isEqualTo(200);
+        assertThat(mvc.perform(get("/").with(request)).andReturn().getResponse().getContentAsString())
+                .as("menu Kiểm duyệt phải biến mất")
+                .doesNotContain("href=\"/manage\"");
+    }
+
+    @Test
+    void grantedManagerGetsAccessImmediatelyWithoutReLogin() throws Exception {
+        User adminUser = createUser(Role.ADMIN);
+        User user = createUser();
+        // Token phát ra trước khi được cấp quyền Manager.
+        var request = asUser(user);
+
+        admin.grantManager(adminUser.getId(), user.getUsername());
+
+        assertThat(mvc.perform(get("/manage").with(request)).andReturn().getResponse().getStatus())
+                .as("quyền mới phải có hiệu lực ngay, không cần đăng nhập lại")
+                .isEqualTo(200);
     }
 }

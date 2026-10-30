@@ -85,7 +85,7 @@
                     </th:block>
                 </div>
             </div>
-            <h1 class="h2 mt-3 mb-1"><span th:text="${owner.profile.displayName}">Tên hiển thị</span><svg th:replace="~{fragments/ui :: verified(${owner.primaryRole()})}"></svg></h1>
+            <h1 class="h2 mt-3 mb-1"><span th:text="${owner.profile.displayName}">Tên hiển thị</span><svg th:replace="~{fragments/ui :: badge(${ownerBadge})}"></svg></h1>
             <p class="text-soft mb-2">@<span th:text="${owner.username}">username</span></p>
 
             <!-- Hàng thông tin & huy hiệu: Vibe tâm trạng, Vai trò, Ngày tham gia -->
@@ -115,6 +115,10 @@
                 </a>
             </p>
             <p class="mb-0" th:if="${canView and owner.profile.bio != null}" th:text="${owner.profile.bio}">Giới thiệu</p>
+
+            <div class="d-flex flex-wrap gap-2 mt-2" th:if="${canView and ownerIsCreator and !#lists.isEmpty(topics)}">
+                <span class="btn-al btn-al--sm btn-al--white" style="cursor:default;" th:each="t : ${topics}" th:text="${t.name()}">Chủ đề</span>
+            </div>
         </div>
     </article>
 
@@ -149,13 +153,23 @@
         }
     </style>
     <th:block th:if="${canView}">
-        <div class="profile-tabs d-flex gap-2 mb-4">
+        <div class="profile-tabs d-flex gap-2 mb-4 flex-wrap">
             <a class="btn-al btn-al--sm" th:classappend="${activeTab == 'posts'} ? 'btn-al--pink' : 'btn-al--white'"
                th:href="@{/u/{u}(u=${owner.username}, tab='posts')}">📝 Bài viết</a>
             <a class="btn-al btn-al--sm" th:classappend="${activeTab == 'guestbook'} ? 'btn-al--lemon' : 'btn-al--white'"
                th:href="@{/u/{u}(u=${owner.username}, tab='guestbook')}">
                📖 Sổ lưu bút (<span th:text="${guestbookCount}">0</span>)
             </a>
+            <th:block th:if="${ownerIsCreator}">
+                <a class="btn-al btn-al--sm" th:classappend="${activeTab == 'series'} ? 'btn-al--sky' : 'btn-al--white'"
+                   th:href="@{/u/{u}(u=${owner.username}, tab='series')}">
+                   📚 Series (<span th:text="${#lists.size(seriesList)}">0</span>)
+                </a>
+                <a class="btn-al btn-al--sm" th:classappend="${activeTab == 'qa'} ? 'btn-al--mint' : 'btn-al--white'"
+                   th:href="@{/u/{u}(u=${owner.username}, tab='qa')}">
+                   💬 Hỏi đáp &amp; Poll (<span th:text="${#lists.size(qaPosts)}">0</span>)
+                </a>
+            </th:block>
         </div>
 
         <!-- Tab: Bài viết -->
@@ -171,7 +185,7 @@
                                         <span style="--size: 36px; flex: none;" th:replace="~{fragments/ui :: avatar(${p.author}, '')}"></span>
                                         <div style="min-width: 0; flex: 1;">
                                             <div class="text-truncate" style="font-weight: 700; font-size: .95rem; font-family: var(--font-display); color: var(--ink);">
-                                                <span th:text="${p.author.displayName}">Tên</span><svg th:replace="~{fragments/ui :: verified(${p.author.primaryRole})}"></svg>
+                                                <span th:text="${p.author.displayName}">Tên</span><svg th:replace="~{fragments/ui :: badge(${p.author.badge})}"></svg>
                                             </div>
                                             <div class="text-soft d-flex align-items-center gap-1" style="font-size: .8rem;">
                                                 <span th:text="${@timeAgo.format(p.createdAt)}">vừa xong</span>
@@ -216,6 +230,33 @@
         <!-- Tab: Sổ lưu bút -->
         <div th:if="${activeTab == 'guestbook'}">
             <th:block th:replace="~{fragments/guestbook :: guestbookSection}"></th:block>
+        </div>
+
+        <!-- Tab: Series -->
+        <div th:if="${activeTab == 'series' and ownerIsCreator}">
+            <section class="note note--sky empty" th:if="${#lists.isEmpty(seriesList)}">
+                <h2 class="h3">Chưa có series nào</h2>
+                <p th:text="${isOwner} ? 'Series giúp gom các bài liên quan thành một chuỗi. Tạo series ở Creator Studio.' : 'Người này chưa có series nào.'">...</p>
+            </section>
+            <div class="row g-3" th:unless="${#lists.isEmpty(seriesList)}">
+                <div class="col-12 col-sm-6 col-md-4" th:each="s : ${seriesList}">
+                    <a class="featured-card d-block p-3 text-decoration-none text-ink h-100" th:href="@{/series/{id}(id=${s.id()})}">
+                        <h3 class="h5 mb-1" th:text="${s.title()}">Tiêu đề series</h3>
+                        <p class="text-soft small mb-0" th:if="${s.description() != null and !s.description().isEmpty()}" th:text="${s.description()}">Mô tả</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Hỏi đáp & Poll -->
+        <div th:if="${activeTab == 'qa' and ownerIsCreator}">
+            <section class="note note--mint empty" th:if="${#lists.isEmpty(qaPosts)}">
+                <h2 class="h3">Chưa có hỏi đáp hoặc bình chọn nào</h2>
+                <p th:text="${isOwner} ? 'Tạo bình chọn hoặc đặt câu hỏi ở Creator Studio.' : 'Người này chưa đăng hỏi đáp hoặc bình chọn nào.'">...</p>
+            </section>
+            <th:block th:each="post : ${qaPosts}">
+                <th:block th:replace="~{fragments/post :: card(${post})}"></th:block>
+            </th:block>
         </div>
     </th:block>
 

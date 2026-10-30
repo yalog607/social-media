@@ -1,11 +1,18 @@
 package com.aloute.controller.user;
 
 import com.aloute.guestbook.GuestbookService;
+import com.aloute.model.creator.BadgeTier;
+import com.aloute.model.user.Role;
 import com.aloute.service.seo.OgMetaFactory;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
+import com.aloute.service.creator.PollService;
+import com.aloute.service.creator.QuestionService;
+import com.aloute.service.creator.SeriesService;
+import com.aloute.service.creator.TopicService;
 import com.aloute.service.user.ProfileVisibilityRules;
 import com.aloute.service.feed.FeedService;
+import com.aloute.service.post.PostViewAssembler;
 import com.aloute.security.AlouteUserPrincipal;
 import com.aloute.service.social.BlockService;
 import com.aloute.service.social.FollowService;
@@ -19,7 +26,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.UUID;
 import java.time.format.DateTimeFormatter;
 
@@ -39,11 +50,18 @@ public class ProfileController {
     private final GuestbookService guestbook;
     private final com.aloute.service.mood.MoodService moodService;
     private final OgMetaFactory og;
+    private final TopicService topics;
+    private final SeriesService series;
+    private final PollService polls;
+    private final QuestionService questions;
+    private final PostViewAssembler assembler;
+    private final Clock clock;
 
     public ProfileController(UserRepository users, FeedService feed, ProfileVisibilityRules visibility,
                              FriendService friends, FollowService follows, BlockService blocks,
                              GuestbookService guestbook, com.aloute.service.mood.MoodService moodService,
-                             OgMetaFactory og) {
+                             OgMetaFactory og, TopicService topics, SeriesService series, PollService polls,
+                             QuestionService questions, PostViewAssembler assembler, Clock clock) {
         this.og = og;
         this.users = users;
         this.feed = feed;
@@ -53,6 +71,12 @@ public class ProfileController {
         this.blocks = blocks;
         this.guestbook = guestbook;
         this.moodService = moodService;
+        this.topics = topics;
+        this.series = series;
+        this.polls = polls;
+        this.questions = questions;
+        this.assembler = assembler;
+        this.clock = clock;
     }
 
     @GetMapping("/me")
@@ -79,8 +103,11 @@ public class ProfileController {
         model.addAttribute("canView", canView);
         model.addAttribute("joined", JOINED.format(owner.getCreatedAt()));
         model.addAttribute("friendCount", friends.friendCount(owner.getId()));
-        model.addAttribute("followerCount", follows.followerCount(owner.getId()));
+        long ownerFollowerCount = follows.followerCount(owner.getId());
+        model.addAttribute("followerCount", ownerFollowerCount);
         model.addAttribute("followingCount", follows.followingCount(owner.getId()));
+        model.addAttribute("ownerBadge", BadgeTier.of(ownerFollowerCount, owner.getProfile().getBirthDate(),
+                LocalDate.now(clock), owner.primaryRole()));
         model.addAttribute("blockedEitherWay", blockedEitherWay);
         model.addAttribute("ownerMood", moodService.getUserMood(owner.getId()).orElse(null));
         model.addAttribute("moodPresets", moodService.getPresets());
@@ -93,16 +120,36 @@ public class ProfileController {
             model.addAttribute("isFollowing", follows.isFollowing(viewerId, owner.getId()));
             model.addAttribute("hasBlocked", blocks.hasBlocked(viewerId, owner.getId()));
         }
+        boolean ownerIsCreator = owner.primaryRole() == Role.CREATOR;
+        model.addAttribute("ownerIsCreator", ownerIsCreator);
         if (canView) {
             model.addAttribute("page", feed.byAuthor(owner.getId(), viewerId, null));
             model.addAttribute("pinnedPosts", feed.pinnedByAuthor(owner.getId(), viewerId));
             model.addAttribute("moreUrl", "/u/" + owner.getUsername() + "/posts");
-            model.addAttribute("activeTab", "guestbook".equalsIgnoreCase(tab) ? "guestbook" : "posts");
+            model.addAttribute("activeTab", activeTab(tab));
             model.addAttribute("guestbookCount", guestbook.countFor(owner.getId(), viewerId));
             model.addAttribute("guestbookEntries", guestbook.listEntries(owner.getId(), viewerId));
             model.addAttribute("canSignGuestbook", !blockedEitherWay && guestbook.canSign(viewerId, owner.getId()));
+            if (ownerIsCreator) {
+                model.addAttribute("topics", topics.topicsFor(owner.getId()));
+                model.addAttribute("seriesList", series.forProfile(owner.getId(), viewerId));
+                var qaPosts = new ArrayList<com.aloute.model.post.Post>();
+                qaPosts.addAll(polls.forProfile(owner.getId()));
+                qaPosts.addAll(questions.forProfile(owner.getId()));
+                qaPosts.sort(Comparator.comparing(com.aloute.model.post.Post::getCreatedAt).reversed());
+                model.addAttribute("qaPosts", assembler.assemble(qaPosts, viewerId));
+            }
         }
         return "profile/view";
+    }
+
+    private static String activeTab(String tab) {
+        return switch (tab == null ? "" : tab.toLowerCase()) {
+            case "guestbook" -> "guestbook";
+            case "series" -> "series";
+            case "qa" -> "qa";
+            default -> "posts";
+        };
     }
 
     @GetMapping("/u/{username}/friends-fragment")

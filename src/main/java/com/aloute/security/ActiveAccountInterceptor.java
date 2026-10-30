@@ -17,7 +17,9 @@ import java.util.Optional;
 /**
  * JWT không cần chạm DB nên một tài khoản vừa bị khóa/xóa vẫn còn access token hợp lệ tới vài phút.
  * Interceptor này kiểm tra tài khoản còn hoạt động trước khi vào controller; nếu không thì thu hồi phiên
- * và đưa về trang đăng nhập (hoặc 401 JSON với API). User tải được lưu vào request để dùng lại, tránh truy vấn lần hai.
+ * và đưa về trang đăng nhập (hoặc 401 JSON với API). Vai trò được làm tươi ở {@link JwtAuthFilter}, nơi cũng
+ * đã tải {@code User} và lưu vào request; interceptor chỉ truy vấn lại khi attribute đó vắng mặt
+ * (ví dụ user bị xóa cứng khỏi DB), để tránh truy vấn hai lần.
  */
 @Component
 public class ActiveAccountInterceptor implements HandlerInterceptor {
@@ -41,7 +43,9 @@ public class ActiveAccountInterceptor implements HandlerInterceptor {
         if (auth == null || !(auth.getPrincipal() instanceof AlouteUserPrincipal principal)) {
             return true;
         }
-        Optional<User> active = users.findById(principal.id()).filter(User::isActive);
+        Optional<User> active = loadedByFilter(request)
+                .or(() -> users.findById(principal.id()))
+                .filter(User::isActive);
         if (active.isPresent()) {
             request.setAttribute(CURRENT_USER_ATTRIBUTE, active.get());
             return true;
@@ -58,5 +62,11 @@ public class ActiveAccountInterceptor implements HandlerInterceptor {
             response.sendRedirect(request.getContextPath() + "/login");
         }
         return false;
+    }
+
+    private Optional<User> loadedByFilter(HttpServletRequest request) {
+        return Optional.ofNullable(request.getAttribute(CURRENT_USER_ATTRIBUTE))
+                .filter(User.class::isInstance)
+                .map(User.class::cast);
     }
 }

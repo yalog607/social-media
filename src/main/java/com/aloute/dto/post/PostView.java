@@ -1,8 +1,10 @@
 package com.aloute.dto.post;
 
 import com.aloute.dto.category.CategoryView;
+import com.aloute.model.creator.BadgeTier;
 import com.aloute.model.chat.GroupRole;
 import com.aloute.model.media.MediaKind;
+import com.aloute.model.post.PostKind;
 import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.Visibility;
@@ -41,11 +43,33 @@ public record PostView(
         boolean isPinned,
         boolean isAnonymous,
         UUID groupId,
-        GroupInfo group) {
+        GroupInfo group,
+        PostKind kind,
+        PollView poll,
+        SeriesInfo series) {
 
-    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {
+    /** Bài thường: không có bình chọn. */
+    public PostView(UUID id, AuthorView author, String contentHtml, Visibility visibility, Instant createdAt,
+                    boolean edited, List<MediaView> media, boolean mine, String rawContent, ReactionSummary reactions,
+                    long commentCount, long shareCount, UUID sharedPostId, PostView sharedPost, List<AuthorView> tagged,
+                    CategoryView category, boolean isPinned, boolean isAnonymous, UUID groupId, GroupInfo group) {
+        this(id, author, contentHtml, visibility, createdAt, edited, media, mine, rawContent, reactions, commentCount,
+                shareCount, sharedPostId, sharedPost, tagged, category, isPinned, isAnonymous, groupId, group,
+                PostKind.POST, null, null);
+    }
+
+    /** Series chứa bài này (chỉ id và tiêu đề). */
+    public record SeriesInfo(UUID id, String title) {
+    }
+
+    public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole,
+                             String avatarFrame, BadgeTier badge) {
         public AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole) {
-            this(id, username, displayName, avatarUrl, primaryRole, null);
+            this(id, username, displayName, avatarUrl, primaryRole, null, BadgeTier.NONE);
+        }
+
+        public AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {
+            this(id, username, displayName, avatarUrl, primaryRole, avatarFrame, BadgeTier.NONE);
         }
     }
 
@@ -87,6 +111,14 @@ public record PostView(
 
     public boolean isPublic() {
         return visibility == Visibility.PUBLIC;
+    }
+
+    public boolean hasPoll() {
+        return kind == PostKind.POLL && poll != null;
+    }
+
+    public boolean isQuestion() {
+        return kind == PostKind.QUESTION;
     }
 
     public boolean isShare() {

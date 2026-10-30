@@ -1,5 +1,6 @@
 package com.aloute.user;
 
+import com.aloute.dto.user.SettingsForms;
 import com.aloute.model.user.MessagePermission;
 import com.aloute.model.user.Profile;
 import com.aloute.model.user.User;
@@ -179,6 +180,24 @@ class SettingsIT extends IntegrationTest {
                 .andExpect(redirectedUrl("/settings"));
 
         assertThat(users.findById(user.getId()).orElseThrow().getProfile().isPhotoZoomEnabled()).isFalse();
+    }
+
+    @Test
+    void reloadingSettingsAfterSaveShowsTheSavedPrivacyChoices() throws Exception {
+        User user = createUser();
+
+        mvc.perform(post("/settings/privacy").with(csrf()).with(asUser(user))
+                        .param("profileVisibility", "PUBLIC").param("defaultPostVisibility", "PUBLIC")
+                        .param("messagePermission", "EVERYONE").param("photoZoomEnabled", "false")
+                        .param("friendsListVisible", "false").param("followingListVisible", "false"))
+                .andExpect(redirectedUrl("/settings"));
+
+        MvcResult result = mvc.perform(get("/settings").with(asUser(user))).andReturn();
+        SettingsForms.PrivacyForm privacyForm =
+                (SettingsForms.PrivacyForm) result.getModelAndView().getModel().get("privacyForm");
+        assertThat(privacyForm.isPhotoZoomEnabled()).as("photoZoomEnabled phải giữ giá trị đã lưu").isFalse();
+        assertThat(privacyForm.isFriendsListVisible()).as("friendsListVisible phải giữ giá trị đã lưu").isFalse();
+        assertThat(privacyForm.isFollowingListVisible()).as("followingListVisible phải giữ giá trị đã lưu").isFalse();
     }
 
     @Test

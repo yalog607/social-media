@@ -23,5 +23,7 @@ public enum NotificationType {
     STICKER_REWARD,
     SEASON_JOIN,
     SEASON_BANNED,
-    SEASON_RESULT
+    SEASON_RESULT,
+    CREATOR_POLL,
+    CREATOR_QUESTION
 }

@@ -95,6 +95,19 @@ public class Post {
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous = false;
 
+    /** Series của Creator chứa bài này; null = không thuộc series nào. Xem {@code SeriesService}. */
+    @Column(name = "series_id")
+    private UUID seriesId;
+
+    /** Loại bài; mặc định bài thường. Xem {@code PollService}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "post_kind", nullable = false)
+    private PostKind postKind = PostKind.POST;
+
+    /** Giờ đóng bình chọn (chỉ với {@link PostKind#POLL}); null = không giới hạn thời gian. */
+    @Column(name = "poll_closes_at")
+    private Instant pollClosesAt;
+
     /**
      * Khác null nghĩa là bài này là một lượt CHIA SẺ của bài gốc (luôn trỏ thẳng tới bài gốc thật sự, không bao
      * giờ trỏ qua một bài chia sẻ khác — {@code PostService#share} tự rút gọn). {@code content} khi đó là lời

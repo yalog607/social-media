@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Series của tôi', ~{::main}, 'creator', ~{})}">
+<head><title>Series của tôi</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Series của tôi</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <section class="note note--taped mb-4" aria-labelledby="new-series-title">
+        <h2 id="new-series-title" class="h4 mb-2">Tạo series mới</h2>
+        <p class="text-soft small">Series gom các bài viết của bạn thành một chuỗi có trang riêng. Quyền xem từng bài vẫn giữ nguyên.</p>
+        <form th:action="@{/creator/series}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="sTitle">Tiêu đề</label>
+                <input id="sTitle" name="title" class="input-al" required th:maxlength="${maxTitle}" th:value="${draftTitle}">
+            </div>
+            <div class="field">
+                <label for="sDesc">Mô tả (không bắt buộc)</label>
+                <textarea id="sDesc" name="description" class="input-al" rows="3" th:maxlength="${maxDescription}" th:text="${draftDescription}"></textarea>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Tạo series</button>
+        </form>
+    </section>
+
+    <section class="note" aria-labelledby="my-series-title">
+        <h2 id="my-series-title" class="h4 mb-3">Series đã tạo</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(items)}">Bạn chưa có series nào.</p>
+        <ul class="list-unstyled mb-0" th:unless="${#lists.isEmpty(items)}">
+            <li class="d-flex flex-wrap align-items-center gap-2 py-2" th:each="s : ${items}">
+                <a class="fw-bold" th:href="@{/creator/series/{id}(id=${s.id})}" th:text="${s.title}">Tiêu đề</a>
+                <span class="text-soft small" th:text="${s.postCount} + ' bài'">0 bài</span>
+                <a class="btn-al btn-al--white btn-al--sm ms-auto" th:href="@{/series/{id}(id=${s.id})}">Xem trang</a>
+            </li>
+        </ul>
+    </section>
+</main>
+</body>
+</html>

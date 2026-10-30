@@ -2,9 +2,14 @@ package com.aloute.controller.creator;
 
 import com.aloute.dto.creator.ScheduledPostView;
 import com.aloute.exception.creator.InvalidBroadcastException;
+import com.aloute.exception.creator.InvalidTopicException;
 import com.aloute.model.creator.BroadcastAudience;
+import com.aloute.service.category.CategoryService;
 import com.aloute.service.creator.BroadcastService;
 import com.aloute.service.creator.InsightsService;
+import com.aloute.service.creator.PollService;
+import com.aloute.service.creator.QuestionService;
+import com.aloute.service.creator.TopicService;
 
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.model.post.Post;
@@ -34,13 +39,22 @@ public class CreatorController {
     private final PostService posts;
     private final PostViewAssembler assembler;
     private final BroadcastService broadcasts;
+    private final PollService polls;
+    private final QuestionService questions;
+    private final TopicService topics;
+    private final CategoryService categories;
 
     public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
-                             BroadcastService broadcasts) {
+                             BroadcastService broadcasts, PollService polls, QuestionService questions,
+                             TopicService topics, CategoryService categories) {
+        this.questions = questions;
+        this.polls = polls;
         this.broadcasts = broadcasts;
         this.insights = insights;
         this.posts = posts;
         this.assembler = assembler;
+        this.topics = topics;
+        this.categories = categories;
     }
 
     @GetMapping("/creator")
@@ -75,6 +89,73 @@ public class CreatorController {
             flash.addFlashAttribute("draftBody", body);
         }
         return "redirect:/creator/broadcasts";
+    }
+
+    @GetMapping("/creator/polls")
+    public String newPoll(Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("maxOptions", PollService.MAX_OPTIONS);
+        model.addAttribute("maxLabel", PollService.MAX_LABEL);
+        model.addAttribute("maxDays", PollService.MAX_DAYS_OPEN);
+        return "creator/poll-new";
+    }
+
+    @PostMapping("/creator/polls")
+    public String createPoll(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String question,
+                             @RequestParam(required = false) List<String> options,
+                             @RequestParam(required = false) String closesAt,
+                             @RequestParam(required = false) Integer tzOffset, RedirectAttributes flash) {
+        try {
+            Post poll = polls.create(me.id(), question, options, ScheduleTime.parse(closesAt, tzOffset));
+            flash.addFlashAttribute("notice", "Đã đăng bình chọn.");
+            return "redirect:/posts/" + poll.getId();
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            flash.addFlashAttribute("draftQuestion", question);
+            flash.addFlashAttribute("draftOptions", options);
+            return "redirect:/creator/polls";
+        }
+    }
+
+    @GetMapping("/creator/questions")
+    public String newQuestion(Model model) {
+        model.addAttribute("active", "creator");
+        return "creator/question-new";
+    }
+
+    @PostMapping("/creator/questions")
+    public String createQuestion(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String question,
+                                 RedirectAttributes flash) {
+        try {
+            Post created = questions.create(me.id(), question);
+            flash.addFlashAttribute("notice", "Đã đăng câu hỏi.");
+            return "redirect:/posts/" + created.getId();
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            flash.addFlashAttribute("draftQuestion", question);
+            return "redirect:/creator/questions";
+        }
+    }
+
+    @GetMapping("/creator/topics")
+    public String editTopics(@AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("categories", categories.active());
+        model.addAttribute("selectedIds", topics.topicIdsFor(me.id()));
+        model.addAttribute("maxTopics", TopicService.MAX_TOPICS);
+        return "creator/topics";
+    }
+
+    @PostMapping("/creator/topics")
+    public String saveTopics(@AuthenticationPrincipal AlouteUserPrincipal me,
+                             @RequestParam(required = false) List<UUID> categoryIds, RedirectAttributes flash) {
+        try {
+            topics.replace(me.id(), categoryIds);
+            flash.addFlashAttribute("notice", "Đã lưu chủ đề.");
+        } catch (InvalidTopicException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/creator/topics";
     }
 
     @GetMapping("/creator/scheduled")
