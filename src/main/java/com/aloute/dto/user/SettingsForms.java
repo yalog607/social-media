@@ -53,5 +53,7 @@ public final class SettingsForms {
         @NotNull
         private MessagePermission messagePermission = MessagePermission.EVERYONE;
         private boolean photoZoomEnabled = true;
+        private boolean friendsListVisible = true;
+        private boolean followingListVisible = true;
     }
 }

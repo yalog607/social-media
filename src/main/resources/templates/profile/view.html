@@ -104,13 +104,13 @@
                 </span>
             </div>
             <p class="d-flex flex-wrap gap-3 profile-stats mb-3">
-                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
+                <a th:if="${canViewFriends}" href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#friendsModal">
                     <strong th:text="${friendCount}">0</strong> bạn bè
                 </a>
                 <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followersModal">
                     <strong th:text="${followerCount}">0</strong> người theo dõi
                 </a>
-                <a href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
+                <a th:if="${canViewFollowing}" href="javascript:void(0)" class="text-ink text-decoration-none" data-bs-toggle="modal" data-bs-target="#followingModal">
                     <strong th:text="${followingCount}">0</strong> đang theo dõi
                 </a>
             </p>
@@ -224,7 +224,7 @@
     </th:block>
 
     <!-- MODALS CHO FRIENDS / FOLLOWERS / FOLLOWING -->
-    <div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true" 
+    <div class="modal fade" id="friendsModal" tabindex="-1" aria-labelledby="friendsModalLabel" aria-hidden="true" th:if="${canViewFriends}"
          th:attr="data-list-url=@{/u/{u}/friends-fragment(u=${owner.username})}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -250,7 +250,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="followingModal" tabindex="-1" aria-labelledby="followingModalLabel" aria-hidden="true" 
+    <div class="modal fade" id="followingModal" tabindex="-1" aria-labelledby="followingModalLabel" aria-hidden="true" th:if="${canViewFollowing}"
          th:attr="data-list-url=@{/u/{u}/following-fragment(u=${owner.username})}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
