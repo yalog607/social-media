@@ -126,7 +126,7 @@ class InsightsServiceIT extends IntegrationTest {
 
     @Test
     void migrationBackfillsExistingFollowAndTriggerRollsBackWithTransaction() throws Exception {
-        String migration = new ClassPathResource("db/migration/V28__follow_history.sql").getContentAsString(StandardCharsets.UTF_8);
+        String migration = new ClassPathResource("db/migration/V45__follow_history.sql").getContentAsString(StandardCharsets.UTF_8);
         String schema = "follow_test_" + UUID.randomUUID().toString().replace("-", "");
         UUID follower = UUID.randomUUID(), creator = UUID.randomUUID(), follow = UUID.randomUUID();
         try (var connection = jdbc.getDataSource().getConnection()) {
