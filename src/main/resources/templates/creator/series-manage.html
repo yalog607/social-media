@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Quản lý series', ~{::main}, 'creator', ~{})}">
+<head><title>Quản lý series</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1 th:text="${series.title}">Series</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator/series}">← Series của tôi</a>
+    </div>
+
+    <section class="note mb-4" aria-labelledby="edit-series-title">
+        <h2 id="edit-series-title" class="h4 mb-2">Thông tin</h2>
+        <form th:action="@{/creator/series/{id}(id=${series.id})}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="eTitle">Tiêu đề</label>
+                <input id="eTitle" name="title" class="input-al" required th:maxlength="${maxTitle}" th:value="${series.title}">
+            </div>
+            <div class="field">
+                <label for="eDesc">Mô tả</label>
+                <textarea id="eDesc" name="description" class="input-al" rows="3" th:maxlength="${maxDescription}" th:text="${series.description}"></textarea>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn-al btn-al--pink">Lưu</button>
+                <a class="btn-al btn-al--white" th:href="@{/series/{id}(id=${series.id})}">Xem trang series</a>
+                <button type="submit" class="btn-al btn-al--ink ms-auto" formnovalidate
+                        th:formaction="@{/creator/series/{id}/delete(id=${series.id})}">Xóa series</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="note mb-4" aria-labelledby="members-title">
+        <h2 id="members-title" class="h4 mb-3">Bài trong series</h2>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(members)}">Chưa có bài nào.</p>
+        <ul class="list-unstyled mb-0" th:unless="${#lists.isEmpty(members)}">
+            <li class="d-flex flex-wrap align-items-center gap-2 py-2" th:each="m, st : ${members}">
+                <span class="text-soft small" th:text="${st.count} + '.'">1.</span>
+                <a th:href="@{/posts/{id}(id=${m.id})}" th:text="${m.snippet}">Nội dung</a>
+                <form class="ms-auto" th:action="@{/creator/series/{id}/posts/{pid}/remove(id=${series.id}, pid=${m.id})}" method="post">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                    <button type="submit" class="btn-al btn-al--white btn-al--sm">Bỏ khỏi series</button>
+                </form>
+            </li>
+        </ul>
+    </section>
+
+    <section class="note" aria-labelledby="add-title">
+        <h2 id="add-title" class="h4 mb-2">Thêm bài vào series</h2>
+        <p class="text-soft small">Chỉ bài thường đã đăng của bạn (không gồm bài chia sẻ, bài trong nhóm, bình chọn, hỏi đáp). Chọn bài đang ở series khác sẽ chuyển sang series này.</p>
+        <p class="text-soft mb-0" th:if="${#lists.isEmpty(candidates)}">Không còn bài nào để thêm.</p>
+        <form th:unless="${#lists.isEmpty(candidates)}" th:action="@{/creator/series/{id}/posts(id=${series.id})}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <label for="addPost">Bài viết</label>
+                <select id="addPost" name="postId" class="input-al">
+                    <option th:each="c : ${candidates}" th:value="${c.id}" th:text="${c.snippet}">Nội dung</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Thêm vào series</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

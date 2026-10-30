@@ -95,6 +95,10 @@ public class Post {
     @Column(name = "is_anonymous", nullable = false)
     private boolean anonymous = false;
 
+    /** Series của Creator chứa bài này; null = không thuộc series nào. Xem {@code SeriesService}. */
+    @Column(name = "series_id")
+    private UUID seriesId;
+
     /** Loại bài; mặc định bài thường. Xem {@code PollService}. */
     @Enumerated(EnumType.STRING)
     @Column(name = "post_kind", nullable = false)

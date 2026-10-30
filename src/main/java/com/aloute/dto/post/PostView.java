@@ -44,7 +44,8 @@ public record PostView(
         UUID groupId,
         GroupInfo group,
         PostKind kind,
-        PollView poll) {
+        PollView poll,
+        SeriesInfo series) {
 
     /** Bài thường: không có bình chọn. */
     public PostView(UUID id, AuthorView author, String contentHtml, Visibility visibility, Instant createdAt,
@@ -53,7 +54,11 @@ public record PostView(
                     CategoryView category, boolean isPinned, boolean isAnonymous, UUID groupId, GroupInfo group) {
         this(id, author, contentHtml, visibility, createdAt, edited, media, mine, rawContent, reactions, commentCount,
                 shareCount, sharedPostId, sharedPost, tagged, category, isPinned, isAnonymous, groupId, group,
-                PostKind.POST, null);
+                PostKind.POST, null, null);
+    }
+
+    /** Series chứa bài này (chỉ id và tiêu đề). */
+    public record SeriesInfo(UUID id, String title) {
     }
 
     public record AuthorView(UUID id, String username, String displayName, String avatarUrl, Role primaryRole, String avatarFrame) {

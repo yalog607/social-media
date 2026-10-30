@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${series.title}, ~{::main}, '', ~{})}">
+<head><title>Series</title></head>
+<body>
+<main>
+    <header class="note note--taped mb-4">
+        <h1 class="h3 mb-1" th:text="${series.title}">Tiêu đề series</h1>
+        <p class="mb-2" th:if="${!#strings.isEmpty(series.description)}" th:text="${series.description}">Mô tả</p>
+        <p class="text-soft small mb-0">
+            Series của <a th:href="@{/u/{u}(u=${series.creatorUsername})}" th:text="${series.creatorName}">Creator</a>
+            · <span th:text="${#lists.size(posts)} + ' bài bạn xem được'">0 bài</span>
+        </p>
+    </header>
+    <p class="text-soft" th:if="${#lists.isEmpty(posts)}">Series này chưa có bài nào bạn xem được.</p>
+    <th:block th:each="post : ${posts}">
+        <th:block th:replace="~{fragments/post :: card(${post})}"></th:block>
+    </th:block>
+    <div th:replace="~{fragments/post-modals :: modals}"></div>
+</main>
+</body>
+</html>

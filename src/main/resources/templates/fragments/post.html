@@ -203,6 +203,8 @@
         </div>
     </header>
 
+    <a class="series-chip" th:if="${post.series != null}" th:href="@{/series/{id}(id=${post.series.id})}"
+       th:text="'Series: ' + ${post.series.title}">Series</a>
     <p class="qa-tag" th:if="${post.isQuestion()}">Hỏi đáp</p>
     <div class="post-text" th:if="${post.hasText()}" th:utext="${post.contentHtml}"></div>
 

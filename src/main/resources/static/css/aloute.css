@@ -3681,3 +3681,9 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 /* Nhãn "Hỏi đáp" trên thẻ bài của Creator */
 .qa-tag { display: inline-block; align-self: flex-start; width: fit-content; margin: .5rem 0 .1rem; padding: .1rem .6rem; border: 2px solid var(--ink); border-radius: 999px;
   background: var(--sky); color: var(--ink); font-size: .78rem; font-weight: 800; }
+
+/* Chip dan toi series tren the bai */
+.series-chip { display: inline-block; align-self: flex-start; width: fit-content; max-width: 100%; margin: .5rem 0 .1rem; padding: .1rem .6rem;
+  border: 2px solid var(--ink); border-radius: 999px; background: var(--lavender); color: var(--ink); font-size: .78rem; font-weight: 800;
+  text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.series-chip:hover { background: var(--lemon); }
