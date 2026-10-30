@@ -64,7 +64,10 @@ public class ModerationService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReportItem> openReports() {
+    public List<ReportItem> openReports() { return openReports(QUEUE_LIMIT, 0); }
+
+    @Transactional(readOnly = true)
+    public List<ReportItem> openReports(int size, long offset) {
         return jdbc.query("""
                 select r.id, r.target_type, r.target_id, r.reason, r.detail, r.created_at, rp.display_name,
                        coalesce(p.content, c.content, tp.display_name) as preview,
@@ -78,16 +81,16 @@ public class ModerationService {
                 left join profiles tp on tp.user_id = tu.id
                 left join profiles op on op.user_id = coalesce(p.author_id, c.author_id, tu.id)
                 where r.status = 'OPEN'
-                order by r.created_at, r.id limit ?""",
+                order by r.created_at, r.id limit ? offset ?""",
                 (rs, i) -> new ReportItem(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class),
                         rs.getString(4), rs.getString(5), rs.getTimestamp(6).toInstant(), rs.getString(7),
                         clip(rs.getString(8)), rs.getBoolean(9), rs.getObject(10, UUID.class), rs.getString(11)),
-                QUEUE_LIMIT);
+                size, offset);
     }
 
     @Transactional(readOnly = true)
     public long countOpenReports() {
-        Long count = jdbc.queryForObject("select count(*) from reports where status = 'OPEN'", Long.class);
+        Long count = jdbc.queryForObject("select count(*) from reports r join profiles rp on rp.user_id = r.reporter_id where r.status = 'OPEN'", Long.class);
         return count == null ? 0 : count;
     }
 
@@ -211,14 +214,21 @@ public class ModerationService {
         User user = users.findById(userId).filter(u -> u.getStatus() == UserStatus.SUSPENDED)
                 .orElseThrow(() -> new InvalidModerationException("Người này không đang bị khóa."));
         user.setStatus(UserStatus.ACTIVE);
-        users.save(user);
+        // Pagination counts use JDBC, which does not trigger Hibernate's automatic flush.
+        users.saveAndFlush(user);
         jdbc.update("update sanctions set lifted_at = ?, lifted_by = ? where user_id = ? and type = 'SUSPENSION' and lifted_at is null",
                 Timestamp.from(clock.instant()), managerId, userId);
         audit.log(managerId, "USER_UNSUSPENDED", "USER", userId, null);
     }
 
     @Transactional(readOnly = true)
-    public List<SuspendedUser> suspended() {
+    public List<SuspendedUser> suspended() { return suspended(100, 0); }
+
+    @Transactional(readOnly = true)
+    public long countSuspended() { return jdbc.queryForObject("select count(*) from users u join profiles p on p.user_id = u.id where u.status = 'SUSPENDED'", Long.class); }
+
+    @Transactional(readOnly = true)
+    public List<SuspendedUser> suspended(int size, long offset) {
         return jdbc.query("""
                 select u.id, u.username, p.display_name,
                        (select s.reason from sanctions s where s.user_id = u.id and s.type = 'SUSPENSION'
@@ -228,10 +238,10 @@ public class ModerationService {
                        (select s.report_id from sanctions s where s.user_id = u.id and s.type = 'SUSPENSION'
                         order by s.created_at desc limit 1)
                 from users u join profiles p on p.user_id = u.id
-                where u.status = 'SUSPENDED' order by u.updated_at desc limit 100""",
+                where u.status = 'SUSPENDED' order by u.updated_at desc, u.id desc limit ? offset ?""",
                 (rs, i) -> new SuspendedUser(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4),
                         rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant(),
-                        rs.getObject(6, UUID.class)));
+                        rs.getObject(6, UUID.class)), size, offset);
     }
 
     @Transactional(readOnly = true)
