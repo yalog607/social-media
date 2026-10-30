@@ -15,6 +15,13 @@ import java.util.UUID;
  * Nhật ký hệ thống (chỉ thêm). Ghi trong CÙNG giao dịch với hành động được ghi, nên hành động bị hoàn tác thì dòng
  * nhật ký cũng không còn — không bao giờ có dòng nhật ký cho việc chưa xảy ra.
  */
+import com.aloute.dto.common.PageResult;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+
 @Service
 public class AuditService {
 
@@ -36,7 +43,56 @@ public class AuditService {
                 Timestamp.from(clock.instant()));
     }
 
-    /** Trang nhật ký, mới nhất trước; {@code page} bắt đầu từ 0. */
+    /** Tìm kiếm nhật ký kết hợp người thực hiện, hành động, khoảng ngày và phân trang. */
+    @Transactional(readOnly = true)
+    public PageResult<AuditEntry> search(int page, int size, String action, String actor, LocalDate from, LocalDate to) {
+        int safeSize = size <= 0 ? 20 : size;
+        int safePage = Math.max(0, page);
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+
+        StringBuilder where = new StringBuilder("where 1=1 ");
+        List<Object> args = new ArrayList<>();
+        if (action != null && !action.isBlank()) {
+            where.append("and l.action = ? ");
+            args.add(action.trim());
+        }
+        if (actor != null && !actor.isBlank()) {
+            where.append("and (lower(u.username) like ? or lower(p.display_name) like ?) ");
+            String like = "%" + actor.strip().toLowerCase().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            args.add(like);
+            args.add(like);
+        }
+        if (from != null) {
+            where.append("and l.created_at >= ? ");
+            args.add(Timestamp.from(from.atStartOfDay(zone).toInstant()));
+        }
+        if (to != null) {
+            where.append("and l.created_at <= ? ");
+            args.add(Timestamp.from(to.atTime(LocalTime.MAX).atZone(zone).toInstant()));
+        }
+
+        String countSql = "select count(*) from audit_logs l left join users u on u.id = l.actor_id left join profiles p on p.user_id = l.actor_id " + where;
+        Long total = jdbc.queryForObject(countSql, Long.class, args.toArray());
+        long count = total == null ? 0 : total;
+
+        String dataSql = """
+                select l.created_at, l.action, l.target_type, l.target_id, l.detail, p.display_name, u.username
+                from audit_logs l left join users u on u.id = l.actor_id left join profiles p on p.user_id = l.actor_id
+                """ + where + "order by l.created_at desc, l.id desc limit ? offset ?";
+
+        List<Object> queryArgs = new ArrayList<>(args);
+        queryArgs.add(safeSize);
+        queryArgs.add(safePage * safeSize);
+
+        List<AuditEntry> items = jdbc.query(dataSql, (rs, i) -> new AuditEntry(
+                rs.getTimestamp(1).toInstant(), rs.getString(2), rs.getString(3),
+                rs.getObject(4, UUID.class), rs.getString(5), rs.getString(6), rs.getString(7)),
+                queryArgs.toArray());
+
+        return PageResult.of(items, safePage, safeSize, count);
+    }
+
+    /** Trang nhật ký, mới nhất trước; {@code page} bắt đầu từ 0 (tương thích ngược). */
     @Transactional(readOnly = true)
     public List<AuditEntry> page(int page, String action) {
         boolean filtered = action != null && !action.isBlank();

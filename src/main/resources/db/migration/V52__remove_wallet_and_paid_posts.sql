@@ -1,4 +1,4 @@
--- ALOUTE V51: bỏ ví Xu ảo, donate, mở khóa bài trả phí và huy hiệu fan
+-- ALOUTE V52: bỏ ví Xu ảo, donate, mở khóa bài trả phí và huy hiệu fan
 -- Chuyển mọi bài trả phí hiện có thành miễn phí; xóa toàn bộ dữ liệu ví và lịch sử giao dịch (owner đã chốt).
 
 -- 1) Xóa thông báo DONATION trước khi siết lại CHECK constraint

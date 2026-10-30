@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.aloute.service.moderation.ModerationService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,24 +32,32 @@ public class AdminController {
     private final AdminService admin;
     private final AuditService audit;
     private final SystemSettings settings;
+    private final ModerationService moderation;
 
-    public AdminController(AdminService admin, AuditService audit, SystemSettings settings) {
+    public AdminController(AdminService admin, AuditService audit, SystemSettings settings,
+                           ModerationService moderation) {
         this.admin = admin;
         this.audit = audit;
         this.settings = settings;
+        this.moderation = moderation;
     }
 
     @GetMapping("/admin")
-    public String dashboard(Model model) {
+    public String dashboard(@RequestParam(required = false) String period,
+                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                            Model model) {
         model.addAttribute("active", "admin");
-        model.addAttribute("overview", admin.overview());
+        model.addAttribute("overviewData", admin.overview(period, from, to));
         return "admin/dashboard";
     }
 
     @GetMapping("/admin/staff")
-    public String staff(Model model) {
+    public String staff(@RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "20") int size,
+                        Model model) {
         model.addAttribute("active", "admin");
-        model.addAttribute("managers", admin.managers());
+        model.addAttribute("managersPage", admin.managers(page, size));
         return "admin/staff";
     }
 
@@ -58,11 +72,13 @@ public class AdminController {
     }
 
     @GetMapping("/admin/users")
-    public String users(@RequestParam(required = false) String q, Model model) {
+    public String users(@RequestParam(required = false) String q,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "20") int size,
+                        Model model) {
         model.addAttribute("active", "admin");
         model.addAttribute("q", q);
-        List<StaffMember> found = admin.search(q);
-        model.addAttribute("users", found);
+        model.addAttribute("usersPage", admin.search(q, page, size));
         return "admin/users";
     }
 
@@ -85,16 +101,49 @@ public class AdminController {
     }
 
     @GetMapping("/admin/logs")
-    public String logs(@RequestParam(defaultValue = "0") int page, @RequestParam(required = false) String action, Model model) {
-        int safePage = Math.max(0, page);
-        var entries = audit.page(safePage, action);
-        boolean more = entries.size() > AuditService.PAGE_SIZE;
+    public String logs(@RequestParam(defaultValue = "0") int page,
+                       @RequestParam(defaultValue = "20") int size,
+                       @RequestParam(required = false) String action,
+                       @RequestParam(required = false) String actor,
+                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                       Model model) {
         model.addAttribute("active", "admin");
-        model.addAttribute("entries", more ? entries.subList(0, AuditService.PAGE_SIZE) : entries);
-        model.addAttribute("page", safePage);
-        model.addAttribute("hasMore", more);
         model.addAttribute("action", action);
+        model.addAttribute("actor", actor);
+        model.addAttribute("from", from);
+        model.addAttribute("to", to);
+        model.addAttribute("logsPage", audit.search(page, size, action, actor, from, to));
         return "admin/logs";
+    }
+
+    @GetMapping("/admin/reports")
+    public String reportsHistory(@RequestParam(defaultValue = "0") int page,
+                                 @RequestParam(defaultValue = "20") int size,
+                                 @RequestParam(required = false) String targetType,
+                                 @RequestParam(required = false) String action,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                 Model model) {
+        model.addAttribute("active", "admin");
+        model.addAttribute("targetType", targetType);
+        model.addAttribute("action", action);
+        model.addAttribute("from", from);
+        model.addAttribute("to", to);
+        model.addAttribute("reportsPage", moderation.resolvedReports(page, size, targetType, action, from, to));
+        return "admin/reports_history";
+    }
+
+    @GetMapping("/admin/reports/{id}")
+    public String reportDetail(@PathVariable UUID id, Model model) {
+        var report = moderation.getResolvedReport(id);
+        if (report == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Báo cáo không tồn tại.");
+        }
+        model.addAttribute("active", "admin");
+        model.addAttribute("report", report);
+        model.addAttribute("coReports", moderation.getCoReports(id));
+        return "admin/report_detail";
     }
 
     @GetMapping("/admin/settings")

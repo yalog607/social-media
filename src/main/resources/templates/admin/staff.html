@@ -15,11 +15,11 @@
         <input name="username" class="input-al" required placeholder="Username người được cấp quyền Manager" aria-label="Username">
         <button type="submit" class="btn-al btn-al--pink btn-al--sm">Cấp quyền</button>
     </form>
-    <p class="note note--sky empty" th:if="${#lists.isEmpty(managers)}">Chưa có Manager nào.</p>
-    <table class="table-al" th:unless="${#lists.isEmpty(managers)}">
+    <p class="note note--sky empty" th:if="${managersPage.totalItems() == 0}">Chưa có Manager nào.</p>
+    <table class="table-al" th:unless="${managersPage.totalItems() == 0}">
         <thead><tr><th>Manager</th><th>Vai trò</th><th></th></tr></thead>
         <tbody>
-        <tr th:each="m : ${managers}">
+        <tr th:each="m : ${managersPage.items()}">
             <td><a th:href="@{/u/{u}(u=${m.username()})}" th:text="${m.displayName()}">Tên</a></td>
             <td th:text="${m.roles()}">MANAGER</td>
             <td>
@@ -31,6 +31,8 @@
         </tr>
         </tbody>
     </table>
+
+    <div th:replace="~{fragments/pagination :: pager(${managersPage}, '/admin/staff')}"></div>
 </main>
 </body>
 </html>

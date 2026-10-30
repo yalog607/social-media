@@ -13,7 +13,14 @@
         <tbody>
         <tr th:each="u : ${users}">
             <td><a th:href="@{/u/{u}(u=${u.username()})}" th:text="${u.displayName()}">Tên</a></td>
-            <td th:text="${u.reason()}">Lý do</td>
+            <td>
+                <span th:text="${u.reason()}">Lý do</span>
+                <div th:if="${u.reportId() != null}">
+                    <a class="small text-decoration-underline text-soft" th:href="@{/manage/reports/history/{id}(id=${u.reportId()})}">
+                        Chi tiết báo cáo vi phạm ↗
+                    </a>
+                </div>
+            </td>
             <td th:text="${u.since() != null} ? ${@timeAgo.format(u.since())} : '—'">—</td>
             <td>
                 <form method="post" th:action="@{/manage/users/{id}/lift(id=${u.userId()})}">

@@ -26,6 +26,15 @@ import java.util.UUID;
  * về cùng một đối tượng, để nội dung bị báo cáo nhiều lần chỉ phải xử lý một lần. Manager không được xử phạt
  * nhân sự (Manager/Admin) hay chính mình.
  */
+import com.aloute.dto.common.PageResult;
+import com.aloute.dto.moderation.ResolvedReportItem;
+import com.aloute.service.common.MailService;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+
 @Service
 public class ModerationService {
 
@@ -37,26 +46,25 @@ public class ModerationService {
     private final RefreshTokenService refreshTokens;
     private final NotificationService notifications;
     private final AuditService audit;
+    private final MailService mail;
     private final Clock clock;
     private final com.aloute.repository.post.PostRepository posts;
 
     public ModerationService(JdbcTemplate jdbc, UserRepository users, RefreshTokenService refreshTokens,
-                             NotificationService notifications, AuditService audit, Clock clock,
+                             NotificationService notifications, AuditService audit, MailService mail, Clock clock,
                              com.aloute.repository.post.PostRepository posts) {
         this.jdbc = jdbc;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.notifications = notifications;
         this.audit = audit;
+        this.mail = mail;
         this.clock = clock;
         this.posts = posts;
     }
 
     @Transactional(readOnly = true)
-    public List<ReportItem> openReports() { return openReports(QUEUE_LIMIT, 0); }
-
-    @Transactional(readOnly = true)
-    public List<ReportItem> openReports(int size, long offset) {
+    public List<ReportItem> openReports() {
         return jdbc.query("""
                 select r.id, r.target_type, r.target_id, r.reason, r.detail, r.created_at, rp.display_name,
                        coalesce(p.content, c.content, tp.display_name) as preview,
@@ -70,16 +78,16 @@ public class ModerationService {
                 left join profiles tp on tp.user_id = tu.id
                 left join profiles op on op.user_id = coalesce(p.author_id, c.author_id, tu.id)
                 where r.status = 'OPEN'
-                order by r.created_at, r.id limit ? offset ?""",
+                order by r.created_at, r.id limit ?""",
                 (rs, i) -> new ReportItem(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class),
                         rs.getString(4), rs.getString(5), rs.getTimestamp(6).toInstant(), rs.getString(7),
                         clip(rs.getString(8)), rs.getBoolean(9), rs.getObject(10, UUID.class), rs.getString(11)),
-                size, offset);
+                QUEUE_LIMIT);
     }
 
     @Transactional(readOnly = true)
     public long countOpenReports() {
-        Long count = jdbc.queryForObject("select count(*) from reports r join profiles rp on rp.user_id = r.reporter_id where r.status = 'OPEN'", Long.class);
+        Long count = jdbc.queryForObject("select count(*) from reports where status = 'OPEN'", Long.class);
         return count == null ? 0 : count;
     }
 
@@ -121,8 +129,10 @@ public class ModerationService {
                 type, targetId);
 
         jdbc.update("""
-                update reports set status = ?, handled_by = ?, handled_at = ?
-                where status = 'OPEN' and target_type = ? and target_id = ?""", status, managerId, now, type, targetId);
+                update reports set status = ?, action = ?, handling_note = ?, handled_by = ?, handled_at = ?,
+                       target_owner_id = ?, content_snapshot = ?
+                where status = 'OPEN' and target_type = ? and target_id = ?""",
+                status, action.name(), cleanNote, managerId, now, ownerId, preview, type, targetId);
         audit.log(managerId, "REPORT_" + action.name(), type, targetId, cleanNote);
         
         String reporterText;
@@ -184,6 +194,14 @@ public class ModerationService {
             }
             com.aloute.model.post.Post postRef = "POST".equals(type) ? posts.findById(targetId).orElse(null) : null;
             notifications.reportOwnerNotified(managerId, ownerId, postRef, targetId, ownerText, ownerDetail);
+
+            // Gửi email thông báo chế tài (chỉ gửi khi có xử phạt, không gửi khi bác bỏ; gửi đúng 1 lần cho target này)
+            if (action != ReportAction.DISMISS) {
+                users.findById(ownerId).ifPresent(ownerUser -> {
+                    mail.sendSanctionNotification(ownerUser.getEmail(), ownerUser.getProfile().getDisplayName(),
+                            action.name(), type, preview, cleanNote);
+                });
+            }
         }
     }
 
@@ -193,31 +211,168 @@ public class ModerationService {
         User user = users.findById(userId).filter(u -> u.getStatus() == UserStatus.SUSPENDED)
                 .orElseThrow(() -> new InvalidModerationException("Người này không đang bị khóa."));
         user.setStatus(UserStatus.ACTIVE);
-        // Pagination counts use JDBC, which does not trigger Hibernate's automatic flush.
-        users.saveAndFlush(user);
+        users.save(user);
         jdbc.update("update sanctions set lifted_at = ?, lifted_by = ? where user_id = ? and type = 'SUSPENSION' and lifted_at is null",
                 Timestamp.from(clock.instant()), managerId, userId);
         audit.log(managerId, "USER_UNSUSPENDED", "USER", userId, null);
     }
 
     @Transactional(readOnly = true)
-    public List<SuspendedUser> suspended() { return suspended(100, 0); }
-
-    @Transactional(readOnly = true)
-    public long countSuspended() { return jdbc.queryForObject("select count(*) from users u join profiles p on p.user_id = u.id where u.status = 'SUSPENDED'", Long.class); }
-
-    @Transactional(readOnly = true)
-    public List<SuspendedUser> suspended(int size, long offset) {
+    public List<SuspendedUser> suspended() {
         return jdbc.query("""
                 select u.id, u.username, p.display_name,
                        (select s.reason from sanctions s where s.user_id = u.id and s.type = 'SUSPENSION'
                         order by s.created_at desc limit 1),
                        (select s.created_at from sanctions s where s.user_id = u.id and s.type = 'SUSPENSION'
+                        order by s.created_at desc limit 1),
+                       (select s.report_id from sanctions s where s.user_id = u.id and s.type = 'SUSPENSION'
                         order by s.created_at desc limit 1)
                 from users u join profiles p on p.user_id = u.id
-                where u.status = 'SUSPENDED' order by u.updated_at desc, u.id desc limit ? offset ?""",
+                where u.status = 'SUSPENDED' order by u.updated_at desc limit 100""",
                 (rs, i) -> new SuspendedUser(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4),
-                        rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant()), size, offset);
+                        rs.getTimestamp(5) == null ? null : rs.getTimestamp(5).toInstant(),
+                        rs.getObject(6, UUID.class)));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<ResolvedReportItem> resolvedReports(int page, int size, String targetType, String action,
+                                                          LocalDate from, LocalDate to) {
+        int safeSize = size <= 0 ? 20 : size;
+        int safePage = Math.max(0, page);
+        ZoneId zone = ZoneId.of("Asia/Ho_Chi_Minh");
+
+        StringBuilder where = new StringBuilder("where r.status <> 'OPEN' ");
+        List<Object> args = new ArrayList<>();
+        if (targetType != null && !targetType.isBlank()) {
+            where.append("and r.target_type = ? ");
+            args.add(targetType.trim().toUpperCase());
+        }
+        if (action != null && !action.isBlank()) {
+            where.append("and r.action = ? ");
+            args.add(action.trim().toUpperCase());
+        }
+        if (from != null) {
+            where.append("and r.handled_at >= ? ");
+            args.add(Timestamp.from(from.atStartOfDay(zone).toInstant()));
+        }
+        if (to != null) {
+            where.append("and r.handled_at <= ? ");
+            args.add(Timestamp.from(to.atTime(LocalTime.MAX).atZone(zone).toInstant()));
+        }
+
+        Long total = jdbc.queryForObject("select count(*) from reports r " + where, Long.class, args.toArray());
+        long count = total == null ? 0 : total;
+
+        String sql = """
+                select r.id, r.target_type, r.target_id, r.reason, r.detail, r.created_at, r.status,
+                       r.action, r.handling_note, r.handled_at, r.handled_by, hp.display_name as handler_name,
+                       rp.display_name as reporter_name, r.target_owner_id, op.display_name as owner_name,
+                       r.content_snapshot, (p.deleted_at is not null or c.deleted_at is not null) as removed
+                from reports r
+                left join profiles rp on rp.user_id = r.reporter_id
+                left join profiles hp on hp.user_id = r.handled_by
+                left join profiles op on op.user_id = r.target_owner_id
+                left join posts p on r.target_type = 'POST' and p.id = r.target_id
+                left join comments c on r.target_type = 'COMMENT' and c.id = r.target_id
+                """ + where + "order by r.handled_at desc nulls last, r.id desc limit ? offset ?";
+
+        List<Object> queryArgs = new ArrayList<>(args);
+        queryArgs.add(safeSize);
+        queryArgs.add(safePage * safeSize);
+
+        List<ResolvedReportItem> items = jdbc.query(sql, (rs, i) -> new ResolvedReportItem(
+                rs.getObject(1, UUID.class),
+                rs.getString(2),
+                rs.getObject(3, UUID.class),
+                rs.getString(4),
+                rs.getString(5),
+                rs.getTimestamp(6) == null ? null : rs.getTimestamp(6).toInstant(),
+                rs.getString(7),
+                rs.getString(8),
+                rs.getString(9),
+                rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant(),
+                rs.getObject(11, UUID.class),
+                rs.getString(12),
+                rs.getString(13),
+                rs.getObject(14, UUID.class),
+                rs.getString(15),
+                rs.getString(16),
+                rs.getBoolean(17)
+        ), queryArgs.toArray());
+
+        return PageResult.of(items, safePage, safeSize, count);
+    }
+
+    @Transactional(readOnly = true)
+    public ResolvedReportItem getResolvedReport(UUID id) {
+        String sql = """
+                select r.id, r.target_type, r.target_id, r.reason, r.detail, r.created_at, r.status,
+                       r.action, r.handling_note, r.handled_at, r.handled_by, hp.display_name as handler_name,
+                       rp.display_name as reporter_name, r.target_owner_id, op.display_name as owner_name,
+                       r.content_snapshot, (p.deleted_at is not null or c.deleted_at is not null) as removed
+                from reports r
+                left join profiles rp on rp.user_id = r.reporter_id
+                left join profiles hp on hp.user_id = r.handled_by
+                left join profiles op on op.user_id = r.target_owner_id
+                left join posts p on r.target_type = 'POST' and p.id = r.target_id
+                left join comments c on r.target_type = 'COMMENT' and c.id = r.target_id
+                where r.id = ?""";
+        var list = jdbc.query(sql, (rs, i) -> new ResolvedReportItem(
+                rs.getObject(1, UUID.class),
+                rs.getString(2),
+                rs.getObject(3, UUID.class),
+                rs.getString(4),
+                rs.getString(5),
+                rs.getTimestamp(6) == null ? null : rs.getTimestamp(6).toInstant(),
+                rs.getString(7),
+                rs.getString(8),
+                rs.getString(9),
+                rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant(),
+                rs.getObject(11, UUID.class),
+                rs.getString(12),
+                rs.getString(13),
+                rs.getObject(14, UUID.class),
+                rs.getString(15),
+                rs.getString(16),
+                rs.getBoolean(17)
+        ), id);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ResolvedReportItem> getCoReports(UUID reportId) {
+        var base = getResolvedReport(reportId);
+        if (base == null) return List.of();
+        String sql = """
+                select r.id, r.target_type, r.target_id, r.reason, r.detail, r.created_at, r.status,
+                       r.action, r.handling_note, r.handled_at, r.handled_by, hp.display_name as handler_name,
+                       rp.display_name as reporter_name, r.target_owner_id, op.display_name as owner_name,
+                       r.content_snapshot, false as removed
+                from reports r
+                left join profiles rp on rp.user_id = r.reporter_id
+                left join profiles hp on hp.user_id = r.handled_by
+                left join profiles op on op.user_id = r.target_owner_id
+                where r.target_type = ? and r.target_id = ? and r.id <> ?
+                order by r.created_at asc""";
+        return jdbc.query(sql, (rs, i) -> new ResolvedReportItem(
+                rs.getObject(1, UUID.class),
+                rs.getString(2),
+                rs.getObject(3, UUID.class),
+                rs.getString(4),
+                rs.getString(5),
+                rs.getTimestamp(6) == null ? null : rs.getTimestamp(6).toInstant(),
+                rs.getString(7),
+                rs.getString(8),
+                rs.getString(9),
+                rs.getTimestamp(10) == null ? null : rs.getTimestamp(10).toInstant(),
+                rs.getObject(11, UUID.class),
+                rs.getString(12),
+                rs.getString(13),
+                rs.getObject(14, UUID.class),
+                rs.getString(15),
+                rs.getString(16),
+                rs.getBoolean(17)
+        ), base.targetType(), base.targetId(), reportId);
     }
 
     // ---------- Nội bộ ----------

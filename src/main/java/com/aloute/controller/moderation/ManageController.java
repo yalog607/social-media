@@ -17,6 +17,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDate;
 import java.util.UUID;
 import com.aloute.dto.moderation.ManagerPage;
 
@@ -46,6 +51,35 @@ public class ManageController {
         model.addAttribute("reports", moderation.openReports(pagination.size(), pagination.offset()));
         model.addAttribute("actions", ReportAction.values());
         return "manage/queue";
+    }
+
+    @GetMapping("/manage/reports/history")
+    public String reportsHistory(@RequestParam(defaultValue = "0") int page,
+                                 @RequestParam(defaultValue = "20") int size,
+                                 @RequestParam(required = false) String targetType,
+                                 @RequestParam(required = false) String action,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                                 Model model) {
+        model.addAttribute("active", "manage");
+        model.addAttribute("targetType", targetType);
+        model.addAttribute("action", action);
+        model.addAttribute("from", from);
+        model.addAttribute("to", to);
+        model.addAttribute("reportsPage", moderation.resolvedReports(page, size, targetType, action, from, to));
+        return "manage/reports_history";
+    }
+
+    @GetMapping("/manage/reports/history/{id}")
+    public String reportDetail(@PathVariable UUID id, Model model) {
+        var report = moderation.getResolvedReport(id);
+        if (report == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Báo cáo không tồn tại.");
+        }
+        model.addAttribute("active", "manage");
+        model.addAttribute("report", report);
+        model.addAttribute("coReports", moderation.getCoReports(id));
+        return "manage/report_detail";
     }
 
     @PostMapping("/manage/reports/{id}")
