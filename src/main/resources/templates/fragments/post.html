@@ -203,6 +203,7 @@
         </div>
     </header>
 
+    <p class="qa-tag" th:if="${post.isQuestion()}">Hỏi đáp</p>
     <div class="post-text" th:if="${post.hasText()}" th:utext="${post.contentHtml}"></div>
 
     <!-- Bình chọn của Creator: chưa bầu thì hiện nút chọn, đã bầu hoặc đã đóng thì hiện kết quả -->
@@ -276,7 +277,8 @@
             </button>
         </div>
         <button type="button" class="post-action-btn" data-toggle-comments
-                th:attr="data-comments-url=@{/api/posts/{id}/comments(id=${post.id})}">Bình luận</button>
+                th:attr="data-comments-url=@{/api/posts/{id}/comments(id=${post.id})}"
+                th:text="${post.isQuestion()} ? 'Trả lời' : 'Bình luận'">Bình luận</button>
         <button type="button" class="post-action-btn" th:if="${me != null}"
                 data-bs-toggle="modal" data-bs-target="#sharePostModal" th:attr="data-post-id=${post.id}">Chia sẻ</button>
     </div>

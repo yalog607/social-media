@@ -6,6 +6,7 @@ import com.aloute.model.creator.BroadcastAudience;
 import com.aloute.service.creator.BroadcastService;
 import com.aloute.service.creator.InsightsService;
 import com.aloute.service.creator.PollService;
+import com.aloute.service.creator.QuestionService;
 
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.model.post.Post;
@@ -36,9 +37,11 @@ public class CreatorController {
     private final PostViewAssembler assembler;
     private final BroadcastService broadcasts;
     private final PollService polls;
+    private final QuestionService questions;
 
     public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
-                             BroadcastService broadcasts, PollService polls) {
+                             BroadcastService broadcasts, PollService polls, QuestionService questions) {
+        this.questions = questions;
         this.polls = polls;
         this.broadcasts = broadcasts;
         this.insights = insights;
@@ -103,6 +106,26 @@ public class CreatorController {
             flash.addFlashAttribute("draftQuestion", question);
             flash.addFlashAttribute("draftOptions", options);
             return "redirect:/creator/polls";
+        }
+    }
+
+    @GetMapping("/creator/questions")
+    public String newQuestion(Model model) {
+        model.addAttribute("active", "creator");
+        return "creator/question-new";
+    }
+
+    @PostMapping("/creator/questions")
+    public String createQuestion(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String question,
+                                 RedirectAttributes flash) {
+        try {
+            Post created = questions.create(me.id(), question);
+            flash.addFlashAttribute("notice", "Đã đăng câu hỏi.");
+            return "redirect:/posts/" + created.getId();
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            flash.addFlashAttribute("draftQuestion", question);
+            return "redirect:/creator/questions";
         }
     }
 

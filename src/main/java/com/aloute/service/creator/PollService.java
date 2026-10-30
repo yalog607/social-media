@@ -3,6 +3,7 @@ package com.aloute.service.creator;
 import com.aloute.dto.post.PollView;
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.model.notification.NotificationType;
 import com.aloute.model.post.Post;
 import com.aloute.model.post.PostKind;
 import com.aloute.model.user.Role;
@@ -47,8 +48,11 @@ public class PollService {
     private final UserRepository users;
     private final BlockService blocks;
     private final Clock clock;
+    private final FollowerNotifier notifier;
 
-    public PollService(JdbcTemplate jdbc, PostService posts, UserRepository users, BlockService blocks, Clock clock) {
+    public PollService(JdbcTemplate jdbc, PostService posts, UserRepository users, BlockService blocks, Clock clock,
+                       FollowerNotifier notifier) {
+        this.notifier = notifier;
         this.jdbc = jdbc;
         this.posts = posts;
         this.users = users;
@@ -80,15 +84,7 @@ public class PollService {
             jdbc.update("insert into poll_options (id, post_id, position, label) values (?, ?, ?, ?)",
                     UUID.randomUUID(), post.getId(), (short) i, labels.get(i));
         }
-        jdbc.update("""
-                insert into notifications (id, recipient_id, actor_id, type, post_id, created_at)
-                select gen_random_uuid(), r.id, ?, 'CREATOR_POLL', ?, ?
-                from users r
-                where r.status = 'ACTIVE' and r.id <> ?
-                  and r.id in (select f.follower_id from follows f where f.followee_id = ?)
-                  and not exists (select 1 from blocks b
-                                  where (b.blocker_id = r.id and b.blocked_id = ?) or (b.blocker_id = ? and b.blocked_id = r.id))""",
-                creatorId, post.getId(), Timestamp.from(now), creatorId, creatorId, creatorId, creatorId);
+        notifier.notifyFollowers(creatorId, post.getId(), NotificationType.CREATOR_POLL);
         return post;
     }
 

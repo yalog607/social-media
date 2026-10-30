@@ -261,6 +261,7 @@ public class NotificationService {
             case SEASON_BANNED -> "Bạn đã bị loại khỏi mùa giải.";
             case SEASON_RESULT -> "Kết quả mùa giải đã được công bố.";
             case CREATOR_POLL -> name + " vừa tạo một bình chọn mới";
+            case CREATOR_QUESTION -> name + " vừa đặt một câu hỏi mới";
         };
     }
 }

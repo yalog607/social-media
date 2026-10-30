@@ -3677,3 +3677,7 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 .poll-label, .poll-pct { position: relative; }
 .poll-pct { flex-shrink: 0; font-size: .85rem; }
 .poll-meta { margin-top: .5rem; }
+
+/* Nhãn "Hỏi đáp" trên thẻ bài của Creator */
+.qa-tag { display: inline-block; align-self: flex-start; width: fit-content; margin: .5rem 0 .1rem; padding: .1rem .6rem; border: 2px solid var(--ink); border-radius: 999px;
+  background: var(--sky); color: var(--ink); font-size: .78rem; font-weight: 800; }

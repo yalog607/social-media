@@ -24,5 +24,6 @@ public enum NotificationType {
     SEASON_JOIN,
     SEASON_BANNED,
     SEASON_RESULT,
-    CREATOR_POLL
+    CREATOR_POLL,
+    CREATOR_QUESTION
 }

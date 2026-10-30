@@ -213,8 +213,8 @@ public class PostService {
             post.setEditedAt(clock.instant());
         }
         if (visibility != null) {
-            if (post.getPostKind() == PostKind.POLL && visibility != Visibility.PUBLIC) {
-                throw new InvalidPostException("Bình chọn luôn công khai nên không đổi quyền xem được.");
+            if (post.getPostKind() != PostKind.POST && visibility != Visibility.PUBLIC) {
+                throw new InvalidPostException("Bình chọn và câu hỏi luôn công khai nên không đổi quyền xem được.");
             }
             post.setVisibility(visibility);
         }
