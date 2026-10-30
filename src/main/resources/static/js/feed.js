@@ -103,15 +103,12 @@
     form.elements.targetId.value = trigger.dataset.reportId;
     form.elements.detail.value = '';
     modal.querySelector('[data-report-label]').textContent = trigger.dataset.reportLabel || 'nội dung này';
-    const error = form.querySelector('[data-report-error]');
-    error.hidden = true;
   });
 
   document.addEventListener('submit', async function (event) {
     const form = event.target.closest('[data-report-form]');
     if (!form) return;
     event.preventDefault();
-    const error = form.querySelector('[data-report-error]');
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     try {
@@ -124,16 +121,14 @@
         let message = 'Chưa gửi được báo cáo, thử lại nhé.';
         if (response.status === 429) message = 'Bạn gửi báo cáo hơi nhiều, đợi ít phút rồi thử lại nhé.';
         else try { message = (await response.json()).error || message; } catch (ignored) { /* giữ thông báo chung */ }
-        error.textContent = message;
-        error.hidden = false;
+        window.Aloute.toast(message, 'error');
         return;
       }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       bootstrap.Modal.getInstance(form.closest('.modal')).hide();
       window.Aloute.toast('Đã gửi báo cáo, cảm ơn bạn.', 'success');
     } catch (failure) {
-      error.textContent = 'Chưa gửi được báo cáo, thử lại nhé.';
-      error.hidden = false;
+      window.Aloute.toast('Chưa gửi được báo cáo, thử lại nhé.', 'error');
     } finally {
       submit.disabled = false;
     }
@@ -519,7 +514,10 @@
         button.textContent = pack.name; button.addEventListener('click', () => showPack(pack)); tabs.appendChild(button);
       });
       showPack(packs[0]);
-    } catch (_) { status.textContent = 'Không tải được nhãn dán. Đóng và thử lại nhé.'; }
+    } catch (_) {
+      status.textContent = '';
+      window.Aloute.toast('Không tải được nhãn dán. Đóng và thử lại nhé.', 'error');
+    }
   }
 
   document.addEventListener('click', function (event) {
