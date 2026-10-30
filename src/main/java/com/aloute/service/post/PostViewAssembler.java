@@ -20,7 +20,6 @@ import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.post.PostTagRepository;
 import com.aloute.service.category.CategoryService;
 import com.aloute.service.reaction.ReactionService;
-import com.aloute.service.wallet.PaidContentAccess;
 import com.aloute.util.post.PostTextRenderer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,14 +47,13 @@ public class PostViewAssembler {
     private final ReactionService reactions;
     private final CommentRepository commentRepository;
     private final PostTagRepository tagRepository;
-    private final PaidContentAccess paidAccess;
     private final CategoryService categories;
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository memberRepository;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
                              ReactionService reactions, CommentRepository commentRepository,
-                             PostTagRepository tagRepository, PaidContentAccess paidAccess,
+                             PostTagRepository tagRepository,
                              CategoryService categories, ConversationRepository conversationRepository,
                              ConversationMemberRepository memberRepository) {
         this.categories = categories;
@@ -64,7 +62,6 @@ public class PostViewAssembler {
         this.reactions = reactions;
         this.commentRepository = commentRepository;
         this.tagRepository = tagRepository;
-        this.paidAccess = paidAccess;
         this.conversationRepository = conversationRepository;
         this.memberRepository = memberRepository;
     }
@@ -99,9 +96,6 @@ public class PostViewAssembler {
         Map<UUID, Long> commentCountByPost = loadCommentCounts(allIds);
         Map<UUID, Long> shareCountByPost = loadShareCounts(allIds);
         Map<UUID, List<PostView.AuthorView>> taggedByPost = loadTagged(allIds);
-        // Chỉ tra cứu mở khóa khi trong trang có bài trả phí (bảng tin thường không phát sinh thêm truy vấn nào)
-        List<UUID> paidIds = allPosts.stream().filter(p -> p.getUnlockPrice() != null).map(Post::getId).toList();
-        Set<UUID> unlocked = paidAccess.unlockedAmong(viewerId, paidIds);
         Map<UUID, CategoryView> categoryById = categories.byIds(
                 allPosts.stream().map(Post::getCategoryId).filter(java.util.Objects::nonNull).distinct().toList());
 
@@ -128,7 +122,7 @@ public class PostViewAssembler {
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
             baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost,
-                    taggedByPost, unlocked, categoryById, conversationById, memberRolesByGroup, null));
+                    taggedByPost, categoryById, conversationById, memberRolesByGroup, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -193,7 +187,7 @@ public class PostViewAssembler {
     private static PostView toView(Post post, UUID viewerId, Map<UUID, List<PostView.MediaView>> mediaByPost,
                                    Map<UUID, ReactionSummary> reactionsByPost, Map<UUID, Long> commentCountByPost,
                                    Map<UUID, Long> shareCountByPost,
-                                   Map<UUID, List<PostView.AuthorView>> taggedByPost, Set<UUID> unlocked,
+                                   Map<UUID, List<PostView.AuthorView>> taggedByPost,
                                    Map<UUID, CategoryView> categoryById,
                                    Map<UUID, Conversation> conversationById,
                                    Map<UUID, Map<UUID, GroupRole>> memberRolesByGroup,
@@ -202,7 +196,6 @@ public class PostViewAssembler {
         Profile profile = author.getProfile();
         boolean mine = viewerId != null && viewerId.equals(author.getId());
         UUID sharedId = sharedPost != null ? sharedPost.id() : null;
-        boolean locked = post.getUnlockPrice() != null && !mine && !unlocked.contains(post.getId());
         PostView.AuthorView authorView;
         if (post.isAnonymous()) {
             if (mine) {
@@ -229,11 +222,11 @@ public class PostViewAssembler {
         return new PostView(
                 post.getId(),
                 authorView,
-                locked ? "" : PostTextRenderer.toSafeHtml(post.getContent()),
+                PostTextRenderer.toSafeHtml(post.getContent()),
                 post.getVisibility(),
                 post.getCreatedAt(),
                 post.getEditedAt() != null,
-                locked ? List.of() : mediaByPost.getOrDefault(post.getId(), List.of()),
+                mediaByPost.getOrDefault(post.getId(), List.of()),
                 mine,
                 mine ? post.getContent() : null,
                 reactionsByPost.getOrDefault(post.getId(), ReactionSummary.EMPTY),
@@ -242,8 +235,6 @@ public class PostViewAssembler {
                 sharedId,
                 sharedPost,
                 taggedByPost.getOrDefault(post.getId(), List.of()),
-                post.getUnlockPrice(),
-                locked,
                 post.getCategoryId() == null ? null : categoryById.get(post.getCategoryId()),
                 post.isPinned(), post.isAnonymous(), post.getGroupId(), groupInfo);
     }
@@ -253,6 +244,6 @@ public class PostViewAssembler {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
                 view.shareCount(), sharedPostId, sharedPost, view.tagged(),
-                view.unlockPrice(), view.locked(), view.category(), view.isPinned(), view.isAnonymous(), view.groupId(), view.group());
+                view.category(), view.isPinned(), view.isAnonymous(), view.groupId(), view.group());
     }
 }

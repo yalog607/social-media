@@ -152,7 +152,6 @@ public class AdminService {
         stats.put("Bài mới 7 ngày qua", count("select count(*) from posts where deleted_at is null and scheduled_at is null and created_at > now() - interval '7 days'"));
         stats.put("Bình luận", count("select count(*) from comments where deleted_at is null"));
         stats.put("Tin nhắn", count("select count(*) from messages"));
-        stats.put("Xu đang lưu hành", count("select coalesce(sum(balance), 0) from wallets"));
         return stats;
     }
 

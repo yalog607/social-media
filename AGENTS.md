@@ -26,8 +26,7 @@ ALOUTE là mạng xã hội cho tuổi teen, dùng Java 21, Spring Boot 3.5, Thy
 - Bảng tin, bài chữ/ảnh/video, sửa/xóa/chia sẻ/ghim, gắn thẻ bạn bè, hashtag, danh mục, lượt xem; tìm kiếm người, bài và hashtag.
 - Cảm xúc bài viết, bình luận và tin nhắn; bình luận trả lời kèm ảnh, mention và thông báo.
 - Chat riêng và nhóm, file đính kèm, lịch sử, tìm kiếm, sửa/xóa/ghim tin, phản ứng và chuỗi chat; quản lý nhóm, vai trò, biệt danh và duyệt thành viên.
-- Creator tự đăng ký, xem thống kê, hẹn giờ đăng và quản lý lịch, gửi thông báo tới follower/fan, xem fan.
-- Ví Xu ảo: quà khởi tạo, nhận hằng ngày, lịch sử, tặng Creator, mở khóa bài trả phí và huy hiệu fan. Không có thanh toán hoặc rút tiền thật.
+- Creator tự đăng ký, xem thống kê, hẹn giờ đăng và quản lý lịch, gửi thông báo tới follower.
 - Mood có hạn 24 giờ; sổ lưu bút cho phép ghi, ghim, ẩn và xóa lời nhắn.
 - Báo cáo, kiểm duyệt, hỗ trợ, quản lý hashtag/danh mục; Admin quản lý người dùng, quyền Manager, nhật ký và cấu hình đăng ký.
 

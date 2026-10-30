@@ -85,7 +85,7 @@ src/main/java/com/aloute/
 src/main/resources/templates   View: Thymeleaf
 src/main/resources/{db/migration, static}
 ```
-`<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user, wallet…
+`<tính năng>`: admin, auth, chat, comment, creator, feed, post, social, user…
 
 ### Nhãn dán trong chat
 Ba bộ Mèo Mỡ, Ếch Nhỏ và Cún Bông chạy trực tiếp trong ứng dụng, không cần khóa API. Tìm kiếm theo biểu cảm; Gần đây và Yêu thích được lưu theo tài khoản.

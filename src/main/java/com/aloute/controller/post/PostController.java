@@ -50,7 +50,6 @@ public class PostController {
                          @RequestParam(required = false) List<MultipartFile> images,
                          @RequestParam(required = false) MultipartFile video,
                          @RequestParam(required = false) List<UUID> taggedUserIds,
-                         @RequestParam(required = false) Integer unlockPrice,
                          @RequestParam(required = false) String scheduledAt,
                          @RequestParam(required = false) Integer tzOffset,
                          @RequestParam(required = false) UUID categoryId,
@@ -58,13 +57,12 @@ public class PostController {
                          RedirectAttributes flash) {
         try {
             Instant when = ScheduleTime.parse(scheduledAt, tzOffset);
-            posts.create(me.id(), content, visibility, images, video, taggedUserIds, unlockPrice, when, categoryId, groupId, anonymous);
+            posts.create(me.id(), content, visibility, images, video, taggedUserIds, when, categoryId, groupId, anonymous);
             flash.addFlashAttribute("notice", when == null ? "Đã đăng bài!" : "Đã hẹn giờ đăng bài!");
         } catch (InvalidPostException | InvalidMediaException | RateLimitExceededException e) {
             flash.addFlashAttribute("composerError", e.getMessage());
             flash.addFlashAttribute("composerContent", content);
             flash.addFlashAttribute("composerVisibility", visibility == null ? null : visibility.name());
-            flash.addFlashAttribute("composerUnlockPrice", unlockPrice);
             flash.addFlashAttribute("composerScheduledAt", scheduledAt);
             flash.addFlashAttribute("composerCategoryId", categoryId);
             flash.addFlashAttribute("composerTagged", taggedUserIds == null ? List.of() : taggedUserIds);

@@ -44,7 +44,6 @@ public class PostService {
     private final UserRepository users;
     private final MediaService media;
     public static final int MAX_TAGS = 10;
-    public static final int MAX_UNLOCK_PRICE = 1000;
     public static final int MAX_SCHEDULE_DAYS = 30;
 
     private final RateLimiter rateLimiter;
@@ -93,19 +92,7 @@ public class PostService {
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility,
                        List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, null, null);
-    }
-
-    /**
-     * Như trên, thêm {@code unlockPrice}: giá (Xu) để xem bài. Chỉ Creator đặt được, từ 1 đến
-     * {@value #MAX_UNLOCK_PRICE}; null là bài miễn phí.
-     *
-     * @throws InvalidPostException giá không hợp lệ hoặc người đăng chưa phải Creator
-     */
-    @Transactional
-    public Post create(UUID authorId, String content, Visibility visibility,
-                       List<MultipartFile> images, MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, null);
+        return create(authorId, content, visibility, images, video, taggedUserIds, null);
     }
 
     /**
@@ -116,8 +103,8 @@ public class PostService {
      */
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
-                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, null);
+                       MultipartFile video, List<UUID> taggedUserIds, Instant scheduledAt) {
+        return create(authorId, content, visibility, images, video, taggedUserIds, scheduledAt, null);
     }
 
     /**
@@ -127,9 +114,9 @@ public class PostService {
      */
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
-                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       MultipartFile video, List<UUID> taggedUserIds, Instant scheduledAt,
                        UUID categoryId) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, categoryId, null);
+        return create(authorId, content, visibility, images, video, taggedUserIds, scheduledAt, categoryId, null);
     }
 
     /**
@@ -137,14 +124,14 @@ public class PostService {
      */
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
-                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       MultipartFile video, List<UUID> taggedUserIds, Instant scheduledAt,
                        UUID categoryId, UUID groupId) {
-        return create(authorId, content, visibility, images, video, taggedUserIds, unlockPrice, scheduledAt, categoryId, groupId, false);
+        return create(authorId, content, visibility, images, video, taggedUserIds, scheduledAt, categoryId, groupId, false);
     }
 
     @Transactional
     public Post create(UUID authorId, String content, Visibility visibility, List<MultipartFile> images,
-                       MultipartFile video, List<UUID> taggedUserIds, Integer unlockPrice, Instant scheduledAt,
+                       MultipartFile video, List<UUID> taggedUserIds, Instant scheduledAt,
                        UUID categoryId, UUID groupId, boolean isAnonymous) {
         rateLimiter.check(RateAction.POST, authorId);
         String text = cleanContent(content);
@@ -162,14 +149,6 @@ public class PostService {
             }
         }
 
-        if (unlockPrice != null) {
-            if (!author.hasRole(com.aloute.model.user.Role.CREATOR)) {
-                throw new InvalidPostException("Chỉ Creator mới đặt giá cho bài viết được.");
-            }
-            if (unlockPrice < 1 || unlockPrice > MAX_UNLOCK_PRICE) {
-                throw new InvalidPostException("Giá mở khóa từ 1 đến " + MAX_UNLOCK_PRICE + " Xu.");
-            }
-        }
         validateSchedule(author, scheduledAt);
         requireUsableCategory(categoryId);
         Visibility chosen = visibility != null ? visibility : author.getProfile().getDefaultPostVisibility();
@@ -180,7 +159,6 @@ public class PostService {
             Post post = new Post();
             post.setAuthor(author);
             post.setVisibility(chosen);
-            post.setUnlockPrice(unlockPrice);
             post.setScheduledAt(scheduledAt);
             post.setCategoryId(categoryId);
             post.setGroupId(groupId);

@@ -45,7 +45,7 @@ class ScheduledPostIT extends IntegrationTest {
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     private Post schedule(User creator, String text, Duration in, List<java.util.UUID> tags) {
-        return posts.create(creator.getId(), text, Visibility.PUBLIC, List.of(), null, tags, null, clock.instant().plus(in));
+        return posts.create(creator.getId(), text, Visibility.PUBLIC, List.of(), null, tags, clock.instant().plus(in));
     }
 
     @Test

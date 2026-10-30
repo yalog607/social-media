@@ -12,7 +12,6 @@ import com.aloute.support.IntegrationTest;
 import com.aloute.support.MutableClock;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.User;
-import com.aloute.service.wallet.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -34,7 +33,6 @@ class BroadcastServiceIT extends IntegrationTest {
     @Autowired BroadcastService broadcasts;
     @Autowired FollowService follows;
     @Autowired BlockService blocks;
-    @Autowired WalletService wallet;
     @Autowired NotificationService notifications;
     @Autowired MutableClock clock;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
@@ -62,23 +60,6 @@ class BroadcastServiceIT extends IntegrationTest {
         assertThat(broadcastsFor(creator)).as("Creator không tự nhận").isEmpty();
         assertThat(broadcasts.history(creator.getId())).singleElement()
                 .satisfies(h -> assertThat(h.recipientCount()).isEqualTo(1));
-    }
-
-    @Test
-    void onlyFansWithABadgeReceiveAFansBroadcast() {
-        User creator = createUser(Role.CREATOR);
-        User fan = createUser();
-        User follower = createUser();
-        User smallDonor = createUser();
-        follows.follow(follower.getId(), creator.getId());
-        wallet.donate(fan.getId(), creator.getId(), 20);
-        wallet.donate(smallDonor.getId(), creator.getId(), 5);
-
-        assertThat(broadcasts.send(creator.getId(), BroadcastAudience.FANS, "Dành cho fan", "Quà nhỏ")).isEqualTo(1);
-
-        assertThat(broadcastsFor(fan)).hasSize(1);
-        assertThat(broadcastsFor(follower)).isEmpty();
-        assertThat(broadcastsFor(smallDonor)).isEmpty();
     }
 
     @Test
@@ -118,8 +99,6 @@ class BroadcastServiceIT extends IntegrationTest {
                 .isInstanceOf(InvalidBroadcastException.class);
         assertThatThrownBy(() -> broadcasts.send(creator.getId(), BroadcastAudience.FOLLOWERS, "a", "x".repeat(BroadcastService.MAX_BODY + 1)))
                 .isInstanceOf(InvalidBroadcastException.class);
-        assertThatThrownBy(() -> broadcasts.send(creator.getId(), BroadcastAudience.FANS, "a", "b"))
-                .hasMessageContaining("Chưa có ai");
     }
 
     @Test
