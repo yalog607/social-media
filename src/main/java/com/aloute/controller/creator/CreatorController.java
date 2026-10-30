@@ -5,6 +5,7 @@ import com.aloute.exception.creator.InvalidBroadcastException;
 import com.aloute.model.creator.BroadcastAudience;
 import com.aloute.service.creator.BroadcastService;
 import com.aloute.service.creator.InsightsService;
+import com.aloute.service.creator.PollService;
 
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.model.post.Post;
@@ -34,9 +35,11 @@ public class CreatorController {
     private final PostService posts;
     private final PostViewAssembler assembler;
     private final BroadcastService broadcasts;
+    private final PollService polls;
 
     public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
-                             BroadcastService broadcasts) {
+                             BroadcastService broadcasts, PollService polls) {
+        this.polls = polls;
         this.broadcasts = broadcasts;
         this.insights = insights;
         this.posts = posts;
@@ -75,6 +78,32 @@ public class CreatorController {
             flash.addFlashAttribute("draftBody", body);
         }
         return "redirect:/creator/broadcasts";
+    }
+
+    @GetMapping("/creator/polls")
+    public String newPoll(Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("maxOptions", PollService.MAX_OPTIONS);
+        model.addAttribute("maxLabel", PollService.MAX_LABEL);
+        model.addAttribute("maxDays", PollService.MAX_DAYS_OPEN);
+        return "creator/poll-new";
+    }
+
+    @PostMapping("/creator/polls")
+    public String createPoll(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String question,
+                             @RequestParam(required = false) List<String> options,
+                             @RequestParam(required = false) String closesAt,
+                             @RequestParam(required = false) Integer tzOffset, RedirectAttributes flash) {
+        try {
+            Post poll = polls.create(me.id(), question, options, ScheduleTime.parse(closesAt, tzOffset));
+            flash.addFlashAttribute("notice", "Đã đăng bình chọn.");
+            return "redirect:/posts/" + poll.getId();
+        } catch (InvalidPostException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+            flash.addFlashAttribute("draftQuestion", question);
+            flash.addFlashAttribute("draftOptions", options);
+            return "redirect:/creator/polls";
+        }
     }
 
     @GetMapping("/creator/scheduled")

@@ -205,6 +205,30 @@
 
     <div class="post-text" th:if="${post.hasText()}" th:utext="${post.contentHtml}"></div>
 
+    <!-- Bình chọn của Creator: chưa bầu thì hiện nút chọn, đã bầu hoặc đã đóng thì hiện kết quả -->
+    <section class="poll" th:if="${post.hasPoll()}" aria-label="Bình chọn">
+        <form th:if="${post.poll.canVote()}" th:action="@{/polls/{id}/vote(id=${post.id})}" method="post" class="poll-options">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <button type="submit" name="optionId" th:value="${o.id}" class="poll-option poll-option--vote"
+                    th:each="o : ${post.poll.options}" th:text="${o.label}">Lựa chọn</button>
+        </form>
+        <div class="poll-options" th:if="${post.poll.showResults()}">
+            <div class="poll-option poll-option--result" th:each="o : ${post.poll.options}"
+                 th:classappend="${o.id == post.poll.votedOptionId} ? 'is-mine'">
+                <span class="poll-bar" th:style="'width:' + ${o.percent} + '%'"></span>
+                <span class="poll-label" th:text="${o.label}">Lựa chọn</span>
+                <span class="poll-pct" th:text="${o.percent} + '% · ' + ${o.votes}">0%</span>
+            </div>
+        </div>
+        <p class="poll-meta text-soft small mb-0">
+            <span th:text="${post.poll.totalVotes} + ' lượt bình chọn'">0 lượt bình chọn</span>
+            <span th:if="${post.poll.closed}"> · Đã kết thúc</span>
+            <span th:if="${!post.poll.closed and post.poll.closesAt != null}"
+                  th:text="' · Kết thúc ' + ${@timeAgo.full(post.poll.closesAt)}"></span>
+            <span th:if="${!post.poll.viewerLoggedIn}"> · Đăng nhập để bình chọn</span>
+        </p>
+    </section>
+
     <div class="media-grid" th:if="${post.hasMedia() and !post.hasVideo()}"
          th:classappend="'media-grid--' + ${#lists.size(post.media)}">
         <a th:each="item : ${post.media}" class="lightbox-trigger" role="button" tabindex="0"

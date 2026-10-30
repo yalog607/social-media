@@ -3662,3 +3662,18 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 .season-card__cta > span:last-child { position: absolute; right: .8rem; }
 /* Ngọn lửa Heroicons (bản đặc) dùng thay emoji 🔥 trang trí: màu cam, cỡ theo chữ. */
 .icon-fire { color: #FF7200; vertical-align: -.15em; }
+
+/* Bình chọn của Creator trong thẻ bài */
+.poll { margin: .75rem 0 .25rem; }
+.poll-options { display: flex; flex-direction: column; gap: .5rem; }
+.poll-option { position: relative; display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%;
+  min-height: 44px; padding: .55rem .9rem; border: 2px solid var(--ink); border-radius: 12px; background: var(--white);
+  color: var(--ink); font-weight: 600; text-align: left; overflow: hidden; }
+.poll-option--vote { cursor: pointer; box-shadow: 2px 2px 0 var(--ink); }
+.poll-option--vote:hover, .poll-option--vote:focus-visible { background: var(--lemon); }
+.poll-bar { position: absolute; inset: 0 auto 0 0; background: var(--lavender); opacity: .55; }
+.poll-option--result.is-mine { border-width: 3px; }
+.poll-option--result.is-mine .poll-bar { background: var(--mint); opacity: .8; }
+.poll-label, .poll-pct { position: relative; }
+.poll-pct { flex-shrink: 0; font-size: .85rem; }
+.poll-meta { margin-top: .5rem; }

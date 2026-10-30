@@ -1,12 +1,14 @@
 package com.aloute.service.post;
 
 import com.aloute.dto.category.CategoryView;
+import com.aloute.dto.post.PollView;
 import com.aloute.dto.post.PostView;
 import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.chat.Conversation;
 import com.aloute.model.chat.ConversationMember;
 import com.aloute.model.chat.GroupRole;
 import com.aloute.model.post.Post;
+import com.aloute.model.post.PostKind;
 import com.aloute.model.post.PostMedia;
 import com.aloute.model.post.PostTag;
 import com.aloute.model.user.Profile;
@@ -19,6 +21,7 @@ import com.aloute.repository.post.PostMediaRepository;
 import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.post.PostTagRepository;
 import com.aloute.service.category.CategoryService;
+import com.aloute.service.creator.PollService;
 import com.aloute.service.reaction.ReactionService;
 import com.aloute.util.post.PostTextRenderer;
 import org.springframework.stereotype.Component;
@@ -50,12 +53,14 @@ public class PostViewAssembler {
     private final CategoryService categories;
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository memberRepository;
+    private final PollService polls;
 
     public PostViewAssembler(PostRepository postRepository, PostMediaRepository mediaRepository,
                              ReactionService reactions, CommentRepository commentRepository,
                              PostTagRepository tagRepository,
                              CategoryService categories, ConversationRepository conversationRepository,
-                             ConversationMemberRepository memberRepository) {
+                             ConversationMemberRepository memberRepository, PollService polls) {
+        this.polls = polls;
         this.categories = categories;
         this.postRepository = postRepository;
         this.mediaRepository = mediaRepository;
@@ -99,6 +104,9 @@ public class PostViewAssembler {
         Map<UUID, CategoryView> categoryById = categories.byIds(
                 allPosts.stream().map(Post::getCategoryId).filter(java.util.Objects::nonNull).distinct().toList());
 
+        Map<UUID, PollView> pollByPost = polls.viewsFor(
+                allPosts.stream().filter(p -> p.getPostKind() == PostKind.POLL).toList(), viewerId);
+
         // Nạp thông tin nhóm và vai trò thành viên cho các bài viết thuộc nhóm
         Set<UUID> groupIds = allPosts.stream().map(Post::getGroupId).filter(java.util.Objects::nonNull).collect(Collectors.toSet());
         Map<UUID, Conversation> conversationById = new HashMap<>();
@@ -122,7 +130,7 @@ public class PostViewAssembler {
         Map<UUID, PostView> baseViews = new HashMap<>();
         for (Post post : allPosts) {
             baseViews.put(post.getId(), toView(post, viewerId, mediaByPost, reactionsByPost, commentCountByPost, shareCountByPost,
-                    taggedByPost, categoryById, conversationById, memberRolesByGroup, null));
+                    taggedByPost, categoryById, conversationById, memberRolesByGroup, pollByPost, null));
         }
 
         // Bước 2: gắn bài gốc (đã dựng sẵn) vào các bài chia sẻ trong danh sách yêu cầu, giữ đúng thứ tự ban đầu
@@ -191,6 +199,7 @@ public class PostViewAssembler {
                                    Map<UUID, CategoryView> categoryById,
                                    Map<UUID, Conversation> conversationById,
                                    Map<UUID, Map<UUID, GroupRole>> memberRolesByGroup,
+                                   Map<UUID, PollView> pollByPost,
                                    PostView sharedPost) {
         User author = post.getAuthor();
         Profile profile = author.getProfile();
@@ -236,7 +245,8 @@ public class PostViewAssembler {
                 sharedPost,
                 taggedByPost.getOrDefault(post.getId(), List.of()),
                 post.getCategoryId() == null ? null : categoryById.get(post.getCategoryId()),
-                post.isPinned(), post.isAnonymous(), post.getGroupId(), groupInfo);
+                post.isPinned(), post.isAnonymous(), post.getGroupId(), groupInfo,
+                post.getPostKind(), pollByPost.get(post.getId()));
     }
 
     /** Bản sao của {@code view} với {@code sharedPost} được gắn (bản thân {@code view} được dựng như bài thường ở bước 1). */
@@ -244,6 +254,6 @@ public class PostViewAssembler {
         return new PostView(view.id(), view.author(), view.contentHtml(), view.visibility(), view.createdAt(),
                 view.edited(), view.media(), view.mine(), view.rawContent(), view.reactions(), view.commentCount(),
                 view.shareCount(), sharedPostId, sharedPost, view.tagged(),
-                view.category(), view.isPinned(), view.isAnonymous(), view.groupId(), view.group());
+                view.category(), view.isPinned(), view.isAnonymous(), view.groupId(), view.group(), view.kind(), view.poll());
     }
 }
