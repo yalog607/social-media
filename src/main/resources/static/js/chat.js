@@ -311,7 +311,7 @@
   function attachmentHtml(a) {
     if (!a) return '';
     if (a.kind === 'IMAGE') {
-      return '<a href="' + a.url + '" target="_blank" rel="noopener"><img class="msg-attachment-img" src="' + a.url + '" alt="Ảnh đính kèm"></a>';
+      return '<a class="lightbox-trigger" role="button" tabindex="0" aria-label="Xem ảnh cỡ lớn" data-lightbox="' + a.url + '"><img class="msg-attachment-img" src="' + a.url + '" alt="Ảnh đính kèm"></a>';
     }
     if (a.kind === 'VIDEO') {
       return '<video class="msg-attachment-video" src="' + a.url + '" controls></video>';

@@ -56,14 +56,15 @@
         <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg>
     </button>
 </div>
-<!-- Hộp chọn nhãn dán nổi trên composer -->
+<p th:unless="${canSendMessages}" class="note note--lemon small mb-2" role="status">Trưởng nhóm đã tắt quyền gửi tin nhắn của thành viên. Trưởng nhóm và quản trị viên vẫn có thể gửi.</p>
+    <div class="chat-composer-wrap">
+    <!-- Hộp chọn nhãn dán nổi trên composer -->
     <section id="chat-sticker-picker" class="chat-sticker-picker local-sticker-picker d-none" aria-label="Bảng nhãn dán">
         <div class="local-sticker-heading"><strong>NHÃN DÁN</strong><button type="button" id="sticker-close" aria-label="Đóng bảng nhãn dán">✕</button></div>
         <div class="local-sticker-search"><label for="sticker-search" class="visually-hidden">Tìm nhãn dán</label><input id="sticker-search" type="search" maxlength="80" placeholder="Tìm nhãn dán: vui, buồn, thả tim…" autocomplete="off"></div>
         <div class="local-sticker-body"><h2 id="sticker-section-title">Mèo Mỡ</h2><p id="sticker-status" role="status" aria-live="polite"></p><div id="sticker-grid" class="local-sticker-grid"></div><button id="sticker-retry" type="button" class="btn-al btn-al--sm" hidden>Thử lại</button></div>
         <nav id="sticker-pack-tabs" class="local-sticker-tabs" aria-label="Các bộ nhãn dán"></nav>
     </section>
-    <p th:unless="${canSendMessages}" class="note note--lemon small mb-2" role="status">Trưởng nhóm đã tắt quyền gửi tin nhắn của thành viên. Trưởng nhóm và quản trị viên vẫn có thể gửi.</p>
     <form class="chat-composer" id="chat-composer">
         <input type="file" id="chat-attach-input" th:disabled="${!canSendMessages}" hidden>
         <button type="button" class="chat-attach-btn" id="chat-attach-btn" th:disabled="${!canSendMessages}" aria-label="Đính kèm file" title="Đính kèm file">
@@ -78,6 +79,7 @@
             <svg class="icon" aria-hidden="true"><use href="#i-send"/></svg>
         </button>
     </form>
+    </div>
 
     <div class="modal fade" id="leaveGroupModal" tabindex="-1" aria-hidden="true" th:if="${header.group}">
         <div class="modal-dialog modal-dialog-centered">
@@ -121,7 +123,8 @@
                                 <div class="d-flex align-items-center gap-2 mt-1">
                                     <div class="bubble bubble--in" style="background-color: var(--c-surface)">
                                         <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
-                                           th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                                           class="lightbox-trigger" role="button" tabindex="0" aria-label="Xem ảnh cỡ lớn"
+                                           th:attr="data-lightbox=${m.attachment.url}">
                                             <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
                                         </a>
                                         <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"

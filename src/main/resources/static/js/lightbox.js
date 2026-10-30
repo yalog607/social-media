@@ -36,6 +36,7 @@
   document.addEventListener('click', function (event) {
     const trigger = event.target.closest('[data-lightbox]');
     if (!trigger) return;
+    event.preventDefault();
     openLightbox(trigger.dataset.lightbox);
   });
 

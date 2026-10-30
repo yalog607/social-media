@@ -3,9 +3,11 @@ package com.aloute.config;
 import com.aloute.security.AlouteAccessDeniedHandler;
 import com.aloute.security.AuthEntryPoint;
 import com.aloute.security.CookieService;
+import com.aloute.security.CrawlerRequestMatcher;
 import com.aloute.security.CsrfCookieFilter;
 import com.aloute.security.JwtAuthFilter;
 import com.aloute.security.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -56,7 +58,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, CookieService cookies)
+    SecurityFilterChain filterChain(HttpSecurity http, JwtService jwtService, CookieService cookies,
+                                    @Value("${aloute.seo.crawler-preview:true}") boolean crawlerPreview)
             throws Exception {
         // Handler thường (không XOR): JS đọc giá trị thô của cookie XSRF-TOKEN rồi gửi lại qua header X-XSRF-TOKEN.
         CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
@@ -80,7 +83,12 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(new AuthEntryPoint())
                         .accessDeniedHandler(new AlouteAccessDeniedHandler()))
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
+                    // Bot xem trước liên kết (Facebook, Zalo...) được đọc thẻ OG của bài/hồ sơ/hashtag; người thật vẫn phải đăng nhập.
+                    if (crawlerPreview) {
+                        auth.requestMatchers(new CrawlerRequestMatcher()).permitAll();
+                    }
+                    auth
                         .requestMatchers(PUBLIC_STATIC).permitAll()
                         .requestMatchers(PUBLIC_PAGES).permitAll()
                         .requestMatchers("/auth/**", "/logout").permitAll()
@@ -88,7 +96,8 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/manage/**").hasRole("MANAGER")
                         .requestMatchers("/creator/**").hasRole("CREATOR")
-                        .anyRequest().authenticated())
+                        .anyRequest().authenticated();
+                })
                 .addFilterBefore(new JwtAuthFilter(jwtService, cookies), BasicAuthenticationFilter.class)
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
         return http.build();

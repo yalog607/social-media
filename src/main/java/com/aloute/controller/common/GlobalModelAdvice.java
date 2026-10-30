@@ -1,5 +1,7 @@
 package com.aloute.controller.common;
 
+import com.aloute.dto.common.OgMeta;
+import com.aloute.service.seo.OgMetaFactory;
 import com.aloute.service.chat.ChatService;
 import com.aloute.config.AlouteProperties;
 import com.aloute.service.moderation.ModerationService;
@@ -31,10 +33,12 @@ public class GlobalModelAdvice {
     private final ChatService chats;
     private final ModerationService moderation;
     private final SupportService support;
+    private final OgMetaFactory ogMeta;
 
     public GlobalModelAdvice(UserRepository users, AlouteProperties props, RoleHierarchy roleHierarchy,
                              NotificationService notifications, ChatService chats,
-                             ModerationService moderation, SupportService support) {
+                             ModerationService moderation, SupportService support, OgMetaFactory ogMeta) {
+        this.ogMeta = ogMeta;
         this.users = users;
         this.props = props;
         this.roleHierarchy = roleHierarchy;
@@ -102,6 +106,12 @@ public class GlobalModelAdvice {
             return 0;
         }
         return chats.totalUnread(principal.id());
+    }
+
+    /** Thẻ Open Graph mặc định của web; trang bài/hồ sơ/hashtag ghi đè bằng model attribute {@code og}. */
+    @ModelAttribute("siteOg")
+    public OgMeta siteOg() {
+        return ogMeta.site();
     }
 
     @ModelAttribute("firebaseWeb")

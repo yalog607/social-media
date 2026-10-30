@@ -1,8 +1,11 @@
 package com.aloute.controller.post;
 
 import com.aloute.exception.post.InvalidPostException;
+import com.aloute.exception.post.PostNotFoundException;
+import com.aloute.dto.post.PostView;
 import com.aloute.model.post.Post;
 import com.aloute.service.post.PostService;
+import com.aloute.service.seo.OgMetaFactory;
 import com.aloute.service.post.PostViewAssembler;
 import com.aloute.service.post.PostViewService;
 import com.aloute.util.post.ScheduleTime;
@@ -36,8 +39,10 @@ public class PostController {
     private final PostService posts;
     private final PostViewAssembler assembler;
     private final PostViewService views;
+    private final OgMetaFactory og;
 
-    public PostController(PostService posts, PostViewAssembler assembler, PostViewService views) {
+    public PostController(PostService posts, PostViewAssembler assembler, PostViewService views, OgMetaFactory og) {
+        this.og = og;
         this.views = views;
         this.posts = posts;
         this.assembler = assembler;
@@ -75,10 +80,16 @@ public class PostController {
     public String detail(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         UUID viewerId = viewer == null ? null : viewer.id();
         Post post = posts.getVisible(id, viewerId);
+        // Bài trong nhóm không mở cho khách/bot dù đặt công khai
+        if (viewerId == null && post.getGroupId() != null) {
+            throw new PostNotFoundException();
+        }
         if (viewerId != null) {
             views.record(viewerId, id);
         }
-        model.addAttribute("post", assembler.assemble(List.of(post), viewerId).get(0));
+        PostView view = assembler.assemble(List.of(post), viewerId).get(0);
+        model.addAttribute("og", og.post(view));
+        model.addAttribute("post", view);
         return "post/detail";
     }
 

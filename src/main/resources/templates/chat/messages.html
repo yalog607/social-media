@@ -58,7 +58,8 @@
                         <span th:unless="${m.sticker != null or m.giphyId != null}" class="bubble" th:classappend="${m.sender.id.equals(me.id)} ? 'bubble--out' : 'bubble--in'">
                             <span th:if="${m.pinned}" title="Đã ghim" class="text-warning mb-1 d-block" style="font-size: 12px;">📌 Tin nhắn đã ghim</span>
                             <a th:if="${m.attachment != null and m.attachment.kind.name() == 'IMAGE'}"
-                               th:href="${m.attachment.url}" target="_blank" rel="noopener">
+                               class="lightbox-trigger" role="button" tabindex="0" aria-label="Xem ảnh cỡ lớn"
+                               th:attr="data-lightbox=${m.attachment.url}">
                                 <img class="msg-attachment-img" th:src="${m.attachment.url}" alt="Ảnh đính kèm">
                             </a>
                             <video th:if="${m.attachment != null and m.attachment.kind.name() == 'VIDEO'}"
