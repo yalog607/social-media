@@ -1,0 +1,1 @@
+ALTER TABLE messages ADD COLUMN giphy_id VARCHAR(64);

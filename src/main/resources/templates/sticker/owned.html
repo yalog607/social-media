@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(${pack.name}, ~{::main}, 'messages', ~{})}"><head><title>Bộ nhãn dán</title></head><body><main>
+    <section class="note"><div class="page-title"><h1 th:text="${pack.name}"></h1></div><span class="sticker-status-badge" th:text="${pack.accessType == 'AWARD'} ? '🎁 Bộ phần thưởng của bạn' : 'Bộ miễn phí'"></span>
+        <p class="mt-3" th:text="${pack.description}"></p><div class="sticker-admin-preview"><div th:each="s : ${pack.stickers}" th:title="${s.name}"><th:block th:replace="~{fragments/sticker :: art(${s}, '', ${'owned-' + s.id})}"></th:block></div></div>
+        <a class="btn-al btn-al--pink mt-3" th:href="@{/messages}">Mở tin nhắn để sử dụng</a>
+    </section>
+</main></body></html>
