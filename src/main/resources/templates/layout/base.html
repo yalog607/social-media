@@ -16,7 +16,7 @@
     <title th:text="${title} + ' · ALOUTE'">ALOUTE</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/fonts.css}">
-    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.32)}">
+    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.33)}">
 </head>
 
 <body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}, data-auth=${me != null}">
@@ -208,7 +208,7 @@
     <script th:src="@{/js/aloute.js}"></script>
     <script th:src="@{/js/feed.js(v=6)}"></script>
     <script th:src="@{/js/mention.js}"></script>
-    <script th:src="@{/js/lightbox.js}"></script>
+    <script th:src="@{/js/lightbox.js(v=2)}"></script>
     <script th:src="@{/js/profile.js}"></script>
     <script th:src="@{/js/stories.js(v=3.5)}"></script>
     <script th:src="@{/js/seasons.js(v=3)}"></script>

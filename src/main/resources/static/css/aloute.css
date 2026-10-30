@@ -1000,6 +1000,8 @@ body[data-role="admin"] .logo {
 /* ---------- 16. Phóng to ảnh (lightbox) ---------- */
 .lightbox-trigger { cursor: zoom-in; display: inline-flex; border-radius: 50%; }
 .lightbox-trigger:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.media-grid a.lightbox-trigger { display: block; border-radius: 12px; }
+.msg-attachment-img { cursor: zoom-in; }
 .profile-cover.is-zoomable { cursor: zoom-in; }
 .profile-cover.is-zoomable:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
 

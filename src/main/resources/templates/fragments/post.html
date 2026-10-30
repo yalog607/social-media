@@ -207,8 +207,8 @@
 
     <div class="media-grid" th:if="${post.hasMedia() and !post.hasVideo()}"
          th:classappend="'media-grid--' + ${#lists.size(post.media)}">
-        <a th:each="item : ${post.media}" th:class="${embedded} ? 'shared-post-image' : 'lightbox-trigger'"
-           th:href="${embedded} ? @{/posts/{id}(id=${post.id})} : null" th:attr="data-lightbox=${embedded ? null : item.url}, aria-label=${embedded ? 'Xem bài viết gốc' : 'Xem ảnh cỡ lớn'}, role=${embedded ? null : 'button'}, tabindex=${embedded ? null : 0}">
+        <a th:each="item : ${post.media}" class="lightbox-trigger" role="button" tabindex="0"
+           th:attr="data-lightbox=${item.url}, aria-label='Xem ảnh cỡ lớn'">
             <img th:src="${item.url}" th:alt="'Ảnh trong bài viết của ' + ${post.author.displayName}" loading="lazy">
         </a>
     </div>
