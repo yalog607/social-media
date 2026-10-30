@@ -66,12 +66,14 @@
                                     <div class="fw-bold text-ink" style="font-size: 0.95rem;" th:text="${me.profile.displayName}">Tên người dùng</div>
                                     <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                         <!-- Chọn quyền xem -->
-                                        <select id="composerVisibility" name="visibility" class="form-select form-select-sm"
+                                        <select id="composerVisibility" name="visibility" class="form-select form-select-sm" th:if="${groupId == null}"
                                                 style="border: 1.5px solid var(--ink); border-radius: var(--r-pill); font-size: 0.78rem; font-weight: 700; width: auto; padding: 2px 24px 2px 10px;">
                                             <option value="PUBLIC" th:selected="${chosen == 'PUBLIC'}">🌐 Công khai</option>
                                             <option value="FRIENDS" th:selected="${chosen == 'FRIENDS'}">👥 Bạn bè</option>
                                             <option value="PRIVATE" th:selected="${chosen == 'PRIVATE'}">🔒 Chỉ mình tôi</option>
                                         </select>
+
+                                        <input th:if="${groupId != null}" type="hidden" name="visibility" value="PUBLIC">
 
                                         <!-- Đăng ẩn danh nếu trong nhóm -->
                                         <label class="d-inline-flex align-items-center gap-1 cursor-pointer user-select-none mb-0 px-2 py-0.5"
@@ -83,6 +85,8 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <p th:if="${groupId != null}" class="small text-soft mb-0">Trên bảng tin, bài viết trong nhóm chỉ hiển thị với thành viên của nhóm.</p>
 
                             <!-- Ô nhập nội dung văn bản -->
                             <div class="field">
@@ -202,7 +206,7 @@
                                                     <span>·</span>
                                                     <span>Vừa xong</span>
                                                     <span>·</span>
-                                                    <span data-preview-visibility-icon>🌐</span>
+                                                    <span>🗂️ Bài viết trong nhóm</span>
                                                 </div>
                                             </div>
                                         </div>

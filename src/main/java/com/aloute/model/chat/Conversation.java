@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLRestriction;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +27,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "conversations")
+@SQLRestriction("deleted_at is null")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -89,6 +91,9 @@ public class Conversation {
      * giờ hệ thống thật) để cùng nguồn thời gian với {@code ConversationMember}/{@code Message} khi so sánh. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 
     public boolean isGroup() {
         return type == ConversationType.GROUP;

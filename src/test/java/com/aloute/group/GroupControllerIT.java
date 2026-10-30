@@ -8,6 +8,9 @@ import com.aloute.repository.chat.ConversationMemberRepository;
 import com.aloute.repository.chat.ConversationRepository;
 import com.aloute.repository.chat.ConversationRequestRepository;
 import com.aloute.service.group.GroupService;
+import com.aloute.service.post.PostService;
+import com.aloute.service.feed.FeedService;
+import com.aloute.model.user.Visibility;
 import com.aloute.service.social.FriendService;
 import com.aloute.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -16,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -28,10 +32,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GroupControllerIT extends IntegrationTest {
 
     @Autowired GroupService groupService;
+    @Autowired PostService posts;
+    @Autowired FeedService feed;
     @Autowired FriendService friends;
     @Autowired ConversationRepository conversations;
     @Autowired ConversationMemberRepository members;
     @Autowired ConversationRequestRepository requests;
+
+    @Test
+    void onlyOwnerCanDeleteGroupAndItsContentDisappears() throws Exception {
+        User owner = createUser(), admin = createUser(), outsider = createUser();
+        friends.sendRequest(owner.getId(), admin.getId());
+        friends.accept(admin.getId(), owner.getId());
+        Conversation group = groupService.createGroup(owner.getId(), "Nhóm cần xóa", "", false, List.of(admin.getId()), null);
+        groupService.changeMemberRole(owner.getId(), group.getId(), admin.getId(), GroupRole.ADMIN);
+        var post = posts.create(owner.getId(), "Bài trong nhóm cần xóa", Visibility.PUBLIC, List.of(), null, List.of(), null, null, group.getId(), false);
+        groupService.toggleChat(owner.getId(), group.getId());
+        mvc.perform(post("/groups/" + group.getId() + "/delete").with(csrf()).with(asUser(admin)))
+                .andExpect(status().is3xxRedirection());
+        assertThat(conversations.findSocialGroupById(group.getId())).isPresent();
+        mvc.perform(post("/groups/" + group.getId() + "/delete").with(csrf()).with(asUser(outsider)))
+                .andExpect(status().is3xxRedirection());
+        assertThat(conversations.findSocialGroupById(group.getId())).isPresent();
+        mvc.perform(post("/groups/" + group.getId() + "/delete").with(csrf()).with(asUser(owner)))
+                .andExpect(redirectedUrl("/groups"));
+        assertThat(conversations.findSocialGroupById(group.getId())).isEmpty();
+        mvc.perform(get("/groups/" + group.getId()).with(asUser(owner))).andExpect(status().isNotFound());
+        assertThat(members.existsByConversationIdAndUserId(group.getId(), admin.getId())).isFalse();
+        assertThat(groupService.listMyGroups(owner.getId())).noneMatch(g -> g.id().equals(group.getId()));
+        assertThat(groupService.listDiscoverGroups(outsider.getId(), null)).noneMatch(g -> g.id().equals(group.getId()));
+        assertThat(feed.home(admin.getId(), null).posts()).noneMatch(p -> p.id().equals(post.getId()));
+        assertThatThrownBy(() -> posts.getVisible(post.getId(), owner.getId())).isInstanceOf(com.aloute.exception.post.PostNotFoundException.class);
+    }
 
     @Test
     void loadsGroupsPageSuccessfully() throws Exception {
@@ -149,6 +181,7 @@ class GroupControllerIT extends IntegrationTest {
         // 2. Đăng bài vào trong nhóm
         mvc.perform(post("/posts")
                         .param("content", "Chào mừng mọi người tới CLB Game!")
+                        .param("visibility", "PUBLIC")
                         .param("groupId", group.getId().toString())
                         .with(csrf())
                         .with(asUser(creator)))
@@ -160,13 +193,17 @@ class GroupControllerIT extends IntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("isMember", true));
 
-        // 4. Kiểm tra trang chủ (Home feed) KHÔNG chứa bài viết của nhóm
+        // 4. Thành viên thấy bài trên bảng tin; người chưa tham gia thì không.
         mvc.perform(get("/").with(asUser(creator)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("home/feed"));
 
-        // 5. Người ngoài (chưa vào nhóm) không thể đăng bài vào nhóm
+        assertThat(feed.home(creator.getId(), null).posts()).anyMatch(p -> p.contentHtml().contains("Chào mừng mọi người tới CLB Game!"));
+        assertThat(feed.home(friend.getId(), null).posts()).anyMatch(p -> p.contentHtml().contains("Chào mừng mọi người tới CLB Game!"));
+
+        // 5. Người ngoài (chưa vào nhóm) không thể xem bài trên bảng tin hoặc đăng bài vào nhóm
         User stranger = createUser();
+        assertThat(feed.home(stranger.getId(), null).posts()).noneMatch(p -> p.contentHtml().contains("Chào mừng mọi người tới CLB Game!"));
         mvc.perform(post("/posts")
                         .param("content", "Bài viết spam của người lạ")
                         .param("groupId", group.getId().toString())
@@ -183,5 +220,6 @@ class GroupControllerIT extends IntegrationTest {
                 .andExpect(redirectedUrl("/groups"));
 
         assertThat(members.existsByConversationIdAndUserId(group.getId(), friend.getId())).isFalse();
+        assertThat(feed.home(friend.getId(), null).posts()).noneMatch(p -> p.contentHtml().contains("Chào mừng mọi người tới CLB Game!"));
     }
 }

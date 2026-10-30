@@ -22,6 +22,7 @@ import com.aloute.repository.group.GroupPostReportRepository;
 import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.chat.ChatService;
+import com.aloute.service.audit.AuditService;
 import com.aloute.service.season.SeasonActivityRecorder;
 import com.aloute.service.season.SeasonScoring;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,7 @@ public class GroupService {
     private final GroupPostReportRepository groupReports;
     private final Clock clock;
     private final SeasonActivityRecorder seasonActivity;
+    private final AuditService audit;
 
     public GroupService(ConversationRepository conversations,
                         ConversationMemberRepository members,
@@ -58,7 +60,8 @@ public class GroupService {
                         ChatService chatService,
                         PostRepository posts,
                         GroupPostReportRepository groupReports,
-                        Clock clock, SeasonActivityRecorder seasonActivity) {
+                        Clock clock, SeasonActivityRecorder seasonActivity, AuditService audit) {
+        this.audit = audit;
         this.seasonActivity = seasonActivity;
         this.conversations = conversations;
         this.members = members;
@@ -229,6 +232,28 @@ public class GroupService {
         }
 
         return conversation;
+    }
+
+    /** Chỉ chủ hội nhóm hiện tại được xóa nhóm; bài và hội thoại được ẩn, không xóa dữ liệu gốc. */
+    @Transactional
+    public void deleteGroup(UUID actorId, UUID groupId) {
+        Conversation group = conversations.findSocialGroupById(groupId)
+                .orElseThrow(() -> new ChatActionException("Không tìm thấy hội nhóm này."));
+        requireRole(actorId, groupId, GroupRole.OWNER);
+        java.time.Instant now = clock.instant();
+        for (Post post : posts.findLiveByGroup(groupId)) {
+            if (!post.isScheduled() && !post.isShare())
+                seasonActivity.eligibility(post.getId(), post.getAuthor().getId(), post.getCreatedAt(), false, post.getHashtags());
+            if (post.isShare())
+                seasonActivity.interaction(post.getSharedPost().getId(), post.getAuthor().getId(), SeasonScoring.Kind.SHARE, post.getId(), false);
+            post.setDeletedAt(now);
+        }
+        requests.deleteByConversationId(groupId);
+        members.deleteByConversationId(groupId);
+        group.setChatEnabled(false);
+        group.setDeletedAt(now);
+        conversations.save(group);
+        audit.log(actorId, "SOCIAL_GROUP_DELETED", "GROUP", groupId, group.getTitle());
     }
 
     /**
