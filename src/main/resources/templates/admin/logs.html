@@ -41,7 +41,8 @@
     </form>
 
     <p class="note note--sky empty" th:if="${logsPage.totalItems() == 0}">Không tìm thấy dòng nhật ký nào phù hợp.</p>
-    <table class="table-al" th:unless="${logsPage.totalItems() == 0}">
+    <div class="sticker-table-scroll" th:unless="${logsPage.totalItems() == 0}">
+    <table class="table-al">
         <thead><tr><th>Lúc</th><th>Ai</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
         <tbody>
         <tr th:each="e : ${logsPage.items()}">
@@ -55,10 +56,11 @@
                 <span class="role-chip small" style="font-size: 0.75rem;" th:if="${e.targetType() != null}" th:text="${e.targetType()}">TYPE</span>
                 <span class="text-soft small" th:unless="${e.targetType() != null}">—</span>
             </td>
-            <td th:text="${e.detail() != null} ? ${e.detail()} : ''">Chi tiết</td>
+            <td class="log-detail-cell" th:text="${e.detail() != null} ? ${e.detail()} : ''">Chi tiết</td>
         </tr>
         </tbody>
     </table>
+    </div>
 
     <div th:replace="~{fragments/pagination :: pager(${logsPage}, '/admin/logs')}"></div>
 </main>

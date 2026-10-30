@@ -1192,6 +1192,7 @@ body.lightbox-open { overflow: hidden; }
 .chat-group-forms .chat-new-form { margin-bottom: .4rem; }
 .composer-more > summary { display: inline-block; cursor: pointer; }
 .table-al .btn-al { white-space: nowrap; }
+.log-detail-cell { white-space: normal; word-break: break-word; max-width: 320px; text-align: left; }
 /* Heroicons (sprite ở fragments/icons.html): nét outline dày 2 cho khớp viền mực; kích thước do ngữ cảnh hoặc width/height quyết định. */
 .icon { stroke-width: 2; flex: none; }
 .verified-badge { width: 1.05em; height: 1.05em; margin-left: .25rem; vertical-align: -0.16em; flex: none; display: inline-block; }
