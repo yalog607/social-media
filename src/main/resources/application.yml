@@ -23,8 +23,8 @@ spring:
   servlet:
     multipart:
       max-file-size: 25MB
-      # 4 ảnh x 8 MB hoặc 1 video 25 MB; Caddy (deploy/Caddyfile) phải cùng giá trị
-      max-request-size: 40MB
+      # Tối đa 10 ảnh nhãn dán x 10 MB và dữ liệu biểu mẫu; Caddy phải cùng giá trị.
+      max-request-size: 105MB
   thymeleaf:
     cache: true
   mail:

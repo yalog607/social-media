@@ -118,7 +118,7 @@
 
                 <div class="modal-body p-3">
                     <!-- Hàng chọn loại tin: Ảnh/Video, Ghi chú, hoặc Cập nhật Vibe (Hình 1) -->
-                    <div class="d-flex gap-2 mb-3">
+                    <div class="story-create-tabs d-flex gap-2 mb-3">
                         <button type="button" class="btn-al btn-al--sm flex-grow-1 story-type-tab is-active" id="tabStoryMedia"
                                 onclick="switchStoryTab('MEDIA')">
                             📷 Ảnh / Video
@@ -256,21 +256,15 @@
                         <input type="hidden" name="emoji" id="vibeEmojiInput" th:value="${myMood != null ? myMood.emoji : '🥰'}">
 
                         <!-- Thông báo quy tắc 1 bài Vibe & reset lúc 0h -->
-                        <div class="note note--lemon p-2_5 rounded-3 mb-3 d-flex align-items-center justify-content-between"
-                             style="border: 1.5px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font-size: .82rem;">
-                            <div class="d-flex align-items-center gap-1_5">
-                                <span>⏳</span>
-                                <span class="fw-bold" th:text="${myMood != null} ? 'Đang chỉnh sửa Vibe hôm nay (reset lúc 0h đêm)' : 'Vibe chỉ đăng 1 bài/ngày (reset lúc 0h đêm)'">
-                                    Vibe chỉ đăng 1 bài/ngày (reset lúc 0h đêm)
-                                </span>
-                            </div>
-                            <span class="badge border border-dark rounded-pill" style="background: var(--white); color: var(--ink);"
-                                  th:text="${myMood != null} ? 'Đang có 1 Vibe' : '0h mỗi ngày'">0h mỗi ngày</span>
+                        <div class="vibe-info mb-3">
+                            <span class="vibe-info-icon" aria-hidden="true">⏳</span>
+                            <div><strong th:text="${myMood != null} ? 'Vibe hôm nay của bạn' : 'Một Vibe mỗi ngày'">Vibe hôm nay của bạn</strong>
+                                <span>Reset mỗi ngày lúc 0h.</span></div>
                         </div>
 
                         <!-- 1. Chọn icon cảm xúc (Emoji) -->
                         <div class="d-flex align-items-center justify-content-between mb-1">
-                            <label class="form-label small fw-bold mb-0">Chọn icon Vibe (gắn trên avatar):</label>
+                            <span class="form-label small fw-bold mb-0">Chọn biểu cảm</span>
                             <span class="small text-soft" id="selectedVibeEmojiText"
                                   th:text="'Đang chọn: ' + (${myMood != null ? myMood.emoji : '🥰'})">Đang chọn: 🥰</span>
                         </div>
@@ -291,59 +285,18 @@
 
                         <!-- 2. Lời nhắn tâm trạng (tối đa 60 ký tự) -->
                         <div class="mb-3">
-                            <label for="vibeTextInput" class="form-label small fw-bold mb-1">Lời nhắn Vibe hôm nay:</label>
+                            <label for="vibeTextInput" class="form-label small fw-bold mb-1">Lời nhắn hôm nay</label>
                             <input type="text" class="form-control border border-2 border-dark rounded-3" id="vibeTextInput" name="moodText"
                                    maxlength="60" required placeholder="Ví dụ: Đang yêu đời, Cạn năng lượng, Deadline dí..."
                                    th:value="${myMood != null ? myMood.moodText : 'Đang yêu đời'}">
                         </div>
 
-                        <!-- 3. Chọn màu nền note pastel -->
-                        <label class="form-label small fw-bold mb-1">Màu giấy note (chọn để đổi màu nền Vibe):</label>
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <label class="color-pick-radio cursor-pointer" title="Vàng chanh">
-                                <input type="radio" name="colorTheme" value="lemon" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : 'lemon') == 'lemon'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFF3C4;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Hồng phấn">
-                                <input type="radio" name="colorTheme" value="pink" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'pink'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFD6E0;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Xanh bạc hà">
-                                <input type="radio" name="colorTheme" value="mint" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'mint'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #C8F7DC;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Tím oải hương">
-                                <input type="radio" name="colorTheme" value="lavender" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'lavender'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #E8DEFF;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Xanh da trời">
-                                <input type="radio" name="colorTheme" value="sky" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'sky'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #D0F0FD;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Cam đào">
-                                <input type="radio" name="colorTheme" value="peach" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'peach'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFE3D8;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Hồng Rose">
-                                <input type="radio" name="colorTheme" value="rose" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'rose'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFB7B2;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="San hô">
-                                <input type="radio" name="colorTheme" value="coral" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'coral'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFAAA6;"></span>
-                            </label>
-                            <label class="color-pick-radio cursor-pointer" title="Vàng tươi nắng">
-                                <input type="radio" name="colorTheme" value="sunshine" class="d-none" th:checked="${(myMood != null ? myMood.colorTheme : '') == 'sunshine'}">
-                                <span class="d-inline-block rounded-circle border border-2 border-dark" style="width: 28px; height: 28px; background: #FFE45E;"></span>
-                            </label>
-                        </div>
+                        <input type="hidden" name="colorTheme" th:value="${myMood != null ? myMood.colorTheme : 'lemon'}">
 
                         <!-- 4. Live preview avatar demo có icon vibe trên đầu (Hình 2) -->
-                        <div class="rounded-3 border border-2 border-dark p-3 text-center my-2 d-flex flex-column align-items-center justify-content-center"
-                             id="vibePreviewCard" style="background: var(--paper-2); box-shadow: 2.5px 2.5px 0 var(--ink);">
-                            <div class="small fw-bold text-soft mb-2" style="font-size: .78rem;">✨ Xem trước trên dải Khoảnh khắc:</div>
-                            <div class="story-avatar-container position-relative d-inline-block mt-3 mb-1">
-                                <div class="story-vibe-bubble note--lemon" id="vibePreviewBubble">
+                        <div class="vibe-preview" id="vibePreviewCard">
+                            <div class="story-avatar-container position-relative d-inline-block">
+                                <div class="story-vibe-bubble" th:classappend="'note--' + ${myMood != null ? myMood.colorTheme : 'lemon'}" id="vibePreviewBubble">
                                     <span class="story-vibe-bubble-emoji" id="vibePreviewEmoji" th:text="${myMood != null ? myMood.emoji : '🥰'}">🥰</span>
                                 </div>
                                 <div class="story-ring story-ring--active">
@@ -352,14 +305,14 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="fw-bold mt-1 text-truncate" id="vibePreviewText" style="font-size: .88rem; color: var(--ink);"
+                            <div class="vibe-preview-copy"><span>Xem trước trên Khoảnh khắc</span><div class="fw-bold" id="vibePreviewText"
                                  th:text="${myMood != null ? myMood.moodText : 'Đang yêu đời'}">
                                 Đang yêu đời
-                            </div>
+                            </div></div>
                         </div>
 
                         <!-- Footer cho Form Vibe -->
-                        <div class="d-flex align-items-center justify-content-between pt-2 border-top border-2 border-dark mt-3">
+                        <div class="vibe-footer d-flex align-items-center justify-content-between pt-2 border-top border-2 border-dark mt-3">
                             <button type="button" class="btn-al btn-al--ghost btn-al--sm" data-bs-dismiss="modal">Đóng</button>
                             <div class="d-flex gap-2">
                                 <button th:if="${myMood != null}" type="button" class="btn btn-sm btn-link text-danger text-decoration-none fw-bold"
@@ -367,7 +320,7 @@
                                     Gỡ vibe
                                 </button>
                                 <button type="submit" class="btn-al btn-al--lemon btn-al--sm px-3 fw-bold" style="box-shadow: 2px 2px 0 var(--ink);">
-                                    <span th:text="${myMood != null} ? '🌈 Lưu & Đổi Vibe hôm nay' : '🌈 Đăng Vibe hôm nay'">🌈 Lưu Vibe hôm nay</span>
+                                    <span th:text="${myMood != null} ? '🌈 Lưu Vibe' : '🌈 Đăng Vibe'">🌈 Lưu Vibe</span>
                                 </button>
                             </div>
                         </div>
@@ -477,6 +430,7 @@
 
                 <!-- THANH TƯƠNG TÁC DƯỚI CÙNG -->
                 <div class="story-footer p-3 z-3 border-top border-2 border-dark" style="background: var(--paper-2);">
+                    <button type="button" class="story-nav-btn story-nav-prev" id="storyPrevBtn" aria-label="Khoảnh khắc trước" title="Khoảnh khắc trước">&#8249;</button>
                     <!-- KHUNG DÀNH CHO NGƯỜI XEM: PHẢN HỒI NHANH QUA CHAT 1-1 -->
                     <div id="storyReplyBar" class="d-none">
                         <!-- Hàng emoji chạm nhanh -->
@@ -509,6 +463,7 @@
                             <span class="me-1">👁️</span> <strong id="storyViewCount">0</strong> người đã xem
                         </button>
                     </div>
+                    <button type="button" class="story-nav-btn story-nav-next" id="storyNextBtn" aria-label="Khoảnh khắc tiếp theo" title="Khoảnh khắc tiếp theo">&#8250;</button>
                 </div>
 
                 <!-- 3. BOTTOM SHEET DANH SÁCH NGƯỜI ĐÃ XEM STORY (HIỆN TỪ DƯỚI LÊN) -->

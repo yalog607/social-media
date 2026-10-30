@@ -4,6 +4,7 @@ import com.aloute.dto.admin.StaffMember;
 import com.aloute.exception.admin.InvalidAdminActionException;
 
 import com.aloute.service.audit.AuditService;
+import com.aloute.service.season.SeasonActivityRecorder;
 import com.aloute.security.RefreshTokenService;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.User;
@@ -52,9 +53,11 @@ public class AdminService {
     private final RefreshTokenService refreshTokens;
     private final AuditService audit;
     private final Clock clock;
+    private final SeasonActivityRecorder seasonActivity;
 
     public AdminService(JdbcTemplate jdbc, UserRepository users, RefreshTokenService refreshTokens,
-                        AuditService audit, Clock clock) {
+                        AuditService audit, Clock clock, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
         this.jdbc = jdbc;
         this.users = users;
         this.refreshTokens = refreshTokens;
@@ -153,6 +156,7 @@ public class AdminService {
         }
         user.setStatus(UserStatus.SUSPENDED);
         users.save(user);
+        seasonActivity.authorVisibility(userId, false);
         refreshTokens.revokeAll(userId);
         audit.log(adminId, "USER_SUSPENDED", "USER", userId, reason);
     }
@@ -165,6 +169,7 @@ public class AdminService {
         }
         user.setStatus(UserStatus.ACTIVE);
         users.save(user);
+        seasonActivity.authorVisibility(userId, true);
         jdbc.update("update sanctions set lifted_at = ?, lifted_by = ? where user_id = ? and type = 'SUSPENSION' and lifted_at is null",
                 Timestamp.from(clock.instant()), adminId, userId);
         audit.log(adminId, "USER_UNSUSPENDED", "USER", userId, null);
@@ -186,6 +191,7 @@ public class AdminService {
         user.getRoles().remove(Role.CREATOR);
         users.save(user);
         refreshTokens.revokeAll(userId);
+        seasonActivity.accountDeleted(userId);
         jdbc.update("update posts set deleted_at = ? where author_id = ? and deleted_at is null", now, userId);
         jdbc.update("update comments set deleted_at = ? where author_id = ? and deleted_at is null", now, userId);
         audit.log(adminId, "USER_DELETED", "USER", userId, reason);
@@ -250,6 +256,8 @@ public class AdminService {
         systemStats.put("Bài viết hiện có", count("select count(*) from posts where deleted_at is null and scheduled_at is null"));
         systemStats.put("Bình luận hiện có", count("select count(*) from comments where deleted_at is null"));
         systemStats.put("Xu đang lưu hành", count("select coalesce(sum(balance), 0) from wallets"));
+        systemStats.put("Mùa giải", count("select count(*) from seasons"));
+        systemStats.put("Bộ nhãn dán", count("select count(*) from sticker_packs"));
 
         return new OverviewData(selectedPeriod, label, from, to, periodStats, systemStats);
     }

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout('Quản lý nhãn dán', ~{::main}, 'admin', ~{})}"><head><title>Nhãn dán</title></head><body><main>
+    <div class="page-title"><h1>Quản lý nhãn dán</h1></div>
+    <th:block th:replace="~{admin/nav :: tabs('stickers')}"></th:block>
+    <section class="sticker-admin-intro mb-4">
+        <div><strong>Quản lý các bộ nhãn dán</strong><p>Tạo bộ mới, thêm ảnh và xuất bản khi đã sẵn sàng.</p></div>
+        <a href="#create-sticker-pack" class="btn-al btn-al--pink btn-al--sm">＋ Tạo bộ mới</a>
+    </section>
+    <section class="note sticker-admin-section mb-4" id="create-sticker-pack">
+        <div class="sticker-admin-section-heading"><div><h2 class="h4">Tạo bộ nhãn dán mới</h2><p class="text-soft">Tạo bản nháp trước, sau đó thêm ảnh và xem trước bộ.</p></div></div>
+        <form method="post" th:action="@{/admin/stickers}">
+            <div class="field"><label for="pack-name">Tên bộ</label><input class="input-al" id="pack-name" name="name" maxlength="100" required th:value="${draftName}"></div>
+            <div class="field"><label for="pack-description">Mô tả</label><textarea class="input-al" id="pack-description" name="description" maxlength="255" rows="2" th:text="${draftDescription}"></textarea></div>
+            <div class="field"><label for="pack-type">Quyền sử dụng</label><select class="input-al" id="pack-type" name="accessType"><option value="FREE">Miễn phí</option><option value="AWARD" th:selected="${draftType == 'AWARD'}">Phần thưởng</option></select></div>
+            <button class="btn-al btn-al--pink" type="submit">Tạo bản nháp</button>
+        </form>
+    </section>
+    <div class="sticker-admin-list-heading"><div><h2 class="h4 mb-1">Các bộ nhãn dán</h2><p class="text-soft small mb-0">Chọn một bộ để chỉnh sửa và quản lý.</p></div><span class="sticker-status-badge" th:text="${#lists.size(packs)} + ' bộ'">0 bộ</span></div>
+    <p th:if="${#lists.isEmpty(packs)}" class="note text-soft">Chưa có bộ nhãn dán nào. Hãy tạo bộ đầu tiên ở phía trên.</p>
+    <div class="sticker-admin-packs">
+        <article class="note sticker-admin-pack" th:each="p : ${packs}">
+            <div class="d-flex gap-3 align-items-center mb-2">
+                <div class="sticker-admin-icon"><img th:if="${p.iconUrl != '/stickers/original/characters.png'}" th:src="${p.iconUrl}" alt=""><th:block th:if="${p.iconUrl == '/stickers/original/characters.png' and !#lists.isEmpty(p.stickers)}"><th:block th:replace="~{fragments/sticker :: art(${p.stickers[0]}, '', ${p.id})}"></th:block></th:block></div>
+                <div><h3 class="h5 mb-1" th:text="${p.name}"></h3><span class="sticker-status-badge" th:text="${p.accessType == 'AWARD'} ? '🎁 Phần thưởng' : 'Miễn phí'"></span></div>
+            </div>
+            <p class="small text-soft"><span th:text="${p.totalStickers}"></span> nhãn dán · <span th:text="${p.status == 'DRAFT'} ? 'Bản nháp' : (${p.status == 'PUBLISHED'} ? 'Đang cung cấp' : 'Ngừng cung cấp')"></span></p>
+            <a class="btn-al btn-al--sm btn-al--white" th:href="@{/admin/stickers/{id}(id=${p.id})}">Quản lý bộ</a>
+        </article>
+    </div>
+</main></body></html>

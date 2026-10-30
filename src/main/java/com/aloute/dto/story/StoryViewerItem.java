@@ -10,8 +10,13 @@ public record StoryViewerItem(
         String avatarUrl,
         Instant viewedAt,
         String timeAgo,
-        String reaction
+        String reaction,
+        String avatarFrame
 ) {
+    public StoryViewerItem(UUID viewerId, String displayName, String username, String avatarUrl, Instant viewedAt, String timeAgo, String reaction) {
+        this(viewerId, displayName, username, avatarUrl, viewedAt, timeAgo, reaction, null);
+    }
+
     public StoryViewerItem(
             UUID viewerId,
             String displayName,
@@ -20,7 +25,7 @@ public record StoryViewerItem(
             Instant viewedAt,
             String timeAgo
     ) {
-        this(viewerId, displayName, username, avatarUrl, viewedAt, timeAgo, null);
+        this(viewerId, displayName, username, avatarUrl, viewedAt, timeAgo, null, null);
     }
 }
 

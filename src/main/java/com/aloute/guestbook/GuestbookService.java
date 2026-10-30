@@ -159,7 +159,7 @@ public class GuestbookService {
                 a.getUsername(),
                 p.getDisplayName(),
                 p.getAvatarUrl(),
-                a.primaryRole()
+                a.primaryRole(), p.getAvatarFrame()
         );
 
         boolean isProfileOwner = viewerId != null && viewerId.equals(profileUserId);

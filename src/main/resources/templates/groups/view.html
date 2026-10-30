@@ -197,7 +197,7 @@
                  style="border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: 2px 2px 0 var(--ink);">
                 <div class="d-flex align-items-center gap-3">
                     <a th:href="@{/u/{u}(u=${m.username})}" class="post-avatar text-decoration-none">
-                        <span class="avatar">
+                        <span class="avatar" th:classappend="${m.avatarFrame != null} ? 'avatar-frame--' + ${m.avatarFrame} : ''">
                             <img th:if="${m.avatarUrl != null}" th:src="${m.avatarUrl}" alt="" loading="lazy">
                             <span th:unless="${m.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(m.displayName, 0, 1))}">A</span>
                         </span>
@@ -278,7 +278,7 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
                         <div class="d-flex align-items-center gap-2">
                             <a th:href="@{/u/{u}(u=${r.username})}" class="text-decoration-none">
-                                <span class="avatar">
+                                <span class="avatar" th:classappend="${r.avatarFrame != null} ? 'avatar-frame--' + ${r.avatarFrame} : ''">
                                     <img th:if="${r.avatarUrl != null}" th:src="${r.avatarUrl}" alt="" loading="lazy">
                                     <span th:unless="${r.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(r.displayName, 0, 1))}">A</span>
                                 </span>

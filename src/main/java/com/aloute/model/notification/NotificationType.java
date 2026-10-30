@@ -19,5 +19,10 @@ public enum NotificationType {
     SUPPORT,
     REPORT,
     GUESTBOOK_ENTRY,
-    COMMENT_REACTION
+    COMMENT_REACTION,
+    STREAK,
+    STICKER_REWARD,
+    SEASON_JOIN,
+    SEASON_BANNED,
+    SEASON_RESULT
 }

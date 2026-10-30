@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="art(sticker, cls, key)">
+    <svg th:if="${sticker.artwork() != null}" class="sticker-art" th:classappend="${cls}" th:attr="viewBox=${sticker.artwork().viewBox}" role="img" th:aria-label="${sticker.name}">
+        <defs><clipPath th:id="'preview-art-' + ${key}" clipPathUnits="userSpaceOnUse"><polygon th:attr="points=${sticker.artwork().clipPoints}"></polygon></clipPath></defs>
+        <image th:href="@{/stickers/original/characters.png}" width="1024" height="1536" th:attr="clip-path='url(#preview-art-' + ${key} + ')'"></image>
+    </svg>
+    <img th:if="${sticker.renderType == 'IMAGE'}" class="sticker-art sticker-image" th:classappend="${cls}" th:src="${sticker.imageUrl}" th:alt="${sticker.name}" loading="lazy">
+</th:block>
+</body></html>

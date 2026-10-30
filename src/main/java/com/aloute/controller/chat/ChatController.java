@@ -36,6 +36,7 @@ import java.util.UUID;
 @Controller
 public class ChatController {
 
+
     private final ChatService chats;
     private final MessageService messagesService;
     private final FriendService friends;
@@ -73,6 +74,7 @@ public class ChatController {
             return "redirect:/groups/" + id;
         }
         chats.markRead(me.id(), id);
+        model.addAttribute("unreadMessages", chats.totalUnread(me.id()));
         List<PostView.AuthorView> members = chats.membersOf(id);
         List<UUID> memberIds = members.stream().map(PostView.AuthorView::id).toList();
         model.addAttribute("conversation", conversation);
@@ -83,6 +85,7 @@ public class ChatController {
         model.addAttribute("myRole", myRole);
         model.addAttribute("canManage", conversation.isGroup() && myRole.canManage());
         model.addAttribute("isOwner", conversation.isGroup() && myRole == GroupRole.OWNER);
+        model.addAttribute("canSendMessages", !conversation.isGroup() || conversation.isMembersCanSendMessages() || myRole.canManage());
         model.addAttribute("maxNickname", ChatService.MAX_NICKNAME);
         model.addAttribute("maxAttachmentMb", ChatLimits.MAX_ATTACHMENT_BYTES / (1024 * 1024));
         model.addAttribute("streak", streaks.forConversation(id));
@@ -222,6 +225,12 @@ public class ChatController {
     public String nicknamePermission(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
                                      @RequestParam(required = false) boolean allow, RedirectAttributes flash) {
         return manage(id, flash, null, () -> chats.setAllowAnyoneChangeNickname(me.id(), id, allow));
+    }
+
+    @PostMapping("/messages/{id}/sending-permission")
+    public String sendingPermission(@PathVariable UUID id, @AuthenticationPrincipal AlouteUserPrincipal me,
+                                    @RequestParam(defaultValue = "false") boolean allow, RedirectAttributes flash) {
+        return manage(id, flash, "Đã cập nhật quyền gửi tin nhắn.", () -> chats.setMembersCanSendMessages(me.id(), id, allow));
     }
 
     @PostMapping("/messages/{id}/pins/{messageId}")

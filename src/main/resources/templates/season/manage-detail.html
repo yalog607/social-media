@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(${season.name}, ~{::main}, 'admin', ~{})}"><head><title>Mùa giải</title></head><body><main>
+    <th:block th:replace="~{admin/nav :: tabs('seasons')}"></th:block>
+    <a class="btn-al btn-al--sm btn-al--white mb-3" th:href="@{/admin/seasons}">← Các mùa giải</a>
+    <section class="note mb-3"><span class="season-status" th:text="${season.statusLabel()}"></span><h1 class="h3 mt-2" th:text="${season.name}"></h1><p th:text="${season.description}"></p><p th:text="'#' + ${season.hashtag} + ' · ' + ${season.startDate()} + ' – ' + ${season.endDate()}"></p>
+        <button type="button" class="btn-al btn-al--sm btn-al--white text-danger mb-2" data-bs-toggle="modal" data-bs-target="#deleteSeasonModal">Xóa mùa giải</button>
+        <form th:if="${season.status == 'DRAFT'}" method="post" th:action="@{/admin/seasons/{id}/publish(id=${season.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><button class="btn-al btn-al--mint" type="submit">Công bố mùa giải</button></form>
+        <form th:if="${season.status == 'EVALUATING'}" method="post" th:action="@{/admin/seasons/{id}/settle(id=${season.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><p class="text-soft small">Chỉ có thể duyệt sau ít nhất 24 giờ kể từ khi bắt đầu rà soát. Phần thưởng được trao riêng.</p><button class="btn-al btn-al--mint" type="submit">Duyệt và công bố kết quả</button></form>
+    </section>
+    <section class="note mb-3"><h2 class="h4">Ảnh mùa giải</h2><img th:if="${season.imageUrl != null}" th:src="${season.imageUrl}" alt="Ảnh mùa giải" class="season-image mb-2"><form method="post" enctype="multipart/form-data" th:action="@{/admin/seasons/{id}/image(id=${season.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><label for="seasonImage">Chọn ảnh (JPG, PNG, GIF hoặc WEBP, tối đa 10 MB)</label><input id="seasonImage" class="input-al" type="file" name="image" accept="image/*" required><button class="btn-al btn-al--sm btn-al--pink mt-2" type="submit">Tải ảnh lên</button></form></section>
+    <section class="note mb-3" th:if="${season.status == 'DRAFT'}"><h2 class="h4">Chỉnh sửa bản nháp</h2><form method="post" th:action="@{/admin/seasons/{id}/save(id=${season.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><div class="field"><label for="editSeasonName">Tên mùa</label><input id="editSeasonName" name="name" class="input-al" maxlength="100" th:value="${season.name}" required></div><div class="field"><label for="editSeasonDescription">Mô tả</label><textarea id="editSeasonDescription" name="description" class="input-al" maxlength="4000" th:text="${season.description}"></textarea></div><div class="field"><label for="editSeasonTag">Hashtag</label><input id="editSeasonTag" name="hashtag" class="input-al" th:value="${season.hashtag}" required></div><div class="season-dates"><div class="field"><label for="editSeasonStart">Bắt đầu</label><input id="editSeasonStart" name="start" class="input-al" type="datetime-local" th:value="${season.startInput()}" required></div><div class="field"><label for="editSeasonEnd">Kết thúc</label><input id="editSeasonEnd" name="end" class="input-al" type="datetime-local" th:value="${season.endInput()}" required></div></div><button class="btn-al btn-al--pink" type="submit">Lưu bản nháp</button></form></section>
+    <section class="note mb-3" th:if="${season.status == 'ACTIVE'}">
+        <h2 class="h4">Cấu hình mùa giải đang diễn ra</h2>
+        <p class="small text-soft">Hashtag và thời điểm bắt đầu được giữ cố định để bảo toàn kết quả đã ghi nhận.</p>
+        <form method="post" th:action="@{/admin/seasons/{id}/active/save(id=${season.id})}">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field"><label for="activeSeasonName">Tên mùa</label><input id="activeSeasonName" name="name" class="input-al" maxlength="100" th:value="${season.name}" required></div>
+            <div class="field"><label for="activeSeasonDesc">Mô tả</label><textarea id="activeSeasonDesc" name="description" class="input-al" maxlength="4000" th:text="${season.description}"></textarea></div>
+            <div class="field"><label for="activeSeasonEnd">Thời gian kết thúc (giờ Việt Nam)</label><input id="activeSeasonEnd" name="end" class="input-al" type="datetime-local" th:value="${season.endInput()}" required></div>
+            <button class="btn-al btn-al--pink" type="submit">Lưu cấu hình</button>
+        </form>
+    </section>
+    <section class="note mb-3"><h2 class="h4">Bảng xếp hạng và xử lý gian lận</h2>
+        <p class="small text-soft">Loại khỏi mùa giải sẽ ẩn toàn bộ điểm của người tham gia. Có thể khôi phục trước khi công bố kết quả; tài khoản vẫn hoạt động bình thường.</p>
+        <p th:if="${#lists.isEmpty(standings)}" class="text-soft">Chưa có kết quả.</p>
+        <article class="season-review-item" th:each="row : ${standings}">
+            <div class="d-flex justify-content-between gap-2"><span><strong th:text="${row.rank} + '. '"></strong><a th:href="@{/u/{name}(name=${row.username})}" th:text="${row.name}"></a></span><strong th:text="${row.score} + ' điểm'"></strong></div>
+            <form th:if="${season.status == 'ACTIVE' or season.status == 'EVALUATING'}" method="post" th:action="@{/admin/seasons/{id}/ban/{user}(id=${season.id},user=${row.authorId})}" class="d-flex gap-2 mt-2 flex-wrap">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}"><input class="input-al" name="reason" maxlength="1000" placeholder="Lý do loại khỏi mùa giải" required><button class="btn-al btn-al--sm btn-al--white" type="submit">Loại khỏi mùa</button>
+            </form>
+        </article>
+        <div th:if="${!#lists.isEmpty(bannedParticipants)}" class="mt-3"><h3 class="h5">Đã loại khỏi mùa giải</h3>
+            <article class="season-review-item" th:each="participant : ${bannedParticipants}"><strong th:text="${participant.name}"></strong> <span class="small text-soft" th:text="'@' + ${participant.username}"></span><p class="small mb-1" th:text="${participant.reason}"></p>
+                <form th:if="${season.status == 'ACTIVE' or season.status == 'EVALUATING'}" method="post" th:action="@{/admin/seasons/{id}/unban/{user}(id=${season.id},user=${participant.userId})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><button class="btn-al btn-al--sm btn-al--white" type="submit">Khôi phục tham gia</button></form>
+            </article>
+        </div>
+    </section>
+    <section class="note"><h2 class="h4">Bài dự thi</h2><p class="text-soft" th:if="${#lists.isEmpty(entries)}">Chưa có bài dự thi.</p><article class="season-review-item" th:each="entry : ${entries}"><div class="d-flex justify-content-between gap-2"><a th:href="@{/posts/{id}(id=${entry.id})}" th:text="'Bài viết của ' + ${entry.name}"></a><span th:text="${entry.excluded} ? 'Đã loại' : ${entry.score} + ' điểm'"></span></div><p th:if="${entry.excluded}" class="small text-soft" th:text="${entry.reason}"></p><form th:if="${season.status == 'EVALUATING' and !entry.excluded}" method="post" th:action="@{/admin/seasons/{id}/exclude/{post}(id=${season.id},post=${entry.id})}" class="d-flex gap-2 mt-2"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><input class="input-al" name="reason" maxlength="1000" placeholder="Lý do loại bài" required><button class="btn-al btn-al--sm btn-al--white" type="submit">Loại bài</button></form></article></section>
+    <div class="modal fade" id="deleteSeasonModal" tabindex="-1" aria-labelledby="deleteSeasonTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content sticker-confirm-dialog">
+        <div class="modal-header"><h2 class="h5 mb-0 fw-bold" id="deleteSeasonTitle">Xóa mùa giải?</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+        <div class="modal-body"><p>Thao tác này xóa mùa giải, điểm, kết quả và thông báo liên quan. Các bài viết vẫn được giữ lại.</p><p class="mb-0 fw-bold" th:text="${season.name}"></p></div>
+        <div class="modal-footer"><button type="button" class="btn-al btn-al--sm btn-al--white" data-bs-dismiss="modal">Hủy</button><form method="post" th:action="@{/admin/seasons/{id}/delete(id=${season.id})}"><input type="hidden" name="_csrf" th:value="${_csrf.token}"><button type="submit" class="btn-al btn-al--sm btn-al--pink">Xóa mùa giải</button></form></div>
+    </div></div></div>
+</main></body></html>

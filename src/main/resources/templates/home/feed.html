@@ -4,6 +4,7 @@
 <head><title>Bảng tin</title></head>
 <body>
 <main>
+    <div class="season-mobile" th:replace="~{season/card :: card(${featuredSeason}, 'season-mobile')}"></div>
     <!-- 5. KHOẢNH KHẮC 24H (STORY TRAY Ở ĐỈNH BẢNG TIN) -->
     <div th:replace="~{fragments/stories :: storyTray(${storyTray}, ${me})}"></div>
 
@@ -32,6 +33,7 @@
 </main>
 
 <aside class="app-rail">
+    <div th:replace="~{season/card :: card(${featuredSeason}, '')}"></div>
     <!-- Chủ đề thịnh hành (Đang hot: hiển thị trước tiên) -->
     <div th:replace="~{fragments/hashtags :: trending(${trending})}"></div>
 

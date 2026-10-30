@@ -22,6 +22,8 @@ import com.aloute.repository.group.GroupPostReportRepository;
 import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.chat.ChatService;
+import com.aloute.service.season.SeasonActivityRecorder;
+import com.aloute.service.season.SeasonScoring;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +48,7 @@ public class GroupService {
     private final PostRepository posts;
     private final GroupPostReportRepository groupReports;
     private final Clock clock;
+    private final SeasonActivityRecorder seasonActivity;
 
     public GroupService(ConversationRepository conversations,
                         ConversationMemberRepository members,
@@ -55,7 +58,8 @@ public class GroupService {
                         ChatService chatService,
                         PostRepository posts,
                         GroupPostReportRepository groupReports,
-                        Clock clock) {
+                        Clock clock, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
         this.conversations = conversations;
         this.members = members;
         this.requests = requests;
@@ -367,7 +371,8 @@ public class GroupService {
                             u.getProfile().getDisplayName(),
                             u.getProfile().getAvatarUrl(),
                             m.getRole(),
-                            m.getJoinedAt()
+                            m.getJoinedAt(),
+                            u.getProfile().getAvatarFrame()
                     );
                 })
                 .sorted((a, b) -> {
@@ -451,7 +456,8 @@ public class GroupService {
                             u.getProfile().getDisplayName(),
                             u.getProfile().getAvatarUrl(),
                             r.getCreatedAt(),
-                            r.getAnswer()
+                            r.getAnswer(),
+                            u.getProfile().getAvatarFrame()
                     );
                 })
                 .sorted((a, b) -> a.createdAt().compareTo(b.createdAt()))
@@ -594,6 +600,8 @@ public class GroupService {
                 .orElseThrow(() -> new ChatActionException("Báo cáo không tồn tại."));
         Post post = report.getPost();
         post.setDeletedAt(clock.instant());
+        if (!post.isScheduled()) seasonActivity.eligibility(post.getId(), post.getAuthor().getId(), post.getCreatedAt(), false, post.getHashtags());
+        if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), post.getAuthor().getId(), SeasonScoring.Kind.SHARE, post.getId(), false);
         posts.save(post);
         groupReports.deleteByPostId(post.getId());
     }

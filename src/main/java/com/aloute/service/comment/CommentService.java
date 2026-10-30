@@ -10,6 +10,11 @@ import com.aloute.repository.comment.CommentRepository;
 import com.aloute.model.common.RateAction;
 import com.aloute.service.common.RateLimiter;
 import com.aloute.service.media.MediaService;
+import com.aloute.service.sticker.StickerAccess;
+import com.aloute.service.sticker.StickerService;
+import com.aloute.service.sticker.LocalStickerLibrary;
+import com.aloute.service.season.SeasonActivityRecorder;
+import com.aloute.service.season.SeasonScoring;
 import com.aloute.service.mention.MentionService;
 import com.aloute.service.notification.NotificationService;
 import com.aloute.model.post.Post;
@@ -53,11 +58,20 @@ public class CommentService {
     private final MentionService mentions;
     private final MediaService media;
     private final CommentReactionService commentReactions;
+    private final StickerAccess stickerAccess;
+    private final StickerService stickerService;
+    private final LocalStickerLibrary stickerLibrary;
+    private final SeasonActivityRecorder seasonActivity;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
                           FanService fans, MentionService mentions, MediaService media,
-                          CommentReactionService commentReactions) {
+                          CommentReactionService commentReactions, StickerAccess stickerAccess,
+                          StickerService stickerService, LocalStickerLibrary stickerLibrary, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
+        this.stickerAccess = stickerAccess;
+        this.stickerService = stickerService;
+        this.stickerLibrary = stickerLibrary;
         this.media = media;
         this.fans = fans;
         this.mentions = mentions;
@@ -88,10 +102,16 @@ public class CommentService {
      */
     @Transactional
     public Comment create(UUID authorId, UUID postId, UUID parentId, String content, MultipartFile image) {
+        return create(authorId, postId, parentId, content, image, null);
+    }
+
+    @Transactional
+    public Comment create(UUID authorId, UUID postId, UUID parentId, String content, MultipartFile image, String stickerId) {
         rateLimiter.check(RateAction.COMMENT, authorId);
         Post post = posts.getVisible(postId, authorId);
         boolean hasImage = image != null && !image.isEmpty();
-        String text = clean(content, hasImage);
+        var sticker = stickerId == null || stickerId.isBlank() ? null : stickerAccess.requireUsable(authorId, stickerId);
+        String text = clean(content, hasImage || sticker != null);
 
         Comment parent = null;
         if (parentId != null) {
@@ -108,10 +128,13 @@ public class CommentService {
         Comment comment = new Comment();
         comment.setPost(post);
         comment.setImageUrl(stored == null ? null : stored.url());
+        comment.setSticker(sticker);
         comment.setAuthor(users.getReferenceById(authorId));
         comment.setParent(parent);
         comment.setContent(text);
         Comment saved = comments.save(comment);
+        seasonActivity.interaction(postId, authorId, SeasonScoring.Kind.COMMENT, saved.getId(), true);
+        if (sticker != null) stickerLibrary.recordUse(authorId, sticker.getId());
         java.util.Set<UUID> notified = new java.util.HashSet<>();
         if (parent == null) {
             notifications.postCommented(authorId, post);
@@ -135,6 +158,7 @@ public class CommentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không thể xóa bình luận này.");
         }
         comment.setDeletedAt(clock.instant());
+        seasonActivity.interaction(comment.getPost().getId(), comment.getAuthor().getId(), SeasonScoring.Kind.COMMENT, comment.getId(), false);
     }
 
     /** @throws com.aloute.exception.post.PostNotFoundException bài không tồn tại hoặc không xem được */
@@ -172,7 +196,7 @@ public class CommentService {
         return views;
     }
 
-    private static CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
+    private CommentView toView(Comment comment, UUID viewerId, List<CommentView> replies,
                                       Map<UUID, FanBadge> badges, ReactionSummary reactions) {
         User author = comment.getAuthor();
         Profile profile = author.getProfile();
@@ -181,7 +205,7 @@ public class CommentService {
         return new CommentView(
                 comment.getId(),
                 new PostView.AuthorView(author.getId(), author.getUsername(), profile.getDisplayName(),
-                        profile.getAvatarUrl(), author.primaryRole()),
+                        profile.getAvatarUrl(), author.primaryRole(), profile.getAvatarFrame()),
                 deleted ? "" : PostTextRenderer.toSafeHtml(comment.getContent()),
                 deleted ? null : comment.getImageUrl(),
                 comment.getCreatedAt(),
@@ -189,7 +213,8 @@ public class CommentService {
                 deleted,
                 replies,
                 badges.get(author.getId()),
-                reactions);
+                reactions,
+                deleted ? null : stickerService.toStickerView(comment.getSticker()));
     }
 
     /** Nếu giao dịch không commit (rollback hoặc commit lỗi) thì xóa file ảnh đã ghi ra đĩa. */

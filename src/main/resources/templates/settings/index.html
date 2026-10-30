@@ -9,6 +9,7 @@
     <!-- Hồ sơ -->
     <section class="note note--taped mb-4" aria-labelledby="s-profile">
         <h2 id="s-profile" class="h3 mb-3">Hồ sơ của bạn</h2>
+        <form id="avatar-frame-form" th:action="@{/settings/avatar-frame}" method="post"></form>
         <form th:action="@{/settings/profile}" th:object="${profileForm}" method="post" enctype="multipart/form-data" novalidate>
             <div th:replace="~{fragments/ui :: globalErrors}"></div>
             <div class="d-flex align-items-center gap-3 mb-3">
@@ -21,6 +22,34 @@
                     <p class="field-hint">JPG, PNG, GIF hoặc WEBP, tối đa 5 MB. Ảnh lớn hơn khung sẽ được cắt xén trước khi lưu.</p>
                 </div>
             </div>
+            <fieldset class="settings-avatar-frames" aria-labelledby="avatar-frame-title" aria-describedby="avatar-frame-hint">
+                <div class="settings-avatar-frames__heading">
+                    <div>
+                        <span class="settings-avatar-frames__eyebrow" aria-hidden="true">✦ GÓC SÁNG TẠO ✦</span>
+                        <div id="avatar-frame-title" class="settings-avatar-frames__title">Diện khung cho avatar</div>
+                        <p id="avatar-frame-hint" class="field-hint">Chọn một chút màu sắc thật là bạn nhé!</p>
+                    </div>
+                    <button type="submit" form="avatar-frame-form" class="btn-al btn-al--sm btn-al--pink">Lưu khung</button>
+                </div>
+                <div class="avatar-frame-choices">
+                    <label class="avatar-frame-choice">
+                        <input type="radio" form="avatar-frame-form" name="frame" value="" th:checked="${me.profile.avatarFrame == null}">
+                        <span class="avatar-frame-choice__card">
+                            <span class="avatar"><img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt=""><span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span></span>
+                            <span class="avatar-frame-choice__name">Nguyên bản</span>
+                            <span class="avatar-frame-choice__caption">Không dùng khung</span>
+                        </span>
+                    </label>
+                    <label class="avatar-frame-choice" th:each="frame : ${avatarFrames}">
+                        <input type="radio" form="avatar-frame-form" name="frame" th:value="${frame.code}" th:checked="${frame.code == me.profile.avatarFrame}">
+                        <span class="avatar-frame-choice__card">
+                            <span class="avatar" th:classappend="' avatar-frame--' + ${frame.code}"><img th:if="${me.profile.avatarUrl != null}" th:src="${me.profile.avatarUrl}" alt=""><span th:unless="${me.profile.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(me.profile.displayName, 0, 1))}">A</span></span>
+                            <span class="avatar-frame-choice__name" th:text="${frame.name}"></span>
+                            <span class="avatar-frame-choice__caption">Khung của bạn</span>
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
             <div class="field">
                 <label for="cover">Ảnh bìa</label>
                 <div id="coverPreview" class="settings-cover-preview"

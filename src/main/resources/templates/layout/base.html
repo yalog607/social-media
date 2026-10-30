@@ -16,7 +16,7 @@
     <title th:text="${title} + ' · ALOUTE'">ALOUTE</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/fonts.css}">
-    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.8)}">
+    <link rel="stylesheet" th:href="@{/css/aloute.css(v=3.31)}">
 </head>
 
 <body th:attr="data-role=${me != null ? #strings.toLowerCase(me.primaryRole().name()) : null}, data-auth=${me != null}">
@@ -86,7 +86,7 @@
                     <svg aria-hidden="true">
                         <use href="#i-chat" />
                     </svg>Tin nhắn
-                    <span class="nav-badge" th:if="${unreadMessages > 0}" th:text="${unreadMessages}">1</span></a>
+                    <span class="nav-badge" data-unread-messages th:hidden="${unreadMessages == 0}" th:text="${unreadMessages}">0</span></a>
                 <a class="nav-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}"
                     th:attr="aria-current=${active == 'settings'} ? 'page'">
                     <svg aria-hidden="true">
@@ -152,8 +152,8 @@
                 <svg aria-hidden="true">
                     <use href="#i-chat" />
                 </svg>Tin nhắn
-                <span class="nav-badge nav-badge--bottom" th:if="${unreadMessages > 0}"
-                    th:text="${unreadMessages}">1</span></a>
+                <span class="nav-badge nav-badge--bottom" data-unread-messages th:hidden="${unreadMessages == 0}"
+                    th:text="${unreadMessages}">0</span></a>
             <a class="bottom-tab" th:classappend="${active == 'settings'} ? 'is-active'" th:href="@{/settings}">
                 <svg aria-hidden="true">
                     <use href="#i-gear" />
@@ -206,11 +206,12 @@
     <script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
     <script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
     <script th:src="@{/js/aloute.js}"></script>
-    <script th:src="@{/js/feed.js}"></script>
+    <script th:src="@{/js/feed.js(v=6)}"></script>
     <script th:src="@{/js/mention.js}"></script>
     <script th:src="@{/js/lightbox.js}"></script>
     <script th:src="@{/js/profile.js}"></script>
-    <script th:src="@{/js/stories.js(v=3.2)}"></script>
+    <script th:src="@{/js/stories.js(v=3.5)}"></script>
+    <script th:src="@{/js/seasons.js(v=3)}"></script>
 </body>
 
 </html>

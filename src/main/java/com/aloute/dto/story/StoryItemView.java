@@ -23,7 +23,8 @@ public record StoryItemView(
         boolean viewed,
         long viewCount,
         @JsonProperty("isOwner") boolean isOwner,
-        List<String> reactions
+        List<String> reactions,
+        String authorAvatarFrame
 ) {
     public StoryItemView(
             UUID id,
@@ -42,7 +43,7 @@ public record StoryItemView(
             long viewCount,
             boolean isOwner
     ) {
-        this(id, authorId, authorDisplayName, authorUsername, authorAvatarUrl, mediaType, mediaUrl, caption, emoji, backgroundColor, createdAt, timeAgo, viewed, viewCount, isOwner, List.of());
+        this(id, authorId, authorDisplayName, authorUsername, authorAvatarUrl, mediaType, mediaUrl, caption, emoji, backgroundColor, createdAt, timeAgo, viewed, viewCount, isOwner, List.of(), null);
     }
 
     public StoryItemView(
@@ -61,12 +62,18 @@ public record StoryItemView(
             long viewCount,
             boolean isOwner
     ) {
-        this(id, authorId, authorDisplayName, authorUsername, authorAvatarUrl, mediaType, mediaUrl, caption, null, backgroundColor, createdAt, timeAgo, viewed, viewCount, isOwner, List.of());
+        this(id, authorId, authorDisplayName, authorUsername, authorAvatarUrl, mediaType, mediaUrl, caption, null, backgroundColor, createdAt, timeAgo, viewed, viewCount, isOwner, List.of(), null);
+    }
+
+    public StoryItemView(UUID id, UUID authorId, String authorDisplayName, String authorUsername, String authorAvatarUrl,
+                         StoryMediaType mediaType, String mediaUrl, String caption, String emoji, String backgroundColor,
+                         Instant createdAt, String timeAgo, boolean viewed, long viewCount, boolean isOwner, List<String> reactions) {
+        this(id, authorId, authorDisplayName, authorUsername, authorAvatarUrl, mediaType, mediaUrl, caption, emoji,
+                backgroundColor, createdAt, timeAgo, viewed, viewCount, isOwner, reactions, null);
     }
 
     public boolean isVibe() {
-        return mediaType == StoryMediaType.VIBE
-                || (emoji != null && !emoji.isBlank() && mediaType == StoryMediaType.TEXT);
+        return mediaType == StoryMediaType.VIBE;
     }
 
     public boolean getIsVibe() {

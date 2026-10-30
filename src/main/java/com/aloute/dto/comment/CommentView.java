@@ -4,6 +4,7 @@ import com.aloute.dto.post.PostView;
 import com.aloute.dto.reaction.ReactionSummary;
 import com.aloute.model.wallet.FanBadge;
 import com.aloute.service.comment.CommentService;
+import com.aloute.dto.sticker.StickerView;
 
 import java.time.Instant;
 import java.util.List;
@@ -25,11 +26,12 @@ public record CommentView(
         boolean deleted,
         List<CommentView> replies,
         FanBadge badge,
-        ReactionSummary reactions) {
+        ReactionSummary reactions,
+        StickerView sticker) {
 
     public CommentView(UUID id, PostView.AuthorView author, String contentHtml, String imageUrl,
                        Instant createdAt, boolean mine, boolean deleted, List<CommentView> replies, FanBadge badge) {
-        this(id, author, contentHtml, imageUrl, createdAt, mine, deleted, replies, badge, ReactionSummary.EMPTY);
+        this(id, author, contentHtml, imageUrl, createdAt, mine, deleted, replies, badge, ReactionSummary.EMPTY, null);
     }
 
     public boolean hasReplies() {

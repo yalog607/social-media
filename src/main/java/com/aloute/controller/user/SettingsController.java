@@ -7,6 +7,8 @@ import com.aloute.model.user.User;
 import com.aloute.model.user.Visibility;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.user.ProfileService;
+import com.aloute.service.user.AvatarFrameService;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.aloute.service.user.UserService;
 
 import com.aloute.security.AlouteUserPrincipal;
@@ -31,12 +33,14 @@ public class SettingsController {
     private static final String VIEW = "settings/index";
 
     private final UserRepository users;
+    private final AvatarFrameService avatarFrames;
     private final ProfileService profiles;
     private final SessionService sessions;
     private final UserService userService;
 
     public SettingsController(UserRepository users, ProfileService profiles, SessionService sessions,
-                              UserService userService) {
+                              UserService userService, AvatarFrameService avatarFrames) {
+        this.avatarFrames = avatarFrames;
         this.userService = userService;
         this.users = users;
         this.profiles = profiles;
@@ -78,6 +82,18 @@ public class SettingsController {
         User user = users.findById(principal.id()).orElseThrow();
         model.addAttribute("privacyForm", currentPrivacy(user));
         return render(model, user, form, null, null);
+    }
+
+    @PostMapping("/settings/avatar-frame")
+    public String saveAvatarFrame(@AuthenticationPrincipal AlouteUserPrincipal principal,
+                                  @RequestParam(defaultValue = "") String frame, RedirectAttributes redirect) {
+        try {
+            avatarFrames.select(principal.id(), frame);
+            redirect.addFlashAttribute("notice", "Đã lưu khung avatar!");
+        } catch (IllegalArgumentException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/settings";
     }
 
     @PostMapping("/settings/password")
@@ -142,6 +158,7 @@ public class SettingsController {
             model.addAttribute("privacyForm", privacy);
         }
         model.addAttribute("passwordForm", password != null ? password : new SettingsForms.PasswordForm());
+        model.addAttribute("avatarFrames", avatarFrames.available(user.getId()));
         model.addAttribute("hasPassword", profiles.hasPassword(user));
         model.addAttribute("visibilities", Visibility.values());
         model.addAttribute("messagePermissions", MessagePermission.values());

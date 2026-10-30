@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="card(season, extraClass)" class="note season-card mb-3" th:classappend="${extraClass}">
+    <div class="season-card-heading">
+        <div class="season-card__heading"><span class="season-card__trophy" aria-hidden="true">🏆</span><span><strong>Mùa giải</strong></span></div>
+        <span class="season-status season-card__status" th:if="${season != null}" th:classappend="${season.status == 'ACTIVE'} ? 'is-live'" th:text="${season.statusLabel()}"></span>
+    </div>
+    <th:block th:if="${season != null}">
+        <a class="season-card__cover" th:href="@{/seasons/{id}(id=${season.id})}" th:aria-label="'Xem mùa giải ' + ${season.name}">
+            <img th:if="${season.imageUrl != null}" th:src="${season.imageUrl}" th:alt="'Ảnh mùa giải ' + ${season.name}">
+            <span class="season-card__cover-fallback" th:if="${season.imageUrl == null}" aria-hidden="true">🏆 <span>✦</span></span>
+        </a>
+        <h2 class="season-card__title" th:text="${season.name}"></h2>
+        <a class="season-card__tag" th:href="@{/tags/{tag}(tag=${season.hashtag})}" th:text="'#' + ${season.hashtag}"></a>
+        <div class="season-card__timer" th:if="${season.status == 'UPCOMING' or season.status == 'ACTIVE'}">
+            <span class="season-card__timer-icon" aria-hidden="true">◷</span><span th:attr="data-season-deadline=${season.status == 'UPCOMING' ? season.start : season.end},data-season-prefix=${season.status == 'UPCOMING' ? 'Bắt đầu sau' : 'Kết thúc sau'}">Đang tính thời gian…</span>
+        </div>
+        <p class="season-card__timer" th:if="${season.status == 'EVALUATING'}">✨ Kết quả đang được rà soát.</p>
+        <div class="season-card__leaderboard" data-season-card-standings th:if="${season.status == 'ACTIVE'}">
+            <div class="season-card__leader-heading"><strong>Bảng xếp hạng</strong><span><span aria-hidden="true">●</span> Trực tiếp</span></div>
+            <p class="season-card__empty" th:if="${#lists.isEmpty(featuredStandings)}">Chưa có kết quả. Hãy là người đầu tiên ghi tên nhé!</p>
+            <ol class="season-standings season-card__standings"><li th:each="row : ${featuredStandings}">
+                <span class="season-card__person"><span class="season-card__rank" th:classappend="${row.rank == 1} ? 'is-first'" th:text="${row.rank}"></span><a th:href="@{/u/{name}(name=${row.username})}" th:text="${row.name}"></a></span><strong class="season-card__score" th:text="${row.score} + ' điểm'"></strong>
+            </li></ol>
+        </div>
+        <a class="season-card__cta" th:href="@{/seasons/{id}(id=${season.id})}"><span>Xem chi tiết mùa giải</span><span aria-hidden="true">→</span></a>
+    </th:block>
+    <th:block th:unless="${season != null}"><p class="season-card__empty">Chưa có mùa giải đang diễn ra. Cùng nhìn lại những dấu ấn đáng nhớ nhé!</p><a class="season-card__cta" th:href="@{/seasons}"><span>Bảng vàng vinh danh</span><span aria-hidden="true">→</span></a></th:block>
+</section>
+</body></html>

@@ -177,6 +177,18 @@ public class NotificationService {
         notifications.save(notification);
     }
 
+    @Transactional
+    public void stickerAwarded(UUID actor, UUID recipient, String packId, String packName, String reason) {
+        Notification n = new Notification();
+        n.setRecipient(users.getReferenceById(recipient));
+        n.setActor(users.getReferenceById(actor));
+        n.setType(NotificationType.STICKER_REWARD);
+        n.setStickerPackId(packId);
+        n.setCustomText("Bạn đã nhận bộ nhãn dán “" + packName + "”.");
+        n.setDetail(reason);
+        notifications.save(n);
+    }
+
     @Transactional(readOnly = true)
     public long unreadCount(UUID userId) {
         return notifications.countByRecipientIdAndReadAtIsNull(userId);
@@ -213,7 +225,7 @@ public class NotificationService {
         return new NotificationView(
                 n.getId(),
                 new PostView.AuthorView(actor.getId(), actor.getUsername(), profile.getDisplayName(),
-                        profile.getAvatarUrl(), actor.primaryRole()),
+                        profile.getAvatarUrl(), actor.primaryRole(), profile.getAvatarFrame()),
                 n.getType(),
                 text(n),
                 n.getPost() != null ? n.getPost().getId() : null,
@@ -221,7 +233,8 @@ public class NotificationService {
                 n.getConversationId(),
                 n.getReferenceId(),
                 n.getCreatedAt(),
-                n.isRead());
+                n.isRead(),
+                n.getStickerPackId());
     }
 
     private static String text(Notification n) {
@@ -248,6 +261,11 @@ public class NotificationService {
             case GUESTBOOK_ENTRY -> name + " đã dán một mẩu lưu bút lên trang cá nhân của bạn";
             case SUPPORT -> "Yêu cầu hỗ trợ của bạn đã có phản hồi mới.";
             case REPORT -> "Báo cáo của bạn đã được xem xét và xác nhận có vi phạm.";
+            case STREAK -> "Nhắn tin hôm nay để giữ chuỗi cùng " + name + " nhé!";
+            case STICKER_REWARD -> "Bạn đã nhận một bộ nhãn dán phần thưởng.";
+            case SEASON_JOIN -> "Bài viết của bạn đã tham gia mùa giải.";
+            case SEASON_BANNED -> "Bạn đã bị loại khỏi mùa giải.";
+            case SEASON_RESULT -> "Kết quả mùa giải đã được công bố.";
         };
     }
 }

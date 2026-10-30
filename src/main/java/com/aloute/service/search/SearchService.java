@@ -83,7 +83,7 @@ public class SearchService {
         }
         return ids.stream().map(byId::get).filter(Objects::nonNull)
                 .map(u -> new PostView.AuthorView(u.getId(), u.getUsername(), u.getProfile().getDisplayName(),
-                        u.getProfile().getAvatarUrl(), u.primaryRole()))
+                        u.getProfile().getAvatarUrl(), u.primaryRole(), u.getProfile().getAvatarFrame()))
                 .toList();
     }
 

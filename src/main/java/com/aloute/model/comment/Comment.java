@@ -4,6 +4,7 @@ import com.aloute.service.comment.CommentService;
 
 import com.aloute.model.post.Post;
 import com.aloute.model.user.User;
+import com.aloute.model.sticker.Sticker;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -55,6 +56,10 @@ public class Comment {
     /** Ảnh đính kèm (tối đa một); null = bình luận chỉ có chữ. */
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sticker_id")
+    private Sticker sticker;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -17,6 +17,7 @@ import com.aloute.model.user.User;
 import com.aloute.model.user.Visibility;
 import com.aloute.repository.story.StoryRepository;
 import com.aloute.repository.story.StoryViewRepository;
+import com.aloute.repository.mood.DailyMoodRepository;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.chat.ChatService;
 import com.aloute.service.chat.MessageService;
@@ -80,6 +81,9 @@ class StoryServiceTest {
 
     @Mock
     private RateLimiter rateLimiter;
+
+    @Mock
+    private DailyMoodRepository dailyMoods;
 
     private Clock clock;
     private StoryService storyService;
@@ -153,6 +157,35 @@ class StoryServiceTest {
         assertThat(created.getCaption()).isEqualTo("Hôm nay vui quá!");
         assertThat(created.getEmoji()).isEqualTo("🥳");
         assertThat(created.getBackgroundColor()).isEqualTo("lemon");
+    }
+
+    @Test
+    void textWithEmojiIsNotVibe() {
+        StoryItemView note = new StoryItemView(UUID.randomUUID(), myId, "Mochi", "mochi", null,
+                StoryMediaType.TEXT, null, "Ghi chú", "🥳", "lemon", now, "vừa xong", false, 0, true);
+        StoryItemView vibe = new StoryItemView(UUID.randomUUID(), myId, "Mochi", "mochi", null,
+                StoryMediaType.VIBE, null, "Vibe", "🥳", "lemon", now, "vừa xong", false, 0, true);
+
+        assertThat(note.isVibe()).isFalse();
+        assertThat(vibe.isVibe()).isTrue();
+    }
+
+    @Test
+    void deleteTextWithEmojiDoesNotDeleteVibe() {
+        storyService = new StoryService(stories, storyViews, users, friends, media, chats, messages,
+                broker, clock, timeAgo, rateLimiter, dailyMoods);
+        Story story = new Story();
+        story.setId(UUID.randomUUID());
+        story.setUser(me);
+        story.setMediaType(StoryMediaType.TEXT);
+        story.setEmoji("🥳");
+        when(stories.findById(story.getId())).thenReturn(Optional.of(story));
+        when(users.findById(myId)).thenReturn(Optional.of(me));
+
+        storyService.deleteStory(story.getId(), myId);
+
+        verify(stories).delete(story);
+        verifyNoInteractions(dailyMoods);
     }
 
     @Test
