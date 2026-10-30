@@ -133,6 +133,15 @@ public class SeriesService {
                 VIEW_MAPPER, creatorId);
     }
 
+    /** Series của một Creator để hiển thị trên trang hồ sơ công khai; rỗng nếu người xem bị chặn với Creator. */
+    @Transactional(readOnly = true)
+    public List<SeriesView> forProfile(UUID creatorId, UUID viewerId) {
+        if (viewerId != null && blocks.isBlockedEitherWay(creatorId, viewerId)) {
+            return List.of();
+        }
+        return mine(creatorId);
+    }
+
     /** @throws PostNotFoundException series không có, đã xóa hoặc không phải của {@code creatorId} */
     @Transactional(readOnly = true)
     public SeriesView owned(UUID creatorId, UUID seriesId) {

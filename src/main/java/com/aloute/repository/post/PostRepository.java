@@ -164,4 +164,13 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     @Query("select count(p) from Post p where p.groupId = :groupId and p.isPinned = true and p.deletedAt is null")
     long countPinnedByGroup(@Param("groupId") UUID groupId);
+
+    /** Bình chọn/hỏi đáp của một Creator cho khối "Hỏi đáp & Poll" trên trang hồ sơ (luôn công khai), mới nhất trước. */
+    @Query("""
+            select p from Post p join fetch p.author a join fetch a.profile
+            where p.deletedAt is null and p.scheduledAt is null and a.status = com.aloute.model.user.UserStatus.ACTIVE
+              and a.id = :authorId and p.postKind in :kinds
+            order by p.createdAt desc, p.id desc""")
+    List<Post> findByAuthorIdAndPostKindIn(@Param("authorId") UUID authorId,
+                                           @Param("kinds") Collection<com.aloute.model.post.PostKind> kinds);
 }

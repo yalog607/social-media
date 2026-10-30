@@ -9,6 +9,7 @@ import com.aloute.model.post.PostKind;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.User;
 import com.aloute.model.user.Visibility;
+import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.post.PostService;
 import com.aloute.service.social.BlockService;
@@ -45,16 +46,18 @@ public class PollService {
 
     private final JdbcTemplate jdbc;
     private final PostService posts;
+    private final PostRepository postRepository;
     private final UserRepository users;
     private final BlockService blocks;
     private final Clock clock;
     private final FollowerNotifier notifier;
 
-    public PollService(JdbcTemplate jdbc, PostService posts, UserRepository users, BlockService blocks, Clock clock,
-                       FollowerNotifier notifier) {
+    public PollService(JdbcTemplate jdbc, PostService posts, PostRepository postRepository, UserRepository users,
+                       BlockService blocks, Clock clock, FollowerNotifier notifier) {
         this.notifier = notifier;
         this.jdbc = jdbc;
         this.posts = posts;
+        this.postRepository = postRepository;
         this.users = users;
         this.blocks = blocks;
         this.clock = clock;
@@ -114,6 +117,12 @@ public class PollService {
         if (inserted == 0) {
             throw new InvalidPostException("Bạn đã bình chọn rồi.");
         }
+    }
+
+    /** Các bài bình chọn của một Creator cho khối "Hỏi đáp & Poll" trên trang hồ sơ (luôn công khai), mới nhất trước. */
+    @Transactional(readOnly = true)
+    public List<Post> forProfile(UUID creatorId) {
+        return postRepository.findByAuthorIdAndPostKindIn(creatorId, List.of(PostKind.POLL));
     }
 
     /** Dựng {@link PollView} theo LÔ cho các bài poll (khóa là id bài). {@code viewerId} null nếu là khách. */

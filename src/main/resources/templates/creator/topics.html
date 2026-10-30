@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Chủ đề', ~{::main}, 'creator', ~{})}">
+<head><title>Chủ đề</title></head>
+<body>
+<main>
+    <div class="page-title">
+        <h1>Chủ đề</h1>
+        <a class="btn-al btn-al--white btn-al--sm" th:href="@{/creator}">← Creator Studio</a>
+    </div>
+
+    <section class="note note--taped mb-4" aria-labelledby="topics-title">
+        <h2 id="topics-title" class="h4 mb-2">Chủ đề trên trang hồ sơ</h2>
+        <p class="text-soft small">Chọn tối đa <span th:text="${maxTopics}">5</span> chủ đề để hiển thị trên trang cá nhân của bạn, giúp người xem biết bạn hay chia sẻ nội dung gì.</p>
+        <form th:action="@{/creator/topics}" method="post">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field">
+                <div class="d-flex flex-wrap gap-3" role="group" aria-label="Chọn chủ đề">
+                    <label class="d-flex align-items-center gap-1" th:each="c : ${categories}">
+                        <input type="checkbox" name="categoryIds" th:value="${c.id()}"
+                               th:checked="${selectedIds.contains(c.id())}">
+                        <span th:text="${c.name()}">Chủ đề</span>
+                    </label>
+                </div>
+            </div>
+            <button type="submit" class="btn-al btn-al--pink">Lưu chủ đề</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

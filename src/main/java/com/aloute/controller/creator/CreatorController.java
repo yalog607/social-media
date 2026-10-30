@@ -2,11 +2,14 @@ package com.aloute.controller.creator;
 
 import com.aloute.dto.creator.ScheduledPostView;
 import com.aloute.exception.creator.InvalidBroadcastException;
+import com.aloute.exception.creator.InvalidTopicException;
 import com.aloute.model.creator.BroadcastAudience;
+import com.aloute.service.category.CategoryService;
 import com.aloute.service.creator.BroadcastService;
 import com.aloute.service.creator.InsightsService;
 import com.aloute.service.creator.PollService;
 import com.aloute.service.creator.QuestionService;
+import com.aloute.service.creator.TopicService;
 
 import com.aloute.exception.post.InvalidPostException;
 import com.aloute.model.post.Post;
@@ -38,15 +41,20 @@ public class CreatorController {
     private final BroadcastService broadcasts;
     private final PollService polls;
     private final QuestionService questions;
+    private final TopicService topics;
+    private final CategoryService categories;
 
     public CreatorController(InsightsService insights, PostService posts, PostViewAssembler assembler,
-                             BroadcastService broadcasts, PollService polls, QuestionService questions) {
+                             BroadcastService broadcasts, PollService polls, QuestionService questions,
+                             TopicService topics, CategoryService categories) {
         this.questions = questions;
         this.polls = polls;
         this.broadcasts = broadcasts;
         this.insights = insights;
         this.posts = posts;
         this.assembler = assembler;
+        this.topics = topics;
+        this.categories = categories;
     }
 
     @GetMapping("/creator")
@@ -127,6 +135,27 @@ public class CreatorController {
             flash.addFlashAttribute("draftQuestion", question);
             return "redirect:/creator/questions";
         }
+    }
+
+    @GetMapping("/creator/topics")
+    public String editTopics(@AuthenticationPrincipal AlouteUserPrincipal me, Model model) {
+        model.addAttribute("active", "creator");
+        model.addAttribute("categories", categories.active());
+        model.addAttribute("selectedIds", topics.topicIdsFor(me.id()));
+        model.addAttribute("maxTopics", TopicService.MAX_TOPICS);
+        return "creator/topics";
+    }
+
+    @PostMapping("/creator/topics")
+    public String saveTopics(@AuthenticationPrincipal AlouteUserPrincipal me,
+                             @RequestParam(required = false) List<UUID> categoryIds, RedirectAttributes flash) {
+        try {
+            topics.replace(me.id(), categoryIds);
+            flash.addFlashAttribute("notice", "Đã lưu chủ đề.");
+        } catch (InvalidTopicException e) {
+            flash.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/creator/topics";
     }
 
     @GetMapping("/creator/scheduled")

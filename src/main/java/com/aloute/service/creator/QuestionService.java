@@ -7,6 +7,7 @@ import com.aloute.model.post.PostKind;
 import com.aloute.model.user.Role;
 import com.aloute.model.user.User;
 import com.aloute.model.user.Visibility;
+import com.aloute.repository.post.PostRepository;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.post.PostService;
 import org.springframework.stereotype.Service;
@@ -23,11 +24,13 @@ import java.util.UUID;
 public class QuestionService {
 
     private final PostService posts;
+    private final PostRepository postRepository;
     private final UserRepository users;
     private final FollowerNotifier notifier;
 
-    public QuestionService(PostService posts, UserRepository users, FollowerNotifier notifier) {
+    public QuestionService(PostService posts, PostRepository postRepository, UserRepository users, FollowerNotifier notifier) {
         this.posts = posts;
+        this.postRepository = postRepository;
         this.users = users;
         this.notifier = notifier;
     }
@@ -44,5 +47,11 @@ public class QuestionService {
         post.setPostKind(PostKind.QUESTION);
         notifier.notifyFollowers(creatorId, post.getId(), NotificationType.CREATOR_QUESTION);
         return post;
+    }
+
+    /** Các câu hỏi của một Creator cho khối "Hỏi đáp & Poll" trên trang hồ sơ (luôn công khai), mới nhất trước. */
+    @Transactional(readOnly = true)
+    public List<Post> forProfile(UUID creatorId) {
+        return postRepository.findByAuthorIdAndPostKindIn(creatorId, List.of(PostKind.QUESTION));
     }
 }
