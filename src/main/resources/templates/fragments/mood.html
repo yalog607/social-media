@@ -114,7 +114,7 @@
                    class="mood-streak-crown text-decoration-none"
                    th:classappend="${fv.streakBadgeClass()}"
                    th:title="${fv.streakDisplayTitle()}">
-                    <span class="mood-streak-flame">🔥</span>
+                    <span class="mood-streak-flame" aria-hidden="true"><svg class="icon icon-fire" width="1em" height="1em" aria-hidden="true"><use href="#i-flame"/></svg></span>
                     <span class="mood-streak-count" th:text="${fv.streakDays()}">1</span>
                 </a>
 

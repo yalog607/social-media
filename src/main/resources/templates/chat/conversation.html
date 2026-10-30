@@ -14,7 +14,7 @@
             <h1 th:text="${header.title}">Tên</h1>
             <p class="streak" th:if="${streak.active()}" th:classappend="${streak.atRisk()} ? 'streak--risk'"
                th:title="${streak.atRisk()} ? 'Hôm nay hai bạn chưa cùng nhắn, hãy nhắn để giữ chuỗi!' : 'Hai bạn đã nhắn nhau mỗi ngày liên tiếp'">
-                <span class="icon-flame d-inline-block">🔥</span> <strong th:text="${streak.days()}">3</strong> ngày<span th:if="${streak.atRisk()}"> · nhắn hôm nay để giữ chuỗi!</span>
+                <svg class="icon icon-flame" width="1.1em" height="1.1em" aria-hidden="true"><use href="#i-flame"/></svg> <strong th:text="${streak.days()}">3</strong> ngày<span th:if="${streak.atRisk()}"> · nhắn hôm nay để giữ chuỗi!</span>
             </p>
             <p class="text-soft mb-0" th:if="${header.group}" th:text="${#lists.size(members)} + ' thành viên'">3 thành viên</p>
         </div>
@@ -45,7 +45,7 @@
 <div id="chat-reply-bar" class="chat-reply-bar d-none">
     <div class="chat-reply-content d-flex align-items-center gap-2 overflow-hidden">
         <span class="chat-reply-icon d-inline-flex align-items-center">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+            <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-reply"/></svg>
         </span>
         <div class="chat-reply-text text-truncate">
             <span class="chat-reply-sender fw-bold" id="chat-reply-sender"></span>:
@@ -53,7 +53,7 @@
         </div>
     </div>
     <button type="button" class="chat-reply-close d-inline-flex align-items-center justify-content-center" id="chat-reply-close" onclick="cancelReply()" aria-label="Hủy trả lời">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg>
     </button>
 </div>
 <!-- Hộp chọn nhãn dán nổi trên composer -->
@@ -67,7 +67,7 @@
     <form class="chat-composer" id="chat-composer">
         <input type="file" id="chat-attach-input" th:disabled="${!canSendMessages}" hidden>
         <button type="button" class="chat-attach-btn" id="chat-attach-btn" th:disabled="${!canSendMessages}" aria-label="Đính kèm file" title="Đính kèm file">
-            <svg aria-hidden="true"><use href="#i-paperclip"/></svg>
+            <svg class="icon" aria-hidden="true"><use href="#i-paperclip"/></svg>
         </button>
         <button type="button" class="chat-sticker-btn" id="chat-sticker-btn" th:disabled="${!canSendMessages}" aria-expanded="false" aria-controls="chat-sticker-picker" aria-label="Nhãn dán" title="Nhãn dán">
             <span class="chat-sticker-btn-icon">🏷️</span>
@@ -75,7 +75,7 @@
         <textarea name="content" rows="1" maxlength="2000" th:disabled="${!canSendMessages}" th:placeholder="${!canSendMessages} ? 'Không thể gửi tin nhắn' : (${header.group} ? 'Nhắn gì đó... (@ nhắc tên, Ctrl+V dán ảnh)' : 'Nhắn gì đó... (Ctrl+V dán ảnh)')" placeholder="Nhắn gì đó..."
                   th:attr="data-mention-url=${header.group} ? @{/api/conversations/{id}/members(id=${conversation.id})}" aria-label="Nội dung tin nhắn"></textarea>
         <button type="submit" class="chat-send-btn" th:disabled="${!canSendMessages}" aria-label="Gửi">
-            <svg aria-hidden="true"><use href="#i-send"/></svg>
+            <svg class="icon" aria-hidden="true"><use href="#i-send"/></svg>
         </button>
     </form>
 

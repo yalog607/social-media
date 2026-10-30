@@ -335,10 +335,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <span class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark"
                                   style="width: 32px; height: 32px; background: #FFD6E0; box-shadow: 1.5px 1.5px 0 var(--ink); flex-shrink: 0;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-                                    <line x1="4" y1="22" x2="4" y2="15"></line>
-                                </svg>
+                                <svg class="icon" width="15" height="15" style="color:#DC2626" aria-hidden="true"><use href="#i-flag"/></svg>
                             </span>
                             <div>
                                 <div class="small fw-bold text-ink">
@@ -353,13 +350,13 @@
                             <form method="post" th:action="@{/groups/{id}/reports/{rid}/dismiss(id=${group.id}, rid=${rep.id})}">
                                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                                 <button type="submit" class="btn-al btn-al--sm btn-al--white d-inline-flex align-items-center gap-1" title="Bỏ qua báo cáo này">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-x"/></svg>
                                     <span>Bỏ qua</span>
                                 </button>
                             </form>
                             <button type="button" class="btn-al btn-al--sm btn-al--pink d-inline-flex align-items-center gap-1"
                                     th:attr="onclick='openDeleteReportModal(\'' + ${group.id} + '\', \'' + ${rep.id} + '\')'">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-trash"/></svg>
                                 <span>Xóa bài viết</span>
                             </button>
                         </div>
@@ -377,7 +374,7 @@
                     <!-- Khung trích đoạn bài viết vi phạm -->
                     <div class="p-2.5 rounded-3" style="background: var(--paper-2); border: 1.5px solid var(--ink); border-left: 4px solid var(--ink); box-shadow: 1.5px 1.5px 0 var(--ink);">
                         <div class="small text-soft fw-bold d-flex align-items-center gap-1 mb-1.5">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <svg class="icon" width="13" height="13" aria-hidden="true"><use href="#i-chat"/></svg>
                             <span>Nội dung bài viết:</span>
                         </div>
                         <div class="small text-ink fw-medium mb-2" style="word-break: break-word; line-height: 1.5;" th:text="${rep.postSnippet}">Trích đoạn bài viết...</div>
@@ -386,7 +383,7 @@
                                class="btn-al btn-al--sm btn-al--white text-decoration-none d-inline-flex align-items-center gap-1 fw-bold"
                                style="font-size: .8rem; padding: .25rem .7rem; box-shadow: 1px 1px 0 var(--ink);">
                                 <span>Xem bài viết đầy đủ</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+                                <svg class="icon" width="12" height="12" aria-hidden="true"><use href="#i-arrow-up-right"/></svg>
                             </a>
                         </div>
                     </div>
@@ -485,9 +482,7 @@
                 <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle border border-2 border-dark mx-auto mb-2"
                      style="width: 48px; height: 48px; background: #FFD6E0; box-shadow: 2px 2px 0 var(--ink);">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
+                    <svg class="icon" width="22" height="22" style="color:#DC2626" aria-hidden="true"><use href="#i-trash"/></svg>
                 </div>
                 <h2 class="h5 mb-1 fw-bold" id="deleteReportPostTitle">Xóa bài viết vi phạm?</h2>
                 <p class="text-soft mb-3" style="font-size: .84rem; line-height: 1.45;">Bạn có chắc chắn muốn xóa bài viết vi phạm này khỏi nhóm? Thao tác này không thể hoàn tác.</p>
@@ -537,14 +532,14 @@
         <div class="d-flex flex-column gap-2 small">
             <div class="d-flex align-items-center justify-content-between py-1 border-bottom border-1" style="border-color: rgba(0,0,0,0.08) !important;">
                 <span class="text-soft d-flex align-items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-user"/></svg>
                     <span>Trưởng nhóm:</span>
                 </span>
                 <span class="fw-bold text-ink" th:text="${group.ownerName}">Admin</span>
             </div>
             <div class="d-flex align-items-center justify-content-between py-1 border-bottom border-1" style="border-color: rgba(0,0,0,0.08) !important;">
                 <span class="text-soft d-flex align-items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-lock"/></svg>
                     <span>Quyền riêng tư:</span>
                 </span>
                 <span class="badge border border-2 border-dark"
@@ -553,7 +548,7 @@
             </div>
             <div class="d-flex align-items-center justify-content-between py-1">
                 <span class="text-soft d-flex align-items-center gap-1">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-users"/></svg>
                     <span>Thành viên:</span>
                 </span>
                 <span class="badge border border-2 border-dark"
@@ -579,7 +574,7 @@
         </div>
         <p class="small text-soft mb-3" style="line-height: 1.45;">Trò chuyện theo thời gian thực và chia sẻ tài liệu cùng mọi người.</p>
         <a th:href="@{/messages/{id}(id=${group.id})}" class="btn-al btn-al--lemon btn-al--sm w-100 text-center fw-bold d-inline-flex align-items-center justify-content-center gap-2 text-decoration-none" style="box-shadow: 2px 2px 0 var(--ink);">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-chat"/></svg>
             <span>Vào phòng chat ngay</span>
         </a>
     </section>
@@ -603,7 +598,7 @@
         <form method="post" th:action="@{/groups/{id}/toggle-chat(id=${group.id})}">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
             <button type="submit" class="btn-al btn-al--lemon btn-al--sm w-100 text-center fw-bold d-inline-flex align-items-center justify-content-center gap-2" style="box-shadow: 2px 2px 0 var(--ink);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                <svg class="icon" width="15" height="15" aria-hidden="true"><use href="#i-link"/></svg>
                 <span>Mở phòng chat nhóm</span>
             </button>
         </form>
