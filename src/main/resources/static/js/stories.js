@@ -456,9 +456,9 @@
     const btn = document.getElementById('storyPauseBtn');
     if (btn) {
       if (isPaused) {
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>';
+        btn.innerHTML = '<svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-play"/></svg>';
       } else {
-        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+        btn.innerHTML = '<svg class="icon" width="14" height="14" aria-hidden="true"><use href="#i-pause"/></svg>';
       }
     }
   }

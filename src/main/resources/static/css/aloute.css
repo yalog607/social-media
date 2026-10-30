@@ -259,7 +259,7 @@ textarea.input-al { min-height: 110px; resize: vertical; }
 .input-al.is-invalid { border-color: var(--danger); box-shadow: 3px 3px 0 var(--danger); background-image: none; }
 .field-error { color: var(--danger); font-weight: 600; font-size: .9rem; margin-top: .35rem; }
 select.input-al { appearance: none; padding-right: 2.4rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%2316121F' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 1.5l5.5 5.5 5.5-5.5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316121F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 8.25L12 15.75L4.5 8.25'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 1rem center; }
 
 /* Bảng chọn tự vẽ (custom-select.js): thay danh sách xổ xuống mặc định của trình duyệt, vốn không thể
@@ -1166,6 +1166,8 @@ body.lightbox-open { overflow: hidden; }
 .chat-group-forms .chat-new-form { margin-bottom: .4rem; }
 .composer-more > summary { display: inline-block; cursor: pointer; }
 .table-al .btn-al { white-space: nowrap; }
+/* Heroicons (sprite ở fragments/icons.html): nét outline dày 2 cho khớp viền mực; kích thước do ngữ cảnh hoặc width/height quyết định. */
+.icon { stroke-width: 2; flex: none; }
 .verified-badge { width: 1.05em; height: 1.05em; margin-left: .25rem; vertical-align: -0.16em; flex: none; display: inline-block; }
 .comment-bubble .verified-badge { margin-left: .2rem; margin-bottom: .1rem; }
 .comment-bubble .comment-text { margin-top: .1rem; }
@@ -1273,6 +1275,8 @@ body.lightbox-open { overflow: hidden; }
 .icon-flame {
   animation: flame-flicker 1.2s ease-in-out infinite;
   transform-origin: bottom center;
+  color: #FF7200;
+  vertical-align: -.18em;
 }
 
 /* ---------- 17. Bảng tâm trạng hôm nay (Daily Mood Board) ---------- */
@@ -3627,3 +3631,5 @@ button.profile-mood-pill:hover .profile-mood-pencil {
 .season-card__person a:hover { text-decoration: underline; }
 .season-card__cta { justify-content: center; position: relative; padding: .65rem 2rem; background: #ff9eb4; }
 .season-card__cta > span:last-child { position: absolute; right: .8rem; }
+/* Ngọn lửa Heroicons (bản đặc) dùng thay emoji 🔥 trang trí: màu cam, cỡ theo chữ. */
+.icon-fire { color: #FF7200; vertical-align: -.15em; }
