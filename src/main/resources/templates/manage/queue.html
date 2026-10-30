@@ -27,6 +27,8 @@
             <a th:if="${r.targetType() == 'POST'}" th:href="@{/posts/{id}(id=${r.targetId()})}">· xem bài</a>
         </p>
         <form method="post" class="d-flex flex-wrap gap-2 align-items-center" th:action="@{/manage/reports/{id}(id=${r.id()})}">
+            <input type="hidden" name="page" th:value="${pagination.number()}">
+            <input type="hidden" name="size" th:value="${pagination.size()}">
             <input type="hidden" name="_csrf" th:value="${_csrf.token}">
             <select name="action" class="input-al" aria-label="Cách xử lý">
                 <option th:each="a : ${actions}" th:value="${a.name()}" th:text="${a.label()}"
@@ -36,6 +38,7 @@
             <button type="submit" class="btn-al btn-al--pink btn-al--sm">Xử lý</button>
         </form>
     </article>
+    <th:block th:replace="~{manage/pagination :: controls}"></th:block>
 </main>
 </body>
 </html>

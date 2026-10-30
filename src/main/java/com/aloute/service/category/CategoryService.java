@@ -54,6 +54,14 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
+    public long count() { return jdbc.queryForObject("select count(*) from categories", Long.class); }
+
+    @Transactional(readOnly = true)
+    public List<CategoryView> all(int size, long offset) {
+        return jdbc.query("select id, name, slug, active from categories order by active desc, lower(name), id limit ? offset ?", MAP, size, offset);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<CategoryView> bySlug(String slug) {
         return jdbc.query("select id, name, slug, active from categories where slug = ?", MAP, slug).stream().findFirst();
     }

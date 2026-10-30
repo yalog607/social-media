@@ -43,6 +43,19 @@ public class ManageStats {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public long countReasons() {
+        return count("select count(distinct reason) from reports where created_at > now() - interval '30 days'");
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> reasons(int size, long offset) {
+        Map<String, Long> result = new LinkedHashMap<>();
+        jdbc.query("select reason, count(*) c from reports where created_at > now() - interval '30 days' group by reason order by c desc, reason limit ? offset ?",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> result.put(rs.getString(1), rs.getLong(2)), size, offset);
+        return result;
+    }
+
     private long count(String sql) {
         Long n = jdbc.queryForObject(sql, Long.class);
         return n == null ? 0 : n;

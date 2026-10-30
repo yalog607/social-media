@@ -21,6 +21,7 @@
             <tbody><tr th:each="e : ${reasons}"><td th:text="${e.key}">SPAM</td><td th:text="${e.value}">0</td></tr></tbody>
         </table>
     </section>
+    <th:block th:replace="~{manage/pagination :: controls}"></th:block>
 </main>
 </body>
 </html>

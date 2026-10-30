@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.UUID;
+import com.aloute.dto.moderation.ManagerPage;
 
 /** Trang bài theo danh mục (mọi người) và trang quản lý danh mục (Manager, chặn ở SecurityConfig theo {@code /manage/**}). */
 @Controller
@@ -41,37 +42,40 @@ public class CategoryController {
     }
 
     @GetMapping("/manage/categories")
-    public String manage(Model model) {
+    public String manage(@RequestParam(required = false) String page, @RequestParam(required = false) String size, Model model) {
         model.addAttribute("active", "manage");
-        model.addAttribute("categories", categories.all());
+        var pagination = ManagerPage.of(page, size, categories.count());
+        model.addAttribute("pagination", pagination);
+        model.addAttribute("pagePath", "/manage/categories");
+        model.addAttribute("categories", categories.all(pagination.size(), pagination.offset()));
         model.addAttribute("maxName", CategoryService.MAX_NAME);
         return "manage/categories";
     }
 
     @PostMapping("/manage/categories")
-    public String create(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String name, RedirectAttributes flash) {
-        return run(flash, "Đã thêm danh mục.", () -> categories.create(me.id(), name));
+    public String create(@AuthenticationPrincipal AlouteUserPrincipal me, @RequestParam String name, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
+        return run(page, size, flash, "Đã thêm danh mục.", () -> categories.create(me.id(), name));
     }
 
     @PostMapping("/manage/categories/{id}/rename")
     public String rename(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id,
-                         @RequestParam String name, RedirectAttributes flash) {
-        return run(flash, "Đã đổi tên danh mục.", () -> categories.rename(me.id(), id, name));
+                         @RequestParam String name, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
+        return run(page, size, flash, "Đã đổi tên danh mục.", () -> categories.rename(me.id(), id, name));
     }
 
     @PostMapping("/manage/categories/{id}/active")
     public String setActive(@AuthenticationPrincipal AlouteUserPrincipal me, @PathVariable UUID id,
-                            @RequestParam boolean active, RedirectAttributes flash) {
-        return run(flash, active ? "Đã bật lại danh mục." : "Đã ngưng dùng danh mục.", () -> categories.setActive(me.id(), id, active));
+                            @RequestParam boolean active, @RequestParam(required = false) String page, @RequestParam(required = false) String size, RedirectAttributes flash) {
+        return run(page, size, flash, active ? "Đã bật lại danh mục." : "Đã ngưng dùng danh mục.", () -> categories.setActive(me.id(), id, active));
     }
 
-    private static String run(RedirectAttributes flash, String success, Runnable action) {
+    private String run(String page, String size, RedirectAttributes flash, String success, Runnable action) {
         try {
             action.run();
             flash.addFlashAttribute("notice", success);
         } catch (InvalidCategoryException e) {
             flash.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/manage/categories";
+        return ManagerPage.of(page, size, categories.count()).redirect("/manage/categories");
     }
 }
