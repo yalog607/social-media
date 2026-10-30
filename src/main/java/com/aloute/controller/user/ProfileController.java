@@ -1,6 +1,7 @@
 package com.aloute.controller.user;
 
 import com.aloute.guestbook.GuestbookService;
+import com.aloute.service.seo.OgMetaFactory;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
 import com.aloute.service.user.ProfileVisibilityRules;
@@ -37,10 +38,13 @@ public class ProfileController {
     private final BlockService blocks;
     private final GuestbookService guestbook;
     private final com.aloute.service.mood.MoodService moodService;
+    private final OgMetaFactory og;
 
     public ProfileController(UserRepository users, FeedService feed, ProfileVisibilityRules visibility,
                              FriendService friends, FollowService follows, BlockService blocks,
-                             GuestbookService guestbook, com.aloute.service.mood.MoodService moodService) {
+                             GuestbookService guestbook, com.aloute.service.mood.MoodService moodService,
+                             OgMetaFactory og) {
+        this.og = og;
         this.users = users;
         this.feed = feed;
         this.visibility = visibility;
@@ -69,6 +73,7 @@ public class ProfileController {
         boolean blockedEitherWay = viewerId != null && blocks.isBlockedEitherWay(owner.getId(), viewerId);
         boolean canView = !blockedEitherWay && visibility.canView(owner, viewerId);
 
+        model.addAttribute("og", og.profile(owner));
         model.addAttribute("owner", owner);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("canView", canView);

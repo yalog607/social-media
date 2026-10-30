@@ -1,6 +1,7 @@
 package com.aloute.controller.search;
 
 import com.aloute.service.search.SearchService;
+import com.aloute.service.seo.OgMetaFactory;
 
 import com.aloute.util.common.TextNormalizer;
 import com.aloute.service.feed.FeedService;
@@ -22,8 +23,10 @@ public class SearchController {
 
     private final SearchService search;
     private final FeedService feed;
+    private final OgMetaFactory og;
 
-    public SearchController(SearchService search, FeedService feed) {
+    public SearchController(SearchService search, FeedService feed, OgMetaFactory og) {
+        this.og = og;
         this.search = search;
         this.feed = feed;
     }
@@ -54,6 +57,7 @@ public class SearchController {
     public String tag(@PathVariable String tag, @AuthenticationPrincipal AlouteUserPrincipal viewer, Model model) {
         String normalized = TextNormalizer.forSearch(tag);
         UUID viewerId = viewer == null ? null : viewer.id();
+        model.addAttribute("og", og.tag(normalized));
         model.addAttribute("tag", normalized);
         model.addAttribute("page", feed.byHashtag(normalized, viewerId, null));
         model.addAttribute("moreUrl", "/tags/" + normalized + "/posts");
