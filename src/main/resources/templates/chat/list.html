@@ -7,7 +7,7 @@
     <div class="page-title chat-list-heading">
         <h1>Tin nhắn</h1>
         <div class="chat-list-actions">
-            <button type="button" class="chat-create-action" id="focusMessagesPeople" aria-controls="messagesPeopleQuery" aria-label="Tạo trò chuyện mới" title="Tạo trò chuyện mới">
+            <button type="button" class="chat-create-action" data-bs-toggle="modal" data-bs-target="#newChatModal" aria-label="Tạo trò chuyện mới" title="Tạo trò chuyện mới">
                 <svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>
             </button>
             <button type="button" class="chat-create-action" data-bs-toggle="modal" data-bs-target="#newChatGroupModal" aria-label="Tạo nhóm trò chuyện" title="Tạo nhóm trò chuyện">
@@ -45,7 +45,43 @@
         </template>
     </section>
 
-    <div class="modal fade" id="newChatGroupModal" tabindex="-1" aria-labelledby="newChatGroupModalLabel" aria-hidden="true">
+    <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content chat-create-modal">
+            <div class="modal-header"><h2 class="h4 mb-0 fw-bold" id="newChatModalLabel">💬 Trò chuyện mới</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+            <div class="modal-body">
+                <p th:if="${#lists.isEmpty(friends)}" class="text-soft">Bạn chưa có bạn bè để bắt đầu trò chuyện.</p>
+                <div class="mb-3" th:if="${!#lists.isEmpty(friends)}">
+                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                        <span class="fw-bold small text-ink" style="font-family: var(--font-display);">Chọn bạn bè để bắt đầu trò chuyện:</span>
+                        <span class="badge border border-dark rounded-pill px-2 py-0_5 fw-bold text-ink"
+                              style="font-size: .72rem; background: var(--paper-2); color: var(--ink); box-shadow: 1px 1px 0 var(--ink);"
+                              th:text="'👥 ' + ${#lists.size(friends)} + ' bạn bè'">👥 1 bạn bè</span>
+                    </div>
+                    <div class="mb-2" th:if="${#lists.size(friends) > 4}">
+                        <input type="text" id="chatFriendFilter" class="input-al w-100" placeholder="🔍 Tìm nhanh bạn bè theo tên..."
+                               style="padding: .4rem .85rem; font-size: .85rem; border-radius: var(--r-pill);" autocomplete="off">
+                    </div>
+                    <div class="chat-friends-track d-flex gap-2 pb-2 overflow-x-auto" id="chatFriendsList">
+                        <a th:each="f : ${friends}"
+                           th:href="@{/messages/start(username=${f.username})}"
+                           th:attr="data-search=${#strings.toLowerCase(f.displayName + ' ' + f.username)}"
+                           class="chat-friend-card d-flex flex-column align-items-center p-2 text-decoration-none text-center rounded-3 border border-2 border-dark"
+                           style="width: 110px; min-width: 110px; background: var(--white); box-shadow: 2px 2px 0 var(--ink); cursor: pointer;"
+                           th:title="'Nhắn tin với ' + ${f.displayName}">
+                            <div class="position-relative mb-1">
+                                <span style="--size: 46px;" th:replace="~{fragments/ui :: avatar(${f}, '')}"></span>
+                            </div>
+                            <span class="fw-bold text-truncate w-100 text-ink" style="font-size: .84rem; line-height: 1.2;" th:text="${f.displayName}">Tên</span>
+                            <span class="text-soft text-truncate w-100 mb-1" style="font-size: .7rem;" th:text="'@' + ${f.username}">@user</span>
+                            <span class="btn-al btn-al--lemon btn-al--sm py-0 px-2 fw-bold w-100 text-center" style="font-size: .7rem; border-width: 1.5px; border-radius: var(--r-pill);">Nhắn tin</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="modal fade" id="newChatGroupModal"tabindex="-1" aria-labelledby="newChatGroupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><div class="modal-content chat-create-modal">
             <div class="modal-header"><h2 class="h4 mb-0 fw-bold" id="newChatGroupModalLabel">👥 Tạo nhóm trò chuyện</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
             <div class="modal-body">
@@ -101,6 +137,19 @@
         </section>
     </section>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const filterInput = document.getElementById('chatFriendFilter');
+            const track = document.getElementById('chatFriendsList');
+            if (!filterInput || !track) return;
+            filterInput.addEventListener('input', function () {
+                const q = filterInput.value.trim().toLowerCase();
+                track.querySelectorAll('.chat-friend-card').forEach(function (c) {
+                    c.classList.toggle('d-none', Boolean(q) && !(c.getAttribute('data-search') || '').includes(q));
+                });
+            });
+        });
+    </script>
     <script th:src="@{/js/messages-people.js}" defer></script>
 </main>
 </body>

@@ -10,8 +10,6 @@
     let controller;
     let revision = 0;
 
-    document.getElementById('focusMessagesPeople').addEventListener('click', () => input.focus());
-
     input.addEventListener('input', () => {
         const current = ++revision;
         clearTimeout(timer);
