@@ -35,7 +35,7 @@
                 </div>
             </div>
             <button type="button" class="comment-link-btn" data-reply-to th:if="${me != null}"
-                    th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}">Trả lời</button>
+                    th:attr="data-parent-id=${c.id}, data-name=${c.author.displayName}, data-username=${c.author.username}">Trả lời</button>
             <button type="button" class="comment-reactions-badge"
                  th:classappend="${(c.reactions == null or c.reactions.total() == 0) ? 'd-none' : (c.reactions.total() == 1 ? 'is-single' : '')}"
                  aria-label="Xem ai đã thả cảm xúc" title="Xem ai đã thả cảm xúc"

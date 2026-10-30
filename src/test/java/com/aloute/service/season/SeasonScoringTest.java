@@ -49,4 +49,15 @@ class SeasonScoringTest {
         assertThat(posts(List.of(entry), events, start, end)).isEmpty();
         assertThat(posts(List.of(entry), events, start, end.plusSeconds(1))).hasSize(1);
     }
+
+    @Test void rankingUsesOnlyHighestScoringPostPerAuthor() {
+        UUID second = UUID.randomUUID(), rival = UUID.randomUUID();
+        var ranking = ranking(List.of(
+                new PostScore(post, author, start.plusSeconds(1), 3),
+                new PostScore(second, author, start.plusSeconds(2), 7),
+                new PostScore(UUID.randomUUID(), rival, start.plusSeconds(3), 8)));
+        assertThat(ranking).extracting(Ranking::score).containsExactly(8L, 7L);
+        assertThat(ranking).extracting(Ranking::authorId).containsExactly(rival, author);
+        assertThat(ranking.get(1).firstPostAt()).isEqualTo(start.plusSeconds(1));
+    }
 }

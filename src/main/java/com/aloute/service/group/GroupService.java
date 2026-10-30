@@ -600,7 +600,7 @@ public class GroupService {
                 .orElseThrow(() -> new ChatActionException("Báo cáo không tồn tại."));
         Post post = report.getPost();
         post.setDeletedAt(clock.instant());
-        if (!post.isScheduled()) seasonActivity.eligibility(post.getId(), post.getAuthor().getId(), post.getCreatedAt(), false, post.getHashtags());
+        if (!post.isScheduled() && !post.isShare()) seasonActivity.eligibility(post.getId(), post.getAuthor().getId(), post.getCreatedAt(), false, post.getHashtags());
         if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), post.getAuthor().getId(), SeasonScoring.Kind.SHARE, post.getId(), false);
         posts.save(post);
         groupReports.deleteByPostId(post.getId());

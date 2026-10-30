@@ -1,7 +1,16 @@
 <!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout(${season.name}, ~{::main}, 'home', ~{})}"><head><title>Mùa giải</title></head><body><main>
     <a class="btn-al btn-al--sm btn-al--white mb-3" th:href="@{/seasons}">← Bảng vàng vinh danh</a>
     <section class="note note--lemon mb-3"><img th:if="${season.imageUrl != null}" th:src="${season.imageUrl}" alt="Ảnh mùa giải" class="season-image mb-2"><span class="season-status" th:text="${season.statusLabel()}"></span><h1 class="h2 mt-2" th:text="${season.name}"></h1><p th:text="${season.description}"></p><p class="fw-bold" th:text="'#' + ${season.hashtag}"></p><p class="small mb-0" th:text="${season.startDate()} + ' – ' + ${season.endDate()} + ' · Giờ Việt Nam'"></p></section>
-    <section class="note mb-3"><h2 class="h4">Cách tham gia</h2><p>Đăng bài công khai có hashtag của mùa trong thời gian diễn ra. Cảm xúc: 1 điểm, bình luận: 2 điểm, chia sẻ: 3 điểm.</p><p class="small text-soft mb-0">Mỗi người chỉ tính một lượt mỗi loại trên mỗi bài; không tính tương tác của tác giả. Kết quả được rà soát trước khi công bố.</p></section>
+    <section class="note mb-3">
+        <h2 class="h4">Cách tham gia</h2>
+        <ol class="mb-3 ps-3">
+            <li>Đăng <strong>bài viết gốc công khai</strong> kèm hashtag của mùa trong thời gian diễn ra.</li>
+            <li>Bạn có thể đăng nhiều bài, nhưng bảng xếp hạng <strong>chỉ tính bài có điểm cao nhất</strong>; điểm giữa các bài không cộng dồn.</li>
+            <li><strong>Bài chia sẻ không phải bài dự thi</strong>, kể cả khi có hashtag của mùa.</li>
+        </ol>
+        <p class="mb-2"><strong>Cách tính điểm cho mỗi bài:</strong> cảm xúc 1 điểm, bình luận 2 điểm, lượt chia sẻ bài đó 3 điểm.</p>
+        <p class="small text-soft mb-0">Mỗi người chỉ tính một lượt mỗi loại trên mỗi bài; không tính tương tác của chính tác giả. Kết quả được rà soát trước khi công bố.</p>
+    </section>
     <section class="note mb-3"><h2 class="h4">Bảng xếp hạng</h2><div data-season-standings th:attr="data-season-live=${season.status == 'ACTIVE'}"><p class="text-soft" th:if="${#lists.isEmpty(standings)}">Chưa có kết quả.</p><ol class="season-standings"><li th:each="row : ${standings}"><span><strong th:text="${row.rank} + '. '"></strong><a th:href="@{/u/{name}(name=${row.username})}" th:text="${row.name}"></a> <span class="season-status" th:if="${season.status == 'SETTLED' and row.rank <= 10}" th:text="${row.rank == 1} ? 'Quán quân' : (${row.rank <= 3} ? 'Á quân' : 'Top 10')"></span></span><strong th:text="${row.score} + ' điểm'"></strong></li></ol></div><p class="small text-soft mb-0" th:if="${season.status == 'ACTIVE'}">Bảng điểm tự cập nhật khi bạn mở trang.</p></section>
     <section class="note"><h2 class="h4">Bài dự thi</h2><p class="text-soft" th:if="${#lists.isEmpty(entries)}">Chưa có bài dự thi hợp lệ.</p><ul class="season-entry-list"><li th:each="entry : ${entries}"><a th:href="@{/posts/{id}(id=${entry.id})}" th:text="'Bài viết của ' + ${entry.name}"></a><span th:text="${entry.score} + ' điểm'"></span></li></ul></section>
 </main></body></html>

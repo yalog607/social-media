@@ -30,6 +30,41 @@ class SeasonIT extends IntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired ScheduledPostPublisher publisher;
 
+    @Test void onlyBestOriginalPostCountsAndSharesAreNotEntries() {
+        var owner = createUser(Role.ADMIN);
+        var author = createUser();
+        var sharer = createUser();
+        var viewer = createUser();
+        var date = clock.instant().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate();
+        var id = seasons.create(owner.getId(), "Mùa", "", "#BestPost", date, date);
+        seasons.publish(id);
+        var first = posts.create(author.getId(), "Bài một #BestPost", Visibility.PUBLIC, List.of(), null);
+        clock.advance(Duration.ofSeconds(1));
+        var second = posts.create(author.getId(), "Bài hai #BestPost", Visibility.PUBLIC, List.of(), null);
+        clock.advance(Duration.ofSeconds(1));
+        reactions.toggle(viewer.getId(), first.getId(), ReactionType.LOVE);
+        comments.create(viewer.getId(), second.getId(), null, "Hay");
+        var share = posts.share(sharer.getId(), first.getId(), "#BestPost");
+        clock.advance(Duration.ofSeconds(1));
+        assertThat(jdbc.queryForObject("select count(*) from season_posts where season_id=? and post_id=?", Integer.class, id, share.getId())).isZero();
+        assertThat(seasons.standings(id)).singleElement().satisfies(row -> {
+            assertThat(row.authorId()).isEqualTo(author.getId());
+            assertThat(row.score()).isEqualTo(4);
+        });
+        // Dữ liệu chia sẻ đã được ghi nhận trước khi sửa cũng không được tính.
+        jdbc.update("insert into season_posts(season_id,post_id,author_id,published_at) values (?,?,?,?)", id, share.getId(), sharer.getId(), java.sql.Timestamp.from(share.getCreatedAt()));
+        jdbc.update("insert into season_events(season_id,post_id,actor_id,kind,source_id,present,occurred_at) values (?,?,?,'ELIGIBILITY',?,true,?)", id, share.getId(), sharer.getId(), share.getId(), java.sql.Timestamp.from(clock.instant().minusSeconds(1)));
+        assertThat(seasons.scores(id)).extracting(SeasonScoring.PostScore::postId).containsExactlyInAnyOrder(first.getId(), second.getId());
+        assertThat(seasons.standings(id)).singleElement().extracting(SeasonService.Standing::score).isEqualTo(4L);
+        var season = seasons.get(id);
+        clock.advance(Duration.between(clock.instant(), season.end()).plusSeconds(1));
+        seasons.advance();
+        assertThat(seasons.standings(id)).singleElement().extracting(SeasonService.Standing::score).isEqualTo(4L);
+        clock.advance(Duration.ofHours(24));
+        seasons.settle(id, owner.getId());
+        assertThat(seasons.standings(id)).singleElement().extracting(SeasonService.Standing::score).isEqualTo(4L);
+    }
+
     @Test void activeSeasonCanBeUpdatedAndParticipantBannedAndRestored() throws Exception {
         var owner = createUser(Role.ADMIN);
         var author = createUser();
