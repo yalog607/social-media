@@ -50,7 +50,7 @@ services:
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       ALOUTE_MAIL_FROM: ${ALOUTE_MAIL_FROM:-no-reply@aloute.local}
-      # Firebase chỉ để đăng nhập Google/Facebook. Đường dẫn TRONG container, ví dụ /run/secrets/firebase-adminsdk.json. Để trống = tắt.
+      # Firebase chỉ để đăng nhập Google. Đường dẫn TRONG container, ví dụ /run/secrets/firebase-adminsdk.json. Để trống = tắt.
       FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
       FIREBASE_WEB_API_KEY: ${FIREBASE_WEB_API_KEY:-}
       FIREBASE_WEB_AUTH_DOMAIN: ${FIREBASE_WEB_AUTH_DOMAIN:-}

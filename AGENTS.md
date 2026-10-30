@@ -21,7 +21,7 @@ ALOUTE là mạng xã hội cho tuổi teen, dùng Java 21, Spring Boot 3.5, Thy
 
 ## Tính năng có trong mã nguồn
 
-- Đăng ký, đăng nhập, đăng xuất, refresh token, quên/đặt lại mật khẩu; đăng nhập Google/Facebook qua Firebase khi được cấu hình.
+- Đăng ký, đăng nhập, đăng xuất, refresh token, quên/đặt lại mật khẩu; đăng nhập Google qua Firebase khi được cấu hình.
 - Hồ sơ, avatar/ảnh bìa, cài đặt riêng tư và quyền nhắn tin; kết bạn, theo dõi và chặn.
 - Bảng tin, bài chữ/ảnh/video, sửa/xóa/chia sẻ/ghim, gắn thẻ bạn bè, hashtag, danh mục, lượt xem; tìm kiếm người, bài và hashtag.
 - Cảm xúc bài viết, bình luận và tin nhắn; bình luận trả lời kèm ảnh, mention và thông báo.

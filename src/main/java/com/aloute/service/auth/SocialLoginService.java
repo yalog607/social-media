@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.util.Optional;
 
-/** Đăng nhập bằng Google/Facebook: tìm hoặc tạo tài khoản theo danh tính đã được nhà cung cấp xác thực. */
+/** Đăng nhập bằng Google: tìm hoặc tạo tài khoản theo danh tính đã được nhà cung cấp xác thực. */
 @Service
 public class SocialLoginService {
 

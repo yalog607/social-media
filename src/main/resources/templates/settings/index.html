@@ -124,7 +124,7 @@
 
     <section class="note" aria-labelledby="s-password">
         <h2 id="s-password" class="h3 mb-3" th:text="${hasPassword} ? 'Đổi mật khẩu' : 'Tạo mật khẩu'">Đổi mật khẩu</h2>
-        <p class="text-soft" th:unless="${hasPassword}">Bạn đang đăng nhập bằng Google/Facebook. Tạo mật khẩu để có thêm cách đăng nhập.</p>
+        <p class="text-soft" th:unless="${hasPassword}">Tạo mật khẩu để có thêm cách đăng nhập.</p>
         <form th:action="@{/settings/password}" th:object="${passwordForm}" method="post" novalidate>
             <div th:replace="~{fragments/ui :: globalErrors}"></div>
             <th:block th:if="${hasPassword}">

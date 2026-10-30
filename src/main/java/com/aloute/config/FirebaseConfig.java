@@ -18,7 +18,7 @@ import java.util.Optional;
 
 /**
  * Khởi tạo Firebase khi có file service account, chỉ để xác thực đăng nhập Social. Không có thì ứng dụng
- * vẫn chạy đầy đủ, chỉ tắt đăng nhập Google/Facebook.
+ * vẫn chạy đầy đủ, chỉ tắt đăng nhập Google.
  */
 @Configuration
 public class FirebaseConfig {

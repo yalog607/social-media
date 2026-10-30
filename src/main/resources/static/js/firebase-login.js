@@ -1,7 +1,7 @@
-/* Đăng nhập Google/Facebook qua Firebase: lấy ID token rồi đổi lấy phiên (cookie) của ALOUTE. */
+/* Đăng nhập Google qua Firebase: lấy ID token rồi đổi lấy phiên (cookie) của ALOUTE. */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
-  getAuth, signInWithPopup, signOut, GoogleAuthProvider, FacebookAuthProvider,
+  getAuth, signInWithPopup, signOut, GoogleAuthProvider,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 
 const configEl = document.getElementById('firebase-config');
@@ -19,14 +19,14 @@ if (configEl) {
     projectId: configEl.dataset.projectId,
   });
   const auth = getAuth(app);
-  const providers = { google: () => new GoogleAuthProvider(), facebook: () => new FacebookAuthProvider() };
+  const provider = new GoogleAuthProvider();
 
   document.querySelectorAll('[data-provider]').forEach((button) => {
     button.addEventListener('click', async () => {
       errorEl.hidden = true;
       button.disabled = true;
       try {
-        const result = await signInWithPopup(auth, providers[button.dataset.provider]());
+        const result = await signInWithPopup(auth, provider);
         const idToken = await result.user.getIdToken();
         const response = await window.Aloute.api('/auth/firebase', {
           method: 'POST',

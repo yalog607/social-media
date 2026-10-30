@@ -40,7 +40,7 @@ public class SocialAuthController {
                                                              HttpServletRequest request,
                                                              HttpServletResponse response) {
         if (!verifier.enabled()) {
-            return error(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google/Facebook chưa được bật");
+            return error(HttpStatus.SERVICE_UNAVAILABLE, "Đăng nhập Google chưa được bật");
         }
         try {
             User user = socialLogin.login(verifier.verify(body.idToken()));
