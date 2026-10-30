@@ -55,13 +55,9 @@ public class SettingsController {
         SettingsForms.ProfileForm profile = new SettingsForms.ProfileForm();
         profile.setDisplayName(p.getDisplayName());
         profile.setBio(p.getBio());
-        SettingsForms.PrivacyForm privacy = new SettingsForms.PrivacyForm();
-        privacy.setProfileVisibility(p.getProfileVisibility());
-        privacy.setDefaultPostVisibility(p.getDefaultPostVisibility());
-        privacy.setMessagePermission(p.getMessagePermission());
 
         model.addAttribute("profileForm", profile);
-        model.addAttribute("privacyForm", privacy);
+        model.addAttribute("privacyForm", currentPrivacy(user));
         return render(model, user, null, null, null);
     }
 
