@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('Bảng vàng vinh danh', ~{::main}, 'home', ~{})}">
+<head><title>Bảng vàng vinh danh</title></head>
+<body><main>
+    <header class="hall-hero note note--lemon">
+        <div class="hall-hero__copy">
+            <span class="hall-eyebrow">✦ GÓC VINH DANH ✦</span>
+            <h1>Bảng vàng<br>vinh danh <span aria-hidden="true">🏆</span></h1>
+            <p>Mỗi mùa giải là một câu chuyện đáng nhớ. Cùng nhìn lại những khoảnh khắc và thành tích của cộng đồng nhé!</p>
+            <span class="hall-count" th:text="${#lists.size(seasons)} + ' mùa giải đã khép lại'">0 mùa giải đã khép lại</span>
+        </div>
+        <div class="hall-hero__art" aria-hidden="true"><span>✦</span><span>🏆</span><span>★</span></div>
+    </header>
+
+    <div class="hall-heading"><div><span class="hall-heading__label">NHỮNG DẤU ẤN ĐÁNG NHỚ</span><h2>Các mùa giải đã qua</h2></div><span aria-hidden="true">✦</span></div>
+    <section class="hall-empty note" th:if="${#lists.isEmpty(seasons)}">
+        <div class="hall-empty__icon" aria-hidden="true">🏅</div>
+        <h3>Bảng vàng đang chờ những cái tên đầu tiên</h3>
+        <p>Chưa có mùa giải nào được công bố kết quả. Hãy cùng chờ đón những thành tích sắp tới nhé!</p>
+        <a class="btn-al btn-al--sm btn-al--white" th:href="@{/}">← Về bảng tin</a>
+    </section>
+    <div class="hall-grid" th:unless="${#lists.isEmpty(seasons)}">
+        <article class="hall-season note" th:each="s : ${seasons}">
+            <div class="hall-season__cover">
+                <img th:if="${s.imageUrl != null}" th:src="${s.imageUrl}" th:alt="'Ảnh mùa giải ' + ${s.name}">
+                <span th:if="${s.imageUrl == null}" aria-hidden="true">🏆</span>
+                <span class="hall-season__badge">✓ Đã công bố kết quả</span>
+            </div>
+            <div class="hall-season__body">
+                <p class="hall-season__tag" th:text="'♯ ' + ${s.hashtag}"></p>
+                <h3 th:text="${s.name}"></h3>
+                <p class="hall-season__date" th:text="${s.startDate()} + ' – ' + ${s.endDate()} + ' · Giờ Việt Nam'"></p>
+                <a class="btn-al btn-al--sm btn-al--white" th:href="@{/seasons/{id}(id=${s.id})}">Xem kết quả →</a>
+            </div>
+        </article>
+    </div>
+</main></body></html>

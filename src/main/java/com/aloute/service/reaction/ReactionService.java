@@ -11,6 +11,8 @@ import com.aloute.service.common.RateLimiter;
 import com.aloute.service.notification.NotificationService;
 import com.aloute.model.post.Post;
 import com.aloute.service.post.PostService;
+import com.aloute.service.season.SeasonActivityRecorder;
+import com.aloute.service.season.SeasonScoring;
 import com.aloute.repository.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +36,11 @@ public class ReactionService {
     private final UserRepository users;
     private final RateLimiter rateLimiter;
     private final NotificationService notifications;
+    private final SeasonActivityRecorder seasonActivity;
 
     public ReactionService(ReactionRepository reactions, PostService posts, UserRepository users,
-                           RateLimiter rateLimiter, NotificationService notifications) {
+                           RateLimiter rateLimiter, NotificationService notifications, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
         this.reactions = reactions;
         this.posts = posts;
         this.users = users;
@@ -52,6 +56,7 @@ public class ReactionService {
 
         Optional<Reaction> existing = reactions.findByPostIdAndUserId(postId, userId);
         if (existing.isPresent() && existing.get().getType() == type) {
+            seasonActivity.interaction(postId, userId, SeasonScoring.Kind.REACTION, userId, false);
             reactions.delete(existing.get());
         } else {
             Reaction reaction = existing.orElseGet(Reaction::new);
@@ -61,6 +66,7 @@ public class ReactionService {
             }
             reaction.setType(type);
             reactions.save(reaction);
+            seasonActivity.interaction(postId, userId, SeasonScoring.Kind.REACTION, userId, true);
             notifications.postReacted(userId, post);
         }
         return summarize(postId, userId);

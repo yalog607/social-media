@@ -17,6 +17,8 @@ import com.aloute.util.common.TextNormalizer;
 import com.aloute.service.media.MediaService;
 import com.aloute.service.moderation.BannedHashtags;
 import com.aloute.service.notification.NotificationService;
+import com.aloute.service.season.SeasonActivityRecorder;
+import com.aloute.service.season.SeasonScoring;
 import com.aloute.service.social.FriendService;
 import com.aloute.model.user.User;
 import com.aloute.repository.user.UserRepository;
@@ -55,11 +57,13 @@ public class PostService {
     private final BannedHashtags bannedHashtags;
     private final CategoryService categories;
     private final com.aloute.repository.chat.ConversationMemberRepository conversationMembers;
+    private final SeasonActivityRecorder seasonActivity;
 
     public PostService(PostRepository posts, UserRepository users, MediaService media,
                        RateLimiter rateLimiter, Clock clock, FriendService friends, NotificationService notifications,
                        PostTagRepository tags, BannedHashtags bannedHashtags, CategoryService categories,
-                       com.aloute.repository.chat.ConversationMemberRepository conversationMembers) {
+                       com.aloute.repository.chat.ConversationMemberRepository conversationMembers, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
         this.categories = categories;
         this.bannedHashtags = bannedHashtags;
         this.posts = posts;
@@ -194,7 +198,8 @@ public class PostService {
                 entity.setSizeBytes(item.sizeBytes());
                 post.addMedia(entity);
             }
-            Post saved = posts.save(post);
+            Post saved = posts.saveAndFlush(post);
+            if (scheduledAt == null) seasonActivity.eligibility(saved.getId(), authorId, clock.instant(), chosen == Visibility.PUBLIC, saved.getHashtags());
             for (UUID tagId : tagIds) {
                 PostTag tag = new PostTag();
                 tag.setPost(saved);
@@ -231,6 +236,9 @@ public class PostService {
         if (visibility != null) {
             post.setVisibility(visibility);
         }
+        if (!post.isScheduled()) seasonActivity.eligibility(post.getId(), actorId, post.getCreatedAt(), post.getVisibility() == Visibility.PUBLIC, post.getHashtags());
+        if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), actorId, SeasonScoring.Kind.SHARE,
+                post.getId(), post.getVisibility() == Visibility.PUBLIC);
         return post;
     }
 
@@ -328,7 +336,9 @@ public class PostService {
         share.setVisibility(Visibility.PUBLIC);
         share.setSharedPost(original);
         applyContent(share, text);
-        Post saved = posts.save(share);
+        Post saved = posts.saveAndFlush(share);
+        seasonActivity.eligibility(saved.getId(), actorId, clock.instant(), true, saved.getHashtags());
+        seasonActivity.interaction(original.getId(), actorId, SeasonScoring.Kind.SHARE, saved.getId(), true);
         notifications.postShared(actorId, original);
         return saved;
     }
@@ -358,7 +368,10 @@ public class PostService {
     /** Xóa mềm: bài biến mất khỏi mọi nơi nhưng dữ liệu còn (phục vụ kiểm duyệt ở giai đoạn sau). */
     @Transactional
     public void delete(UUID actorId, UUID postId) {
-        ownedLivePost(actorId, postId).setDeletedAt(clock.instant());
+        Post post = ownedLivePost(actorId, postId);
+        post.setDeletedAt(clock.instant());
+        if (!post.isScheduled()) seasonActivity.eligibility(postId, actorId, post.getCreatedAt(), false, post.getHashtags());
+        if (post.isShare()) seasonActivity.interaction(post.getSharedPost().getId(), actorId, SeasonScoring.Kind.SHARE, postId, false);
     }
 
     /** Ghim bài viết lên đầu trang cá nhân (tối đa 3 bài). */

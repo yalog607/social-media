@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/base :: layout('Quản lý mùa giải', ~{::main}, 'admin', ~{})}"><head><title>Quản lý mùa giải</title></head><body><main>
+    <div class="page-title"><h1>Quản lý mùa giải</h1></div><th:block th:replace="~{admin/nav :: tabs('seasons')}"></th:block>
+    <section class="note mb-4"><h2 class="h4">Tạo mùa giải</h2><p class="small text-soft">Theo giờ Việt Nam. Nếu thời điểm bắt đầu đã qua, mùa bắt đầu khi công bố.</p>
+        <form method="post" th:action="@{/admin/seasons}"><input type="hidden" name="_csrf" th:value="${_csrf.token}">
+            <div class="field"><label for="seasonName">Tên mùa</label><input id="seasonName" class="input-al" name="name" maxlength="100" required></div>
+            <div class="field"><label for="seasonDesc">Mô tả</label><textarea id="seasonDesc" class="input-al" name="description" maxlength="4000" rows="2"></textarea></div>
+            <div class="field"><label for="seasonTag">Hashtag</label><input id="seasonTag" class="input-al" name="hashtag" placeholder="#GocHocTapChill" required></div>
+            <div class="season-dates"><div class="field"><label for="seasonStart">Bắt đầu</label><input id="seasonStart" class="input-al" type="datetime-local" name="start" th:value="${defaultStart}" required></div><div class="field"><label for="seasonEnd">Kết thúc</label><input id="seasonEnd" class="input-al" type="datetime-local" name="end" th:value="${defaultEnd}" required></div></div>
+            <button class="btn-al btn-al--pink" type="submit">Tạo bản nháp</button>
+        </form></section>
+    <h2 class="h4">Các mùa giải</h2><p class="text-soft" th:if="${#lists.isEmpty(seasons)}">Chưa có mùa giải nào.</p>
+    <article class="note mb-2" th:each="s : ${seasons}"><div class="d-flex justify-content-between flex-wrap gap-2"><div><strong th:text="${s.name}"></strong><p class="small text-soft mb-1" th:text="${s.startDate()} + ' – ' + ${s.endDate()}"></p><span class="season-status" th:text="${s.statusLabel()}"></span></div><a class="btn-al btn-al--sm btn-al--white" th:href="@{/admin/seasons/{id}(id=${s.id})}">Quản lý</a></div></article>
+</main></body></html>

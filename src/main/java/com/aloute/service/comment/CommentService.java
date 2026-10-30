@@ -13,6 +13,8 @@ import com.aloute.service.media.MediaService;
 import com.aloute.service.sticker.StickerAccess;
 import com.aloute.service.sticker.StickerService;
 import com.aloute.service.sticker.LocalStickerLibrary;
+import com.aloute.service.season.SeasonActivityRecorder;
+import com.aloute.service.season.SeasonScoring;
 import com.aloute.service.mention.MentionService;
 import com.aloute.service.notification.NotificationService;
 import com.aloute.model.post.Post;
@@ -59,12 +61,14 @@ public class CommentService {
     private final StickerAccess stickerAccess;
     private final StickerService stickerService;
     private final LocalStickerLibrary stickerLibrary;
+    private final SeasonActivityRecorder seasonActivity;
 
     public CommentService(CommentRepository comments, PostService posts, UserRepository users,
                           RateLimiter rateLimiter, NotificationService notifications, Clock clock,
                           FanService fans, MentionService mentions, MediaService media,
                           CommentReactionService commentReactions, StickerAccess stickerAccess,
-                          StickerService stickerService, LocalStickerLibrary stickerLibrary) {
+                          StickerService stickerService, LocalStickerLibrary stickerLibrary, SeasonActivityRecorder seasonActivity) {
+        this.seasonActivity = seasonActivity;
         this.stickerAccess = stickerAccess;
         this.stickerService = stickerService;
         this.stickerLibrary = stickerLibrary;
@@ -129,6 +133,7 @@ public class CommentService {
         comment.setParent(parent);
         comment.setContent(text);
         Comment saved = comments.save(comment);
+        seasonActivity.interaction(postId, authorId, SeasonScoring.Kind.COMMENT, saved.getId(), true);
         if (sticker != null) stickerLibrary.recordUse(authorId, sticker.getId());
         java.util.Set<UUID> notified = new java.util.HashSet<>();
         if (parent == null) {
@@ -153,6 +158,7 @@ public class CommentService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bạn không thể xóa bình luận này.");
         }
         comment.setDeletedAt(clock.instant());
+        seasonActivity.interaction(comment.getPost().getId(), comment.getAuthor().getId(), SeasonScoring.Kind.COMMENT, comment.getId(), false);
     }
 
     /** @throws com.aloute.exception.post.PostNotFoundException bài không tồn tại hoặc không xem được */

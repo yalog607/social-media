@@ -13,6 +13,7 @@ import com.aloute.service.post.PostService;
 import com.aloute.service.search.SearchService;
 import com.aloute.service.social.FriendService;
 import com.aloute.service.story.StoryService;
+import com.aloute.service.season.SeasonService;
 import com.aloute.util.media.MediaLimits;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -35,9 +36,11 @@ public class HomeController {
     private final MoodService moodService;
     private final StreakService streaks;
     private final StoryService storyService;
+    private final SeasonService seasons;
 
     public HomeController(FeedService feed, SearchService search, FriendService friends,
-                          MoodService moodService, StreakService streaks, StoryService storyService) {
+                          MoodService moodService, StreakService streaks, StoryService storyService, SeasonService seasons) {
+        this.seasons = seasons;
         this.feed = feed;
         this.search = search;
         this.friends = friends;
@@ -55,6 +58,9 @@ public class HomeController {
         model.addAttribute("page", feed.home(principal.id(), null));
         model.addAttribute("moreUrl", "/feed");
         model.addAttribute("trending", search.trending());
+        var featuredSeason = seasons.featured();
+        model.addAttribute("featuredSeason", featuredSeason);
+        model.addAttribute("featuredStandings", featuredSeason == null ? List.of() : seasons.standings(featuredSeason.id()).stream().limit(5).toList());
 
         List<AuthorView> friendList = friends.friendsOf(principal.id());
         model.addAttribute("tagFriends", friendList);

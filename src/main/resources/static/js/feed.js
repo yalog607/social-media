@@ -4,6 +4,15 @@
 
   const MB = 1024 * 1024;
 
+  // Bấm vào phần trống hoặc nội dung của bài nhúng để mở bài gốc.
+  document.addEventListener('click', function (event) {
+    const card = event.target.closest('[data-shared-post-url]');
+    if (!card || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (event.target.closest('a, button, input, textarea, select, video, audio, [role="button"]')) return;
+    if (window.getSelection && !window.getSelection().isCollapsed) return;
+    window.location.assign(card.dataset.sharedPostUrl);
+  });
+
   // ---------- Tải thêm bài: tự động khi cuộn gần tới cuối, nút "Xem thêm" là phương án dự phòng ----------
   // Mảnh HTML của trang kế thay chỗ khối .feed-more và mang theo khối .feed-more mới (nếu còn bài).
   const autoLoad = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
