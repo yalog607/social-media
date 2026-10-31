@@ -93,6 +93,11 @@ public class GroupController {
         model.addAttribute("myRole", group.myRole());
         model.addAttribute("isPending", group.isPending());
         model.addAttribute("memberCount", group.memberCount());
+        boolean ownerTransfer = groupService.ownerTransferOnLeave() && group.myRole() == GroupRole.OWNER;
+        model.addAttribute("ownerTransferOnLeave", ownerTransfer);
+        if (ownerTransfer) {
+            model.addAttribute("ownerCandidates", groupService.ownerCandidates(id, userId));
+        }
 
         boolean canModerate = group.myRole() != null && group.myRole().canModerate();
         boolean canManage = group.myRole() != null && group.myRole().canManage();

@@ -26,6 +26,7 @@ import com.aloute.service.audit.AuditService;
 import com.aloute.service.season.SeasonActivityRecorder;
 import com.aloute.service.season.SeasonScoring;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,6 +52,7 @@ public class GroupService {
     private final Clock clock;
     private final SeasonActivityRecorder seasonActivity;
     private final AuditService audit;
+    private final boolean ownerTransferOnLeave;
 
     public GroupService(ConversationRepository conversations,
                         ConversationMemberRepository members,
@@ -60,7 +62,9 @@ public class GroupService {
                         ChatService chatService,
                         PostRepository posts,
                         GroupPostReportRepository groupReports,
-                        Clock clock, SeasonActivityRecorder seasonActivity, AuditService audit) {
+                        Clock clock, SeasonActivityRecorder seasonActivity, AuditService audit,
+                        @Value("${aloute.group-owner-transfer-on-leave:true}") boolean ownerTransferOnLeave) {
+        this.ownerTransferOnLeave = ownerTransferOnLeave;
         this.audit = audit;
         this.seasonActivity = seasonActivity;
         this.conversations = conversations;
@@ -91,8 +95,7 @@ public class GroupService {
         for (ConversationMember cm : myMemberships) {
             Conversation c = cm.getConversation();
             long memberCount = members.countByConversationId(c.getId());
-            String ownerName = c.getCreatedBy() != null && c.getCreatedBy().getProfile() != null
-                    ? c.getCreatedBy().getProfile().getDisplayName() : "Ẩn danh";
+            String ownerName = ownerName(c.getId());
 
             views.add(new GroupView(
                     c.getId(),
@@ -152,8 +155,7 @@ public class GroupService {
             boolean isMember = userRoles.containsKey(c.getId());
             GroupRole myRole = userRoles.get(c.getId());
             boolean isPending = pendingGroupIds.contains(c.getId());
-            String ownerName = c.getCreatedBy() != null && c.getCreatedBy().getProfile() != null
-                    ? c.getCreatedBy().getProfile().getDisplayName() : "Ẩn danh";
+            String ownerName = ownerName(c.getId());
 
             result.add(new GroupView(
                     c.getId(),
@@ -321,8 +323,7 @@ public class GroupService {
         GroupRole myRole = isMember ? members.findByConversationIdAndUserId(conversationId, userId)
                 .map(ConversationMember::getRole).orElse(null) : null;
         boolean isPending = userId != null && requests.existsByConversationIdAndUserId(conversationId, userId);
-        String ownerName = c.getCreatedBy() != null && c.getCreatedBy().getProfile() != null
-                    ? c.getCreatedBy().getProfile().getDisplayName() : "Ẩn danh";
+        String ownerName = ownerName(c.getId());
 
         return new GroupView(
                 c.getId(),
@@ -446,6 +447,7 @@ public class GroupService {
      */
     @Transactional
     public void removeMember(UUID actorId, UUID groupId, UUID targetUserId) {
+        conversations.lockGroupById(groupId).orElseThrow(() -> new ChatActionException("Không tìm thấy hội nhóm."));
         if (actorId.equals(targetUserId)) {
             throw new ChatActionException("Dùng chức năng rời nhóm thay vì tự xóa.");
         }
@@ -649,7 +651,26 @@ public class GroupService {
      */
     @Transactional
     public void leaveGroup(UUID userId, UUID conversationId, UUID nextOwnerId) {
+        conversations.findSocialGroupById(conversationId)
+                .orElseThrow(() -> new ChatActionException("Không tìm thấy hội nhóm."));
         chatService.leave(userId, conversationId, nextOwnerId);
+    }
+
+    public boolean ownerTransferOnLeave() {
+        return ownerTransferOnLeave;
+    }
+
+    private String ownerName(UUID groupId) {
+        return members.findMembers(groupId).stream().filter(member -> member.getRole() == GroupRole.OWNER)
+                .map(member -> member.getUser().getProfile().getDisplayName()).findFirst().orElse("Ẩn danh");
+    }
+
+    @Transactional(readOnly = true)
+    public List<GroupMemberView> ownerCandidates(UUID groupId, UUID ownerId) {
+        Set<UUID> active = members.findMembers(groupId).stream()
+                .filter(member -> member.getUser().isActive())
+                .map(member -> member.getUser().getId()).collect(Collectors.toSet());
+        return listMembers(groupId).stream().filter(member -> !member.id().equals(ownerId) && active.contains(member.id())).toList();
     }
 
     /**

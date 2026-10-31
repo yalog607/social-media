@@ -5,6 +5,8 @@ import com.aloute.model.chat.ConversationType;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
@@ -18,6 +20,10 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
 
     @Query("select c from Conversation c where c.id = :id and c.type = com.aloute.model.chat.ConversationType.GROUP")
     Optional<Conversation> findGroupById(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Conversation c where c.id = :id and c.type = com.aloute.model.chat.ConversationType.GROUP")
+    Optional<Conversation> lockGroupById(@Param("id") UUID id);
 
     @Query("select c from Conversation c where c.type = com.aloute.model.chat.ConversationType.GROUP order by c.createdAt desc")
     java.util.List<Conversation> findAllGroupConversations();

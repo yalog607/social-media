@@ -43,6 +43,7 @@ import java.util.UUID;
  */
 @Service
 public class ChatService {
+    private final boolean ownerTransferOnLeave;
 
     public static final int MAX_NICKNAME = 40;
 
@@ -62,7 +63,9 @@ public class ChatService {
                        MessageRepository messages, UserRepository users, FriendService friends,
                        BlockService blocks, Clock clock, ChatAttachmentService attachments,
                        StreakService streaks, ConversationRequestRepository conversationRequests,
-                       com.aloute.repository.notification.NotificationRepository notifications) {
+                       com.aloute.repository.notification.NotificationRepository notifications,
+                       @org.springframework.beans.factory.annotation.Value("${aloute.group-owner-transfer-on-leave:true}") boolean ownerTransferOnLeave) {
+        this.ownerTransferOnLeave = ownerTransferOnLeave;
         this.attachments = attachments;
         this.streaks = streaks;
         this.conversations = conversations;
@@ -222,7 +225,7 @@ public class ChatService {
     /** @throws ChatActionException hội thoại là DIRECT (không thể rời, chỉ có thể chặn/xóa quan hệ) */
     @Transactional
     public void leave(UUID actorId, UUID conversationId, UUID nextOwnerId) {
-        Conversation conversation = conversations.findGroupById(conversationId)
+        Conversation conversation = conversations.lockGroupById(conversationId)
                 .orElseThrow(() -> new ChatActionException("Chỉ có thể rời nhóm, không thể rời hội thoại 1-1."));
         if (!members.existsByConversationIdAndUserId(conversation.getId(), actorId)) {
             throw new ConversationNotFoundException();
@@ -231,6 +234,10 @@ public class ChatService {
         boolean wasOwner = leaving.getRole() == GroupRole.OWNER;
 
         List<ConversationMember> rest = members.findMembers(conversation.getId());
+
+        if (ownerTransferOnLeave && conversation.isSocialGroup() && wasOwner && rest.size() <= 1) {
+            throw new ChatActionException("Bạn là thành viên duy nhất. Hãy mời thêm người để chuyển quyền hoặc xóa hội nhóm.");
+        }
 
         if (wasOwner && rest.size() > 1) {
             if (nextOwnerId == null) {
@@ -241,6 +248,9 @@ public class ChatService {
             }
             ConversationMember nextOwner = members.findByConversationIdAndUserId(conversationId, nextOwnerId)
                     .orElseThrow(() -> new ChatActionException("Người được chọn làm chủ nhóm mới không ở trong nhóm."));
+            if (ownerTransferOnLeave && conversation.isSocialGroup() && !nextOwner.getUser().isActive()) {
+                throw new ChatActionException("Người được chọn phải có tài khoản đang hoạt động.");
+            }
             nextOwner.setRole(GroupRole.OWNER);
 
             User actorUser = users.findById(actorId).orElseThrow();
@@ -345,6 +355,7 @@ public class ChatService {
     /** Chủ nhóm nhường quyền cho một thành viên; chủ cũ trở thành quản trị viên. */
     @Transactional
     public void transferOwnership(UUID actorId, UUID conversationId, UUID targetId) {
+        conversations.lockGroupById(conversationId).orElseThrow(ConversationNotFoundException::new);
         Conversation conversation = requireGroupMembership(actorId, conversationId);
         ConversationMember actor = members.findByConversationIdAndUserId(conversationId, actorId).orElseThrow();
         if (actor.getRole() != GroupRole.OWNER) {
@@ -365,6 +376,7 @@ public class ChatService {
     /** Chủ nhóm xóa được mọi người khác; quản trị viên chỉ xóa được thành viên thường. Tự rời nhóm dùng {@link #leave}. */
     @Transactional
     public void removeMember(UUID actorId, UUID conversationId, UUID targetId) {
+        conversations.lockGroupById(conversationId).orElseThrow(ConversationNotFoundException::new);
         Conversation conversation = requireGroupMembership(actorId, conversationId);
         GroupRole actorRole = requireRole(actorId, conversationId);
         if (targetId.equals(actorId)) {

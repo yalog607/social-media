@@ -41,6 +41,7 @@ server:
       force: true
 
 aloute:
+  group-owner-transfer-on-leave: ${ALOUTE_GROUP_OWNER_TRANSFER_ON_LEAVE:true}
   base-url: ${ALOUTE_BASE_URL:http://localhost:8080}
   jwt:
     # BẮT BUỘC đặt qua biến môi trường ở môi trường thật (>= 32 ký tự ngẫu nhiên)
