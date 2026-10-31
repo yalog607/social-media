@@ -99,7 +99,9 @@
 
             <!-- Nút rời nhóm nếu là thành viên -->
             <div th:if="${isMember}">
-                <form method="post" th:action="@{/groups/{id}/leave(id=${group.id})}"
+                <button th:if="${ownerTransferOnLeave}" type="button" class="btn-al btn-al--white btn-al--sm text-danger"
+                        data-bs-toggle="modal" data-bs-target="#leaveSocialGroupModal">Rời nhóm</button>
+                <form th:unless="${ownerTransferOnLeave}" method="post" th:action="@{/groups/{id}/leave(id=${group.id})}"
                       onsubmit="return confirm('Bạn có chắc chắn muốn rời nhóm này không?');">
                     <input type="hidden" name="_csrf" th:value="${_csrf.token}">
                     <button type="submit" class="btn-al btn-al--white btn-al--sm text-danger" title="Rời nhóm">
@@ -109,6 +111,25 @@
             </div>
         </div>
     </section>
+
+    <div th:if="${ownerTransferOnLeave}" class="modal fade" id="leaveSocialGroupModal" tabindex="-1" aria-labelledby="leaveSocialGroupTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content note p-3">
+            <h2 class="h4" id="leaveSocialGroupTitle">Rời hội nhóm</h2>
+            <form th:if="${!#lists.isEmpty(ownerCandidates)}" method="post" th:action="@{/groups/{id}/leave(id=${group.id})}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}">
+                <label for="socialNextOwner">Chọn thành viên nhận quyền chủ nhóm trước khi bạn rời đi:</label>
+                <select id="socialNextOwner" name="nextOwnerId" class="input-al w-100 mt-2" required>
+                    <option value="">Chọn thành viên</option>
+                    <option th:each="candidate : ${ownerCandidates}" th:value="${candidate.id}" th:text="${candidate.displayName} + ' (@' + ${candidate.username} + ')'"></option>
+                </select>
+                <div class="d-flex gap-2 mt-3"><button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn-al btn-al--pink">Chuyển quyền và rời nhóm</button></div>
+            </form>
+            <div th:if="${#lists.isEmpty(ownerCandidates)}">
+                <p>Không có thành viên đang hoạt động để nhận quyền. Hãy mời thêm người hoặc xóa hội nhóm.</p>
+                <button type="button" class="btn-al btn-al--white" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div></div>
+    </div>
 
     <!-- TABS ĐIỀU HƯỚNG TRONG NHÓM -->
     <div class="search-tabs mb-4">

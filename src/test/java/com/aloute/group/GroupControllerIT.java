@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 class GroupControllerIT extends IntegrationTest {
 
@@ -38,6 +39,35 @@ class GroupControllerIT extends IntegrationTest {
     @Autowired ConversationRepository conversations;
     @Autowired ConversationMemberRepository members;
     @Autowired ConversationRequestRepository requests;
+
+    @Test
+    void ownerMustTransferToAnotherMemberBeforeLeaving() throws Exception {
+        User owner = createUser(), successor = createUser(), outsider = createUser();
+        friends.sendRequest(owner.getId(), successor.getId());
+        friends.accept(successor.getId(), owner.getId());
+        Conversation group = groupService.createGroup(owner.getId(), "Chuyển quyền", "", false, List.of(successor.getId()), null);
+
+        mvc.perform(get("/groups/" + group.getId()).with(asUser(owner)))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("socialNextOwner")));
+        mvc.perform(post("/groups/" + group.getId() + "/leave").with(csrf()).with(asUser(owner)))
+                .andExpect(redirectedUrl("/groups/" + group.getId()));
+        mvc.perform(post("/groups/" + group.getId() + "/leave").param("nextOwnerId", outsider.getId().toString()).with(csrf()).with(asUser(owner)))
+                .andExpect(redirectedUrl("/groups/" + group.getId()));
+        assertThat(members.findByConversationIdAndUserId(group.getId(), owner.getId())).isPresent();
+
+        mvc.perform(post("/groups/" + group.getId() + "/leave").param("nextOwnerId", successor.getId().toString()).with(csrf()).with(asUser(owner)))
+                .andExpect(redirectedUrl("/groups"));
+        assertThat(members.findByConversationIdAndUserId(group.getId(), owner.getId())).isEmpty();
+        assertThat(members.findByConversationIdAndUserId(group.getId(), successor.getId())).get()
+                .extracting(m -> m.getRole()).isEqualTo(GroupRole.OWNER);
+        assertThat(groupService.getGroup(group.getId(), successor.getId()).ownerName())
+                .isEqualTo(successor.getProfile().getDisplayName());
+        mvc.perform(post("/groups/" + group.getId() + "/leave").with(csrf()).with(asUser(successor)))
+                .andExpect(redirectedUrl("/groups/" + group.getId()));
+        mvc.perform(post("/messages/" + group.getId() + "/leave").with(csrf()).with(asUser(successor)))
+                .andExpect(redirectedUrl("/messages/" + group.getId()));
+        assertThat(members.findByConversationIdAndUserId(group.getId(), successor.getId())).isPresent();
+    }
 
     @Test
     void onlyOwnerCanDeleteGroupAndItsContentDisappears() throws Exception {
