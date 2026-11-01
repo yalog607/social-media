@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đang làm mới phiên</title></head>
+<body>
+<p>Đang làm mới phiên đăng nhập… <a id="retry" th:href="${retryUrl}">Thử lại</a></p>
+<script th:if="${automaticRetry}">setTimeout(function () { location.replace(document.getElementById('retry').href); }, 200);</script>
+</body>
+</html>

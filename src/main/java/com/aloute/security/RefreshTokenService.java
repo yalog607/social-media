@@ -56,13 +56,20 @@ public class RefreshTokenService {
     public record Rotation(User user, String newRawToken) {
     }
 
+    public record RotationResult(Optional<Rotation> rotation, boolean retry) { }
+
     /** Đổi refresh token cũ lấy cặp (user, token mới). Rỗng nếu token không hợp lệ. */
     @Transactional
     public Optional<Rotation> rotate(String rawToken, String userAgent) {
+        return rotateResult(rawToken, userAgent).rotation();
+    }
+
+    @Transactional
+    public RotationResult rotateResult(String rawToken, String userAgent) {
+        Optional<RefreshToken> found = tokens.findByTokenHashForUpdate(Tokens.sha256Hex(rawToken));
         Instant now = clock.instant();
-        Optional<RefreshToken> found = tokens.findByTokenHash(Tokens.sha256Hex(rawToken));
         if (found.isEmpty()) {
-            return Optional.empty();
+            return new RotationResult(Optional.empty(), false);
         }
         RefreshToken current = found.get();
 
@@ -71,20 +78,20 @@ public class RefreshTokenService {
             if (!withinGrace) {
                 tokens.revokeAllForUser(current.getUserId(), now);
             }
-            return Optional.empty();
+            return new RotationResult(Optional.empty(), withinGrace);
         }
         if (!current.getExpiresAt().isAfter(now)) {
-            return Optional.empty();
+            return new RotationResult(Optional.empty(), false);
         }
 
         Optional<User> user = users.findById(current.getUserId()).filter(User::isActive);
         if (user.isEmpty()) {
             tokens.revokeAllForUser(current.getUserId(), now);
-            return Optional.empty();
+            return new RotationResult(Optional.empty(), false);
         }
 
         current.setRevokedAt(now);
-        return Optional.of(new Rotation(user.get(), issue(user.get(), userAgent)));
+        return new RotationResult(Optional.of(new Rotation(user.get(), issue(user.get(), userAgent))), false);
     }
 
     @Transactional
