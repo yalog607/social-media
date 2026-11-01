@@ -12,12 +12,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#FFF8EC">
-    <link rel="icon" type="image/svg+xml" th:href="@{/logo-proposals/aloute-sticker-icon.svg}">
-    <title th:text="${title} + ' · ALOUTE'">ALOUTE</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/logo-proposals/alora-sticker-icon.svg}">
+    <title th:text="${title} + ' · ALORA'">ALORA</title>
     <th:block th:with="meta=${og != null ? og : siteOg}">
         <meta name="description" th:content="${meta.description}">
         <link rel="canonical" th:if="${og != null}" th:href="${meta.url}">
-        <meta property="og:site_name" content="ALOUTE">
+        <meta property="og:site_name" content="ALORA">
         <meta property="og:locale" content="vi_VN">
         <meta property="og:type" th:content="${meta.type}">
         <meta property="og:title" th:content="${meta.title}">
@@ -46,8 +46,8 @@
     <th:block th:if="${me != null}">
         <header class="topbar">
             <div class="topbar-inner">
-                <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ"><img
-                        th:src="@{/logo-proposals/aloute-sticker-logo.svg}" alt="ALOUTE"></a>
+                <a class="logo" th:href="@{/}" aria-label="ALORA, về trang chủ"><img
+                        th:src="@{/logo-proposals/alora-sticker-logo.svg}" alt="ALORA"></a>
                 <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
                 <span class="ms-auto"></span>
                 <nav class="topbar-actions" aria-label="Lối tắt">
@@ -201,8 +201,8 @@
     <th:block th:if="${me == null}">
         <header class="topbar">
             <div class="topbar-inner">
-                <a class="logo" th:href="@{/}" aria-label="ALOUTE, về trang chủ"><img
-                        th:src="@{/logo-proposals/aloute-sticker-logo.svg}" alt="ALOUTE"></a>
+                <a class="logo" th:href="@{/}" aria-label="ALORA, về trang chủ"><img
+                        th:src="@{/logo-proposals/alora-sticker-logo.svg}" alt="ALORA"></a>
                 <th:block th:replace="~{fragments/search-box :: searchBox}"></th:block>
                 <span class="ms-auto"></span>
                 <a class="btn-al btn-al--ghost btn-al--sm d-none d-sm-inline-flex" th:href="@{/login}">Đăng nhập</a>
@@ -217,7 +217,7 @@
             </div>
             <th:block th:replace="${content}"></th:block>
         </div>
-        <footer class="site-footer">aloute · làm bởi sinh viên, cho cả hội</footer>
+        <footer class="site-footer">alora · làm bởi sinh viên, cho cả hội</footer>
     </th:block>
 
     <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
