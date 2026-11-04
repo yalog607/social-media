@@ -32,13 +32,13 @@ public class MailService {
         String html = """
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto">
                   <h2>Xin chào %s 👋</h2>
-                  <p>Bạn vừa xin đặt lại mật khẩu ALOUTE. Bấm nút dưới đây (link dùng được trong %d phút, chỉ một lần):</p>
+                  <p>Bạn vừa xin đặt lại mật khẩu ALORA. Bấm nút dưới đây (link dùng được trong %d phút, chỉ một lần):</p>
                   <p><a href="%s" style="display:inline-block;padding:12px 20px;background:#FFE45E;color:#16121F;
                      border:2px solid #16121F;border-radius:10px;font-weight:bold;text-decoration:none">Đặt lại mật khẩu</a></p>
                   <p style="color:#666;font-size:13px">Nếu không phải bạn yêu cầu, cứ bỏ qua email này — mật khẩu vẫn an toàn.</p>
                 </div>
                 """.formatted(name, validMinutes, HtmlUtils.htmlEscape(link));
-        send(to, "Đặt lại mật khẩu ALOUTE", html);
+        send(to, "Đặt lại mật khẩu ALORA", html);
     }
 
     /**
@@ -69,20 +69,20 @@ public class MailService {
                 : "";
         String html = """
                 <div style="font-family:Arial,sans-serif;max-width:540px;margin:auto;padding:16px;border:1px solid #E5E7EB;border-radius:12px;">
-                  <h2 style="color:#D9383A;margin-top:0;">Thông báo xử lý vi phạm ALOUTE</h2>
+                  <h2 style="color:#D9383A;margin-top:0;">Thông báo xử lý vi phạm ALORA</h2>
                   <p>Xin chào <strong>%s</strong>,</p>
                   <p>Chúng tôi gửi thông báo này để thông tin rằng %s của bạn đã bị áp dụng biện pháp xử lý: <strong>%s</strong>.</p>
                   %s
                   %s
                   <p style="color:#555;font-size:14px;margin-top:20px;">
-                    Nếu bạn cho rằng đây là sự nhầm lẫn, bạn có thể tạo phiếu yêu cầu hỗ trợ và khiếu nại tại mục <strong>Hỗ trợ</strong> trên hệ thống ALOUTE.
+                    Nếu bạn cho rằng đây là sự nhầm lẫn, bạn có thể tạo phiếu yêu cầu hỗ trợ và khiếu nại tại mục <strong>Hỗ trợ</strong> trên hệ thống ALORA.
                   </p>
                   <p style="color:#888;font-size:12px;border-top:1px solid #E5E7EB;padding-top:10px;margin-bottom:0;">
-                    Email này được gửi tự động từ hệ thống Kiểm duyệt ALOUTE.
+                    Email này được gửi tự động từ hệ thống Kiểm duyệt ALORA.
                   </p>
                 </div>
                 """.formatted(name, targetLabel, actionLabel, previewHtml, reasonHtml);
-        send(to, "[ALOUTE] Thông báo về việc " + actionLabel.toLowerCase(), html);
+        send(to, "[ALORA] Thông báo về việc " + actionLabel.toLowerCase(), html);
     }
 
     private void send(String to, String subject, String html) {

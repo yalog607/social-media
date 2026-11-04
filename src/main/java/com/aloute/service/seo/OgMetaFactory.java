@@ -17,8 +17,8 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class OgMetaFactory {
 
-    static final String DEFAULT_IMAGE = "/img/og-default.png";
-    static final String SITE_TITLE = "ALOUTE · Alô, cả hội đâu rồi?";
+    static final String DEFAULT_IMAGE = "/logo-proposals/alora-sticker-logo.png";
+    static final String SITE_TITLE = "ALORA · Alô, cả hội đâu rồi?";
     static final String SITE_DESCRIPTION =
             "Đăng ảnh, khoe clip, nhắn nhóm và làm fan cứng của người mình thích. Tất cả ở một chỗ, không cần lịch sự quá.";
     private static final int DESCRIPTION_MAX = 160;
@@ -39,8 +39,8 @@ public class OgMetaFactory {
         // Chỉ dùng nội dung/ảnh bài gốc khi nó công khai và không thuộc nhóm (bài gốc có thể đã đổi quyền sau khi được chia sẻ)
         boolean originalExposable = original != null && original.isPublic() && original.groupId() == null;
         String title = post.isAnonymous()
-                ? "Một bạn ẩn danh trên ALOUTE"
-                : post.author().displayName() + " trên ALOUTE";
+                ? "Một bạn ẩn danh trên ALORA"
+                : post.author().displayName() + " trên ALORA";
         String text = truncate(plainText(post.contentHtml()));
         if (text.isEmpty() && originalExposable) {
             text = truncate(plainText(original.contentHtml()));
@@ -58,17 +58,17 @@ public class OgMetaFactory {
         Profile profile = owner.getProfile();
         String url = baseUrl + "/u/" + owner.getUsername();
         if (profile.getProfileVisibility() != Visibility.PUBLIC) {
-            return new OgMeta(profile.getDisplayName() + " trên ALOUTE", SITE_DESCRIPTION,
+            return new OgMeta(profile.getDisplayName() + " trên ALORA", SITE_DESCRIPTION,
                     absolute(DEFAULT_IMAGE), url, "profile", true);
         }
         String bio = truncate(profile.getBio());
         boolean hasAvatar = profile.getAvatarUrl() != null && !profile.getAvatarUrl().isBlank();
-        return new OgMeta(profile.getDisplayName() + " trên ALOUTE", bio.isEmpty() ? SITE_DESCRIPTION : bio,
+        return new OgMeta(profile.getDisplayName() + " trên ALORA", bio.isEmpty() ? SITE_DESCRIPTION : bio,
                 absolute(hasAvatar ? profile.getAvatarUrl() : DEFAULT_IMAGE), url, "profile", !hasAvatar);
     }
 
     public OgMeta tag(String tag) {
-        return new OgMeta("#" + tag + " trên ALOUTE", "Xem các bài đăng với #" + tag + " trên ALOUTE.",
+        return new OgMeta("#" + tag + " trên ALORA", "Xem các bài đăng với #" + tag + " trên ALORA.",
                 absolute(DEFAULT_IMAGE), baseUrl + "/tags/" + UriUtils.encodePathSegment(tag, StandardCharsets.UTF_8), "website", true);
     }
 
