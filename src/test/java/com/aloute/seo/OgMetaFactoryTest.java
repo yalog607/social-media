@@ -53,7 +53,8 @@ class OgMetaFactoryTest {
     @Test
     void siteUsesDefaultImage() {
         OgMeta og = factory.site();
-        assertThat(og.image()).isEqualTo("https://aloute.example/img/og-default.png");
+        assertThat(og.title()).isEqualTo("ALORA · Alô, cả hội đâu rồi?");
+        assertThat(og.image()).isEqualTo("https://aloute.example/logo-proposals/alora-sticker-logo.png");
         assertThat(og.defaultImage()).isTrue();
     }
 
@@ -62,7 +63,7 @@ class OgMetaFactoryTest {
         OgMeta og = factory.post(post("lan", "xin chào", media(MediaKind.IMAGE, "/uploads/posts/a.jpg")));
         assertThat(og.image()).isEqualTo("https://aloute.example/uploads/posts/a.jpg");
         assertThat(og.defaultImage()).isFalse();
-        assertThat(og.title()).isEqualTo("Bạn lan trên ALOUTE");
+        assertThat(og.title()).isEqualTo("Bạn lan trên ALORA");
     }
 
     @Test
@@ -73,16 +74,29 @@ class OgMetaFactoryTest {
 
     @Test
     void textOnlyAndVideoOnlyPostsFallBackToDefaultImage() {
-        assertThat(factory.post(post("lan", "chỉ chữ")).image()).endsWith("/img/og-default.png");
+        assertThat(factory.post(post("lan", "chỉ chữ")).image()).endsWith("/logo-proposals/alora-sticker-logo.png");
         OgMeta video = factory.post(post("lan", "clip", media(MediaKind.VIDEO, "/uploads/posts/v.mp4")));
-        assertThat(video.image()).endsWith("/img/og-default.png");
+        assertThat(video.image()).endsWith("/logo-proposals/alora-sticker-logo.png");
         assertThat(video.defaultImage()).isTrue();
     }
 
     @Test
     void anonymousPostHidesAuthor() {
         PostView p = post("lan", "bí mật", true, null);
+        assertThat(factory.post(p).title()).isEqualTo("Một bạn ẩn danh trên ALORA");
         assertThat(factory.post(p).title()).doesNotContain("lan");
+    }
+
+    @Test
+    void brandingDoesNotRenameUserContentOrProfile() {
+        PostView p = post("ALOUTE", "Tôi vẫn viết #ALOUTE");
+        assertThat(factory.post(p).title()).isEqualTo("Bạn ALOUTE trên ALORA");
+        assertThat(factory.post(p).description()).isEqualTo("Tôi vẫn viết #ALOUTE");
+        User owner = user("ALOUTE");
+        owner.getProfile().setProfileVisibility(Visibility.PUBLIC);
+        owner.getProfile().setBio("Fan ALOUTE");
+        assertThat(factory.profile(owner).title()).isEqualTo("Bạn ALOUTE trên ALORA");
+        assertThat(factory.profile(owner).description()).isEqualTo("Fan ALOUTE");
     }
 
     @Test
@@ -101,7 +115,7 @@ class OgMetaFactoryTest {
                 null, false, false, null, null);
         PostView share = post("b", "", false, original);
         OgMeta og = factory.post(share);
-        assertThat(og.image()).endsWith("/img/og-default.png");
+        assertThat(og.image()).endsWith("/logo-proposals/alora-sticker-logo.png");
         assertThat(og.description()).doesNotContain("bí mật");
     }
 
@@ -127,7 +141,7 @@ class OgMetaFactoryTest {
         u.getProfile().setProfileVisibility(Visibility.PRIVATE);
         OgMeta og = factory.profile(u);
         assertThat(og.description()).doesNotContain("riêng");
-        assertThat(og.image()).endsWith("/img/og-default.png");
+        assertThat(og.image()).endsWith("/logo-proposals/alora-sticker-logo.png");
         u.getProfile().setProfileVisibility(Visibility.PUBLIC);
         assertThat(factory.profile(u).image()).endsWith("/uploads/avatars/x.jpg");
     }

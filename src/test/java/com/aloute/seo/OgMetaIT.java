@@ -21,7 +21,7 @@ class OgMetaIT extends IntegrationTest {
 
     private static final String BOT = "facebookexternalhit/1.1";
     private static final String DEFAULT_IMAGE_TAG =
-            "property=\"og:image\" content=\"http://localhost:8080/img/og-default.png\"";
+            "property=\"og:image\" content=\"http://localhost:8080/logo-proposals/alora-sticker-logo.png\"";
 
     @Autowired PostService posts;
 
@@ -61,7 +61,7 @@ class OgMetaIT extends IntegrationTest {
         mvc.perform(get("/u/" + user.getUsername()).header("User-Agent", BOT)).andExpect(status().isOk())
                 .andExpect(content().string(containsString("property=\"og:type\" content=\"profile\"")));
         mvc.perform(get("/tags/mon-an").header("User-Agent", BOT)).andExpect(status().isOk())
-                .andExpect(content().string(containsString("property=\"og:title\" content=\"#mon-an trên ALOUTE\"")));
+                .andExpect(content().string(containsString("property=\"og:title\" content=\"#mon-an trên ALORA\"")));
         mvc.perform(get("/u/" + user.getUsername())).andExpect(status().isFound());
     }
 

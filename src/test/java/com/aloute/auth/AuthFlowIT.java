@@ -9,6 +9,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -231,7 +234,11 @@ class AuthFlowIT extends IntegrationTest {
         mvc.perform(post("/auth/refresh").with(csrf()).cookie(stolen)).andExpect(status().isUnauthorized());
 
         // Token hợp lệ hiện tại cũng bị thu hồi vì nghi ngờ bị đánh cắp
-        mvc.perform(post("/auth/refresh").with(csrf()).cookie(legit)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/auth/refresh").with(csrf()).cookie(legit)).andExpect(status().isConflict());
+        clock.advance(Duration.ofSeconds(11));
+        MvcResult revoked = mvc.perform(post("/auth/refresh").with(csrf()).cookie(legit))
+                .andExpect(status().isUnauthorized()).andReturn();
+        assertThat(cookie(revoked, CookieService.ACCESS_COOKIE)).isNull();
     }
 
     @Test
@@ -241,11 +248,47 @@ class AuthFlowIT extends IntegrationTest {
 
         MvcResult first = mvc.perform(post("/auth/refresh").with(csrf()).cookie(original))
                 .andExpect(status().isNoContent()).andReturn();
-        mvc.perform(post("/auth/refresh").with(csrf()).cookie(original)).andExpect(status().isUnauthorized());
+        MvcResult concurrent = mvc.perform(post("/auth/refresh").with(csrf()).cookie(original))
+                .andExpect(status().isConflict()).andReturn();
+        assertThat(cookie(concurrent, CookieService.ACCESS_COOKIE)).isNull();
+        assertThat(cookie(concurrent, CookieService.REFRESH_COOKIE)).isNull();
+        MvcResult pageRetry = mvc.perform(get("/auth/refresh").param("next", "/settings").cookie(original))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(cookie(pageRetry, CookieService.ACCESS_COOKIE)).isNull();
+        assertThat(pageRetry.getModelAndView().getViewName()).isEqualTo("auth/refresh-retry");
 
         // Phiên hợp lệ từ lần refresh đầu vẫn dùng được
         mvc.perform(post("/auth/refresh").with(csrf()).cookie(cookie(first, CookieService.REFRESH_COOKIE)))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void simultaneousRefreshesIssueOnlyOneSuccess() throws Exception {
+        Cookie original = cookie(register(suffix()), CookieService.REFRESH_COOKIE);
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<MvcResult> refresh = () -> {
+                ready.countDown();
+                if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("start timeout");
+                return mvc.perform(post("/auth/refresh").with(csrf()).cookie(original)).andReturn();
+            };
+            var first = executor.submit(refresh);
+            var second = executor.submit(refresh);
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            var results = java.util.List.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS));
+            assertThat(results.stream().map(r -> r.getResponse().getStatus())).containsExactlyInAnyOrder(204, 409);
+            var rejected = results.stream().filter(r -> r.getResponse().getStatus() == 409).findFirst().orElseThrow();
+            assertThat(cookie(rejected, CookieService.REFRESH_COOKIE)).isNull();
+        }
+    }
+
+    @Test
+    void sessionPreflightRequiresValidAccessToken() throws Exception {
+        mvc.perform(get("/api/auth/session")).andExpect(status().isUnauthorized());
+        Cookie access = cookie(register(suffix()), CookieService.ACCESS_COOKIE);
+        mvc.perform(get("/api/auth/session").cookie(access)).andExpect(status().isNoContent());
     }
 
     @Test
@@ -259,6 +302,8 @@ class AuthFlowIT extends IntegrationTest {
 
         assertThat(cookie(out, CookieService.ACCESS_COOKIE).getMaxAge()).isZero();
         assertThat(cookie(out, CookieService.REFRESH_COOKIE).getMaxAge()).isZero();
+        mvc.perform(post("/auth/refresh").with(csrf()).cookie(refresh)).andExpect(status().isConflict());
+        clock.advance(Duration.ofSeconds(11));
         mvc.perform(post("/auth/refresh").with(csrf()).cookie(refresh)).andExpect(status().isUnauthorized());
     }
 }

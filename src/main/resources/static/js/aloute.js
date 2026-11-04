@@ -13,6 +13,19 @@
    * vừa được cấp lại đúng lúc gọi, ví dụ do một request khác vừa refresh phiên) thì đọc lại cookie và
    * thử lại đúng một lần trước khi trả lỗi thật.
    */
+  let refreshing = null;
+  async function refreshSession() {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const response = await fetch('/auth/refresh', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-XSRF-TOKEN': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      if (response.status !== 409) return response.status;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return 409;
+  }
+
   async function api(url, options) {
     const opts = Object.assign({ credentials: 'same-origin' }, options);
     opts.headers = Object.assign({ 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }, opts.headers);
@@ -24,15 +37,12 @@
 
     let response = await fetch(url, opts);
     if (response.status === 401 && !url.startsWith('/auth/')) {
-      const refreshed = await fetch('/auth/refresh', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'X-XSRF-TOKEN': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
-      });
-      if (refreshed.ok) {
+      if (!refreshing) refreshing = refreshSession().finally(() => { refreshing = null; });
+      const refreshStatus = await refreshing;
+      if (refreshStatus >= 200 && refreshStatus < 300) {
         opts.headers['X-XSRF-TOKEN'] = csrfToken();
         response = await fetch(url, opts);
-      } else {
+      } else if (refreshStatus === 401) {
         window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
       }
     } else if (response.status === 403 && isWrite) {
@@ -44,6 +54,37 @@
     }
     return response;
   }
+
+  // Kiểm tra phiên trước khi giao form cho các handler và trình duyệt, giữ nguyên submitter và file.
+  const checkedForms = new WeakSet();
+  const checkingForms = new WeakSet();
+  document.addEventListener('submit', async function (event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || document.body.dataset.auth !== 'true') return;
+    const submitter = event.submitter;
+    const method = (submitter && submitter.hasAttribute('formmethod') ? submitter.formMethod : form.method).toLowerCase();
+    const action = new URL(submitter && submitter.hasAttribute('formaction') ? submitter.formAction : form.action, location.href);
+    if (method !== 'post' || action.origin !== location.origin) return;
+    if (checkedForms.has(form)) { checkedForms.delete(form); return; }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (checkingForms.has(form)) return;
+    checkingForms.add(form);
+    try {
+      const response = await api('/api/auth/session');
+      if (!response.ok) {
+        toast('Không kiểm tra được phiên đăng nhập. Vui lòng thử lại.', 'error');
+        return;
+      }
+      checkedForms.add(form);
+      form.requestSubmit(submitter || undefined);
+    } catch (error) {
+      toast('Không kiểm tra được phiên đăng nhập. Vui lòng thử lại.', 'error');
+    } finally {
+      checkedForms.delete(form);
+      checkingForms.delete(form);
+    }
+  }, true);
 
   /** Kết quả thao tác, mới nhất trên cùng. kind: ok | success | error | warn */
   function toast(message, kind) {

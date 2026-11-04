@@ -26,7 +26,7 @@
 
     <section class="mb-4" aria-labelledby="messagesPeopleLabel" id="messagesPeopleSearch"
              th:attr="data-search-url=@{/api/messages/people}">
-        <label for="messagesPeopleQuery" id="messagesPeopleLabel" class="fw-bold mb-2">Tìm người trên ALOUTE</label>
+        <label for="messagesPeopleQuery" id="messagesPeopleLabel" class="fw-bold mb-2">Tìm người trên ALORA</label>
         <input type="search" id="messagesPeopleQuery" class="input-al w-100" autocomplete="off"
                placeholder="Nhập tên hoặc username..." aria-describedby="messagesPeopleStatus" aria-controls="messagesPeopleResults">
         <p id="messagesPeopleStatus" class="text-soft small mt-2" role="status" aria-live="polite">Nhập ít nhất 2 ký tự để tìm người.</p>
@@ -133,7 +133,7 @@
 
         <section class="note note--sky empty" th:if="${#lists.isEmpty(conversations)}">
             <h2 class="h3">Chưa có cuộc trò chuyện nào</h2>
-            <p>Tìm người trên ALOUTE để bắt đầu nhắn tin nhé.</p>
+            <p>Tìm người trên ALORA để bắt đầu nhắn tin nhé.</p>
         </section>
     </section>
 

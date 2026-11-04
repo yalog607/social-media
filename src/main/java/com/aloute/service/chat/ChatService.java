@@ -572,7 +572,7 @@ public class ChatService {
         }
         return otherMember(conversation, viewerId)
                 .map(m -> m.getNickname() != null ? m.getNickname() : m.getUser().getProfile().getDisplayName())
-                .orElse("Người dùng đã rời ALOUTE");
+                .orElse("Người dùng đã rời ALORA");
     }
 
     private String displayAvatarFrame(Conversation conversation, UUID viewerId) {
